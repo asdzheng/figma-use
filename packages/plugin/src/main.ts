@@ -5,11 +5,11 @@ figma.showUI(__html__, { width: 300, height: 200 })
 // Font cache to avoid repeated loadFontAsync calls
 const loadedFonts = new Set<string>()
 
-async function loadFont(family: string, style: string): Promise<void> {
+function loadFont(family: string, style: string): Promise<void> | void {
   const key = `${family}:${style}`
-  if (loadedFonts.has(key)) return
-  await figma.loadFontAsync({ family, style })
-  loadedFonts.add(key)
+  if (loadedFonts.has(key)) return // sync return if cached
+  loadedFonts.add(key) // add before await to prevent race
+  return figma.loadFontAsync({ family, style })
 }
 
 // Fast node creation for batch operations - skips full serialization
