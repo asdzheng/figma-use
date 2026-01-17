@@ -8,6 +8,8 @@ import { join } from 'path'
 import * as React from 'react'
 import { renderToNodeChanges } from '../render/index.ts'
 import { FigmaMultiplayerClient, getCookiesFromDevTools, initCodec } from '../multiplayer/index.ts'
+import { COMPONENT_NAMES } from '../render/components.tsx'
+import { spawnSync } from 'child_process'
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = []
@@ -15,6 +17,63 @@ async function readStdin(): Promise<string> {
     chunks.push(chunk)
   }
   return Buffer.concat(chunks).toString('utf-8')
+}
+
+function findNodeModulesDir(): string | null {
+  let dir = import.meta.dir
+  for (let i = 0; i < 10; i++) {
+    if (existsSync(join(dir, 'node_modules', 'react'))) {
+      return dir
+    }
+    const parent = resolve(dir, '..')
+    if (parent === dir) break
+    dir = parent
+  }
+  return null
+}
+
+/**
+ * Transform JSX snippet to a factory function using esbuild
+ */
+function transformJsxSnippet(code: string): string {
+  const trimmed = code.trim()
+  
+  // Already a complete module - return as is
+  if (trimmed.includes('import ') || trimmed.includes('export ')) {
+    return code
+  }
+  
+  // Detect which components are used
+  const usedComponents = COMPONENT_NAMES.filter(name => 
+    new RegExp(`<${name}[\\s/>]`).test(trimmed)
+  )
+  
+  // Component definitions using passed React
+  const componentDefs = usedComponents.map(name => {
+    const elementType = name.toLowerCase()
+    return `const ${name} = ({ children, ...props }) => React.createElement('${elementType}', props, children);`
+  }).join('\n')
+  
+  // Use esbuild to transform JSX to React.createElement
+  const jsxCode = `(${trimmed})`
+  const result = spawnSync('bunx', [
+    'esbuild', '--loader=tsx', '--jsx=transform', 
+    '--jsx-factory=React.createElement', '--jsx-fragment=React.Fragment'
+  ], {
+    input: jsxCode,
+    encoding: 'utf-8',
+  })
+  
+  if (result.error || result.status !== 0) {
+    throw new Error(`JSX transform failed: ${result.stderr || result.error}`)
+  }
+  
+  const transformedJsx = result.stdout.trim().replace(/;\s*$/, '')
+  
+  return `export default function createComponent(React) {
+${componentDefs}
+return () => ${transformedJsx};
+}`
 }
 
 export default defineCommand({
@@ -36,14 +95,18 @@ export default defineCommand({
     
     // Handle stdin or file
     if (args.stdin) {
-      const code = await readStdin()
+      let code = await readStdin()
       if (!code.trim()) {
         console.error(fail('No input received from stdin'))
         process.exit(1)
       }
       
-      // Write to temp file for Bun to import
-      tempFile = join(tmpdir(), `figma-render-${Date.now()}.tsx`)
+      // Transform JSX snippet to factory function
+      code = transformJsxSnippet(code)
+      
+      // Write temp file
+      const baseDir = findNodeModulesDir() || tmpdir()
+      tempFile = join(baseDir, `.figma-render-${Date.now()}.js`)
       writeFileSync(tempFile, code)
       filePath = tempFile
     } else if (args.file) {
@@ -63,7 +126,12 @@ export default defineCommand({
       const module = await import(filePath)
       
       const exportName = args.export || 'default'
-      const Component = module[exportName]
+      let Component = module[exportName]
+      
+      // If it's a factory (from stdin wrapper), call it with our React
+      if (typeof Component === 'function' && Component.length === 1 && args.stdin) {
+        Component = Component(React)
+      }
       
       if (!Component) {
         console.error(fail(`Export "${exportName}" not found`))
