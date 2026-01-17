@@ -1,5 +1,5 @@
 import { defineCommand } from 'citty'
-import { handleError, getFileKey, getParentGUID } from '../client.ts'
+import { handleError, getFileKey, getParentGUID, sendCommand } from '../client.ts'
 import { ok, fail } from '../format.ts'
 import { resolve } from 'path'
 import { existsSync, writeFileSync, unlinkSync } from 'fs'
@@ -9,6 +9,8 @@ import * as React from 'react'
 import { renderToNodeChanges, INTRINSIC_ELEMENTS } from '../render/index.ts'
 import { FigmaMultiplayerClient, getCookiesFromDevTools, initCodec } from '../multiplayer/index.ts'
 import { transformSync } from 'esbuild'
+
+const PROXY_URL = process.env.FIGMA_PROXY_URL || 'http://localhost:38451'
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = []
@@ -70,6 +72,7 @@ export default defineCommand({
     export: { type: 'string', description: 'Named export (default: default)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     dryRun: { type: 'boolean', description: 'Output NodeChanges without sending to Figma' },
+    direct: { type: 'boolean', description: 'Connect directly to Figma (bypass proxy)' },
   },
   async run({ args }) {
     let filePath: string
@@ -120,10 +123,7 @@ export default defineCommand({
         process.exit(1)
       }
       
-      // Initialize codec
-      await initCodec()
-      
-      // Get connection info
+      // Get file key from DevTools
       let fileKey: string
       try {
         fileKey = await getFileKey()
@@ -139,34 +139,60 @@ export default defineCommand({
         ? parseGUID(args.parent)
         : await getParentGUID()
       
-      // Connect to Figma
-      let cookies: string
-      try {
-        cookies = await getCookiesFromDevTools()
-      } catch {
-        console.error(fail('Cannot get cookies from Chrome DevTools'))
-        console.error('')
-        console.error('Make sure Figma is running with:')
-        console.error('  figma --remote-debugging-port=9222')
-        process.exit(1)
-      }
+      // Get session ID - either from proxy or direct connection
+      let sessionID: number
+      let sendNodeChanges: (changes: unknown[]) => Promise<void>
+      let cleanup: () => void = () => {}
       
-      const client = new FigmaMultiplayerClient(fileKey)
-      const session = await client.connect(cookies)
+      if (args.direct) {
+        // Direct connection (slower for repeated calls, but no proxy needed)
+        await initCodec()
+        
+        let cookies: string
+        try {
+          cookies = await getCookiesFromDevTools()
+        } catch {
+          console.error(fail('Cannot get cookies from Chrome DevTools'))
+          process.exit(1)
+        }
+        
+        const client = new FigmaMultiplayerClient(fileKey)
+        const session = await client.connect(cookies)
+        sessionID = session.sessionID
+        sendNodeChanges = (changes) => client.sendNodeChangesSync(changes as any)
+        cleanup = () => client.close()
+      } else {
+        // Via proxy (faster for repeated calls - connection pooling)
+        // Get session ID from proxy status or use current page's session
+        const parts = parentGUID.sessionID.toString()
+        sessionID = parentGUID.sessionID || Date.now() % 1000000
+        
+        sendNodeChanges = async (changes) => {
+          const response = await fetch(`${PROXY_URL}/render`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileKey, nodeChanges: changes }),
+          })
+          const data = await response.json() as { error?: string }
+          if (data.error) {
+            throw new Error(data.error)
+          }
+        }
+      }
       
       // Create React element and render to NodeChanges
       const props = args.props ? JSON.parse(args.props) : {}
       const element = React.createElement(Component, props)
       
       const result = renderToNodeChanges(element, {
-        sessionID: session.sessionID,
+        sessionID,
         parentGUID,
         startLocalID: Date.now() % 1000000,
       })
       
       if (args.dryRun) {
         console.log(JSON.stringify(result.nodeChanges, null, 2))
-        client.close()
+        cleanup()
         return
       }
       
@@ -175,8 +201,8 @@ export default defineCommand({
       }
       
       // Send to Figma
-      await client.sendNodeChangesSync(result.nodeChanges)
-      client.close()
+      await sendNodeChanges(result.nodeChanges)
+      cleanup()
       
       // Output
       if (args.json) {

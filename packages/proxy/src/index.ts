@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia'
 import { consola } from 'consola'
+import { getMultiplayerConnection, getConnectionStatus, closeAllConnections, type NodeChange } from './multiplayer.ts'
 
 const PORT = Number(process.env.PORT) || 38451
 
@@ -114,8 +115,48 @@ new Elysia()
     }
   })
   .get('/status', () => ({
-    pluginConnected: sendToPlugin !== null
+    pluginConnected: sendToPlugin !== null,
+    multiplayer: getConnectionStatus()
   }))
+  .post('/render', async ({ body }) => {
+    const { fileKey, nodeChanges, parentGUID } = body as {
+      fileKey: string
+      nodeChanges: NodeChange[]
+      parentGUID?: { sessionID: number; localID: number }
+    }
+    
+    if (!fileKey) {
+      return { error: 'fileKey is required' }
+    }
+    
+    if (!nodeChanges || !Array.isArray(nodeChanges)) {
+      return { error: 'nodeChanges array is required' }
+    }
+    
+    try {
+      const { client, sessionID } = await getMultiplayerConnection(fileKey)
+      
+      consola.info(`render: ${nodeChanges.length} nodes to ${fileKey}`)
+      
+      await client.sendNodeChangesSync(nodeChanges)
+      
+      const ids = nodeChanges.map(nc => ({
+        id: `${nc.guid.sessionID}:${nc.guid.localID}`,
+        name: nc.name,
+      }))
+      
+      return { 
+        result: { 
+          count: nodeChanges.length,
+          sessionID,
+          nodes: ids 
+        } 
+      }
+    } catch (e) {
+      consola.error('render failed:', e instanceof Error ? e.message : e)
+      return { error: e instanceof Error ? e.message : String(e) }
+    }
+  })
   .listen(PORT)
 
 consola.start(`Proxy server running on http://localhost:${PORT}`)
