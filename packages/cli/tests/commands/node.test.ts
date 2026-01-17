@@ -62,4 +62,17 @@ describe('node', () => {
     const result = await run(`node delete ${rect.id} --json`) as any
     expect(result.deleted).toBe(true)
   })
+
+  test('tree returns formatted tree', async () => {
+    const output = await run(`node tree ${testFrameId}`, false) as string
+    expect(output).toContain('frame')
+    expect(output).toContain(testFrameId)
+    expect(output).toContain('nodes')
+  })
+
+  test('tree with depth limits output', async () => {
+    const output = await run(`node tree ${testFrameId} --depth 0`, false) as string
+    expect(output).toContain('frame')
+    expect(output).not.toContain('[0] rectangle')
+  })
 })

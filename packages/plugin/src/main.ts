@@ -26,6 +26,23 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       return node ? serializeNode(node) : null
     }
 
+    case 'get-current-page':
+      return { id: figma.currentPage.id, name: figma.currentPage.name }
+
+    case 'get-node-tree': {
+      const { id } = args as { id: string }
+      const node = await figma.getNodeByIdAsync(id)
+      if (!node) throw new Error('Node not found')
+      const serializeTree = (n: BaseNode): object => {
+        const base = serializeNode(n) as Record<string, unknown>
+        if ('children' in n && (n as FrameNode).children) {
+          base.children = (n as FrameNode).children.map(serializeTree)
+        }
+        return base
+      }
+      return serializeTree(node)
+    }
+
     case 'get-all-components': {
       const components: object[] = []
       figma.root.findAll((node) => {

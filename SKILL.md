@@ -51,12 +51,23 @@ figma-use create text --x 0 --y 0 --text "Hello" \
 
 ```bash
 figma-use node get <id>                      # Get properties
+figma-use node tree [id]                     # Get formatted tree (see structure at a glance)
+figma-use node tree --depth 2                # Limit tree depth
+figma-use node tree -i                       # Only interactive elements
 figma-use node children <id>                 # List children
 figma-use node move <id> --x 100 --y 200
 figma-use node resize <id> --width 300 --height 200
 figma-use node rename <id> "New Name"
 figma-use node clone <id>
 figma-use node delete <id>
+```
+
+`tree` output example:
+```
+[0] frame "Card" (1:23)
+    400×300 at (0, 0) | fill: #FFFFFF | layout: col gap=16
+  [0] text "Title" (1:24)
+      200×32 at (24, 24) | "Hello World" | font: 24px Inter
 ```
 
 ### Set Properties

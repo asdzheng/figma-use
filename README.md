@@ -92,12 +92,26 @@ All create commands support inline styling — no need for separate `set` calls.
 
 ```bash
 figma-use node get <id>                    # Get node properties
+figma-use node tree [id]                   # Get formatted tree (default: current page)
+figma-use node tree --depth 2              # Limit tree depth
+figma-use node tree -i                     # Only interactive elements
 figma-use node children <id>               # Get child nodes
 figma-use node delete <id>                 # Delete node
 figma-use node clone <id>                  # Clone node
 figma-use node rename <id> <name>          # Rename node
 figma-use node move <id> --x <x> --y <y>   # Move node
 figma-use node resize <id> --width <w> --height <h>
+```
+
+The `tree` command outputs a human-readable hierarchy:
+
+```
+[0] frame "Card" (1:23)
+    400×300 at (0, 0) | fill: #FFFFFF | layout: col gap=16
+  [0] text "Title" (1:24)
+      200×32 at (24, 24) | fill: #000000 | "Hello World" | font: 24px Inter Bold
+  [1] frame "Content" (1:25)
+      352×200 at (24, 72) | fill: #F5F5F5 | radius: 8
 ```
 
 ### Create Shapes
