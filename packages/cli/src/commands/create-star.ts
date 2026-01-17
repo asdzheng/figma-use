@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Create a star' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     x: { type: 'string', description: 'X position', required: true },
     y: { type: 'string', description: 'Y position', required: true },
     size: { type: 'string', description: 'Size', required: true },
@@ -14,7 +15,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(await sendCommand('create-star', {
+      const result = await sendCommand('create-star', {
         x: Number(args.x),
         y: Number(args.y),
         size: Number(args.size),
@@ -22,7 +23,8 @@ export default defineCommand({
         innerRadius: Number(args.innerRadius),
         name: args.name,
         parentId: args.parentId
-      }))
+      })
+      printResult(result, args.json, 'create')
     } catch (e) { handleError(e) }
   }
 })

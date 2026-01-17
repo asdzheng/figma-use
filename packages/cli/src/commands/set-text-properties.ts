@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Set text properties (line height, spacing, alignment, etc)' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     id: { type: 'string', description: 'Text node ID', required: true },
     lineHeight: { type: 'string', description: 'Line height (number or "auto")' },
     letterSpacing: { type: 'string', description: 'Letter spacing in px' },
@@ -16,7 +17,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(await sendCommand('set-text-properties', {
+      const result = await sendCommand('set-text-properties', {
         id: args.id,
         lineHeight: args.lineHeight === 'auto' ? 'auto' : (args.lineHeight ? Number(args.lineHeight) : undefined),
         letterSpacing: args.letterSpacing ? Number(args.letterSpacing) : undefined,
@@ -26,7 +27,8 @@ export default defineCommand({
         maxLines: args.maxLines ? Number(args.maxLines) : undefined,
         paragraphSpacing: args.paragraphSpacing ? Number(args.paragraphSpacing) : undefined,
         paragraphIndent: args.paragraphIndent ? Number(args.paragraphIndent) : undefined
-      }))
+      })
+      printResult(result, args.json, 'update')
     } catch (e) { handleError(e) }
   }
 })

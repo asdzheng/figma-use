@@ -5,6 +5,7 @@ import { writeFileSync } from 'fs'
 export default defineCommand({
   meta: { description: 'Export node as image' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     id: { type: 'string', description: 'Node ID', required: true },
     format: { type: 'string', description: 'Format: PNG, JPG, SVG, PDF', default: 'PNG' },
     scale: { type: 'string', description: 'Export scale', default: '1' },

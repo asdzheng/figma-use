@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Create an effect style' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     name: { type: 'string', description: 'Style name', required: true },
     type: { type: 'string', description: 'Effect type: DROP_SHADOW, INNER_SHADOW, BLUR, BACKGROUND_BLUR', required: true },
     radius: { type: 'string', description: 'Blur radius', default: '10' },
@@ -13,14 +14,15 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(await sendCommand('create-effect-style', {
+      const result = await sendCommand('create-effect-style', {
         name: args.name,
         type: args.type,
         radius: Number(args.radius),
         color: args.color,
         offsetX: Number(args.offsetX),
         offsetY: Number(args.offsetY)
-      }))
+      })
+      printResult(result, args.json, 'create')
     } catch (e) { handleError(e) }
   }
 })

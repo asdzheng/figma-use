@@ -3,9 +3,11 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 
 export default defineCommand({
   meta: { description: 'Get current viewport position and zoom' },
-  async run() {
+  args: { json: { type: 'boolean', description: 'Output as JSON' } },
+  async run({ args }) {
     try {
-      printResult(await sendCommand('get-viewport'))
+      const result = await sendCommand('get-viewport')
+      printResult(result, args.json, 'get')
     } catch (e) { handleError(e) }
   }
 })

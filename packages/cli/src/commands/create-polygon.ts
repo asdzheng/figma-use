@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Create a polygon' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     x: { type: 'string', description: 'X position', required: true },
     y: { type: 'string', description: 'Y position', required: true },
     size: { type: 'string', description: 'Size', required: true },
@@ -13,14 +14,15 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(await sendCommand('create-polygon', {
+      const result = await sendCommand('create-polygon', {
         x: Number(args.x),
         y: Number(args.y),
         size: Number(args.size),
         sides: Number(args.sides),
         name: args.name,
         parentId: args.parentId
-      }))
+      })
+      printResult(result, args.json, 'create')
     } catch (e) { handleError(e) }
   }
 })

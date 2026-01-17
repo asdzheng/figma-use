@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Set min/max width and height constraints' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     id: { type: 'string', description: 'Node ID', required: true },
     minWidth: { type: 'string', description: 'Minimum width' },
     maxWidth: { type: 'string', description: 'Maximum width' },
@@ -12,13 +13,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(await sendCommand('set-min-max', {
+      const result = await sendCommand('set-min-max', {
         id: args.id,
         minWidth: args.minWidth ? Number(args.minWidth) : undefined,
         maxWidth: args.maxWidth ? Number(args.maxWidth) : undefined,
         minHeight: args.minHeight ? Number(args.minHeight) : undefined,
         maxHeight: args.maxHeight ? Number(args.maxHeight) : undefined
-      }))
+      })
+      printResult(result, args.json, 'update')
     } catch (e) { handleError(e) }
   }
 })

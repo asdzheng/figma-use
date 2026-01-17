@@ -17,7 +17,8 @@ export default defineCommand({
     opacity: { type: 'string', description: 'Opacity (0-1)' },
     layoutMode: { type: 'string', description: 'Layout mode: HORIZONTAL, VERTICAL, NONE' },
     itemSpacing: { type: 'string', description: 'Item spacing' },
-    padding: { type: 'string', description: 'Padding (single value or "top,right,bottom,left")' }
+    padding: { type: 'string', description: 'Padding (single value or "top,right,bottom,left")' },
+    json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {
     try {
@@ -31,24 +32,23 @@ export default defineCommand({
         }
       }
 
-      printResult(
-        await sendCommand('create-frame', {
-          x: Number(args.x),
-          y: Number(args.y),
-          width: Number(args.width),
-          height: Number(args.height),
-          name: args.name,
-          parentId: args.parentId,
-          fill: args.fill,
-          stroke: args.stroke,
-          strokeWeight: args.strokeWeight ? Number(args.strokeWeight) : undefined,
-          radius: args.radius ? Number(args.radius) : undefined,
-          opacity: args.opacity ? Number(args.opacity) : undefined,
-          layoutMode: args.layoutMode,
-          itemSpacing: args.itemSpacing ? Number(args.itemSpacing) : undefined,
-          padding: paddingObj
-        })
-      )
+      const result = await sendCommand('create-frame', {
+        x: Number(args.x),
+        y: Number(args.y),
+        width: Number(args.width),
+        height: Number(args.height),
+        name: args.name,
+        parentId: args.parentId,
+        fill: args.fill,
+        stroke: args.stroke,
+        strokeWeight: args.strokeWeight ? Number(args.strokeWeight) : undefined,
+        radius: args.radius ? Number(args.radius) : undefined,
+        opacity: args.opacity ? Number(args.opacity) : undefined,
+        layoutMode: args.layoutMode,
+        itemSpacing: args.itemSpacing ? Number(args.itemSpacing) : undefined,
+        padding: paddingObj
+      })
+      printResult(result, args.json, 'create')
     } catch (e) {
       handleError(e)
     }

@@ -5,6 +5,7 @@ import { writeFileSync } from 'fs'
 export default defineCommand({
   meta: { description: 'Take a screenshot of current viewport' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     output: { type: 'string', description: 'Output file path', default: '/tmp/figma-screenshot.png' },
     scale: { type: 'string', description: 'Export scale', default: '1' }
   },

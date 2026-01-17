@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Set layout of a node' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     id: { type: 'string', description: 'Node ID', required: true },
     mode: { type: 'string', description: 'Layout mode (NONE, HORIZONTAL, VERTICAL)', required: true },
     wrap: { type: 'boolean', description: 'Enable wrapping' },
@@ -20,8 +21,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(
-        await sendCommand('set-layout', {
+      const result = await sendCommand('set-layout', {
           id: args.id,
           mode: args.mode,
           wrap: args.wrap,
@@ -36,7 +36,7 @@ export default defineCommand({
           layoutSizingVertical: args.sizingVertical,
           layoutSizingHorizontal: args.sizingHorizontal
         })
-      )
+      printResult(result, args.json, 'update')
     } catch (e) {
       handleError(e)
     }

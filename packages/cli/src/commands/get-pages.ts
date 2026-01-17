@@ -3,9 +3,11 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 
 export default defineCommand({
   meta: { description: 'Get all pages' },
-  async run() {
+  args: { json: { type: 'boolean', description: 'Output as JSON' } },
+  async run({ args }) {
     try {
-      printResult(await sendCommand('get-pages'))
+      const result = await sendCommand('get-pages')
+      printResult(result, args.json, 'get')
     } catch (e) {
       handleError(e)
     }

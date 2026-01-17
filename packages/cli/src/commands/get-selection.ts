@@ -3,9 +3,11 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 
 export default defineCommand({
   meta: { description: 'Get current selection' },
-  async run() {
+  args: { json: { type: 'boolean', description: 'Output as JSON' } },
+  async run({ args }) {
     try {
-      printResult(await sendCommand('get-selection'))
+      const result = await sendCommand('get-selection')
+      printResult(result, args.json, 'get')
     } catch (e) {
       handleError(e)
     }

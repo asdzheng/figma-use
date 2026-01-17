@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Set effect (shadow, blur) on a node' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     id: { type: 'string', description: 'Node ID', required: true },
     type: { type: 'string', description: 'Effect type: DROP_SHADOW, INNER_SHADOW, BLUR', required: true },
     color: { type: 'string', description: 'Shadow color (hex with alpha, e.g. #00000040)' },
@@ -14,7 +15,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(await sendCommand('set-effect', {
+      const result = await sendCommand('set-effect', {
         id: args.id,
         type: args.type,
         color: args.color,
@@ -22,7 +23,8 @@ export default defineCommand({
         offsetY: args.offsetY ? Number(args.offsetY) : undefined,
         radius: args.radius ? Number(args.radius) : undefined,
         spread: args.spread ? Number(args.spread) : undefined
-      }))
+      })
+      printResult(result, args.json, 'update')
     } catch (e) { handleError(e) }
   }
 })

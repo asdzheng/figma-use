@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Set auto-layout properties of a frame' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     id: { type: 'string', description: 'Node ID', required: true },
     mode: { type: 'string', description: 'Layout mode: HORIZONTAL, VERTICAL, NONE' },
     wrap: { type: 'boolean', description: 'Wrap children' },
@@ -26,7 +27,7 @@ export default defineCommand({
           paddingObj = { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3] }
         }
       }
-      printResult(await sendCommand('set-auto-layout', {
+      const result = await sendCommand('set-auto-layout', {
         id: args.id,
         mode: args.mode,
         wrap: args.wrap,
@@ -37,7 +38,8 @@ export default defineCommand({
         counterAlign: args.counterAlign,
         sizingH: args.sizingH,
         sizingV: args.sizingV
-      }))
+      })
+      printResult(result, args.json, 'update')
     } catch (e) { handleError(e) }
   }
 })

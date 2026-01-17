@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Create an ellipse' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     x: { type: 'string', description: 'X position', required: true },
     y: { type: 'string', description: 'Y position', required: true },
     width: { type: 'string', description: 'Width', required: true },
@@ -17,7 +18,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(await sendCommand('create-ellipse', {
+      const result = await sendCommand('create-ellipse', {
         x: Number(args.x),
         y: Number(args.y),
         width: Number(args.width),
@@ -28,7 +29,8 @@ export default defineCommand({
         stroke: args.stroke,
         strokeWeight: args.strokeWeight ? Number(args.strokeWeight) : undefined,
         opacity: args.opacity ? Number(args.opacity) : undefined
-      }))
+      })
+      printResult(result, args.json, 'create')
     } catch (e) { handleError(e) }
   }
 })

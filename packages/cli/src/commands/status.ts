@@ -3,7 +3,8 @@ import { getStatus } from '../client.ts'
 
 export default defineCommand({
   meta: { description: 'Check if plugin is connected' },
-  async run() {
+  args: { json: { type: 'boolean', description: 'Output as JSON' } },
+  async run({ args }) {
     try {
       const status = await getStatus()
       console.log(status.pluginConnected ? '✓ Plugin connected' : '✗ Plugin not connected')

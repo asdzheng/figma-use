@@ -4,6 +4,7 @@ import { sendCommand, printResult, handleError } from '../client.ts'
 export default defineCommand({
   meta: { description: 'Set corner radius of a node' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     id: { type: 'string', description: 'Node ID', required: true },
     radius: { type: 'string', description: 'Corner radius', required: true },
     topLeft: { type: 'string', description: 'Top left radius' },
@@ -13,8 +14,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      printResult(
-        await sendCommand('set-corner-radius', {
+      const result = await sendCommand('set-corner-radius', {
           id: args.id,
           cornerRadius: Number(args.radius),
           topLeftRadius: args.topLeft ? Number(args.topLeft) : undefined,
@@ -22,7 +22,7 @@ export default defineCommand({
           bottomLeftRadius: args.bottomLeft ? Number(args.bottomLeft) : undefined,
           bottomRightRadius: args.bottomRight ? Number(args.bottomRight) : undefined
         })
-      )
+      printResult(result, args.json, 'update')
     } catch (e) {
       handleError(e)
     }

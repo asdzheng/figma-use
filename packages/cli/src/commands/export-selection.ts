@@ -5,6 +5,7 @@ import { writeFileSync } from 'fs'
 export default defineCommand({
   meta: { description: 'Export current selection as image' },
   args: {
+    json: { type: 'boolean', description: 'Output as JSON' },
     output: { type: 'string', description: 'Output file path', default: '/tmp/figma-selection.png' },
     format: { type: 'string', description: 'Format: PNG, JPG, SVG, PDF', default: 'PNG' },
     scale: { type: 'string', description: 'Export scale', default: '2' },
