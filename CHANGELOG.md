@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-01-17
+
+### Added
+
+- **`profile` command** — performance profiling via Chrome DevTools Protocol
+  - Profile any command: `figma-use profile "get components --limit 20"`
+  - Shows time breakdown (Figma WASM vs JS vs GC)
+  - Lists top functions by CPU time
+  - Requires Figma with `--remote-debugging-port=9222`
+- `get components --name` — filter components by name
+- `get components --limit` — limit results (default 50)
+- `get components --page` — filter by page
+- `find --type` now works without `--name`
+
+### Changed
+
+- `get components` uses early-exit recursion for better performance on large files
+- `node tree --depth` now affects node count check (won't block with high depth limit)
+
+### Fixed
+
+- Variant components no longer crash when accessing `componentPropertyDefinitions`
+- 86 tests passing
+
 ## [0.2.0] - 2025-01-17
 
 ### Added
@@ -113,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export commands: PNG/SVG/PDF export, screenshot
 - Inline styling: `--fill`, `--stroke`, `--radius` etc. on create commands
 
-[unreleased]: https://github.com/dannote/figma-use/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/dannote/figma-use/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/dannote/figma-use/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/dannote/figma-use/compare/v0.1.5...v0.2.0
 [0.1.5]: https://github.com/dannote/figma-use/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/dannote/figma-use/compare/v0.1.3...v0.1.4
