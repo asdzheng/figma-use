@@ -24,4 +24,14 @@ describe('find', () => {
     expect(results.length).toBeGreaterThan(0)
     expect(results.every(r => r.type === 'RECTANGLE')).toBe(true)
   })
+
+  test('respects limit', async () => {
+    const results = await run('find --type RECTANGLE --limit 5 --json') as any[]
+    expect(results.length).toBeLessThanOrEqual(5)
+  })
+
+  test('default limit is 100', async () => {
+    const results = await run('find --type FRAME --json') as any[]
+    expect(results.length).toBeLessThanOrEqual(100)
+  })
 })

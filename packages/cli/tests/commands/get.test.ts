@@ -36,4 +36,11 @@ describe('get', () => {
     const styles = await run('get styles --json') as any
     expect(typeof styles).toBe('object')
   })
+
+  test('components filters by page ID', async () => {
+    const pages = await run('get pages --json') as { id: string; name: string }[]
+    const page = pages[0]
+    const components = await run(`get components --page "${page.id}" --limit 5 --json`) as any[]
+    expect(Array.isArray(components)).toBe(true)
+  })
 })

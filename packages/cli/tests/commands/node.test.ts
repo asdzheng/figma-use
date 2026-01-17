@@ -88,4 +88,14 @@ describe('node', () => {
     const depth1 = await run(`node tree ${frame.id} --depth 1`, false) as string
     expect(depth1).toContain('3 nodes')
   })
+
+  test('get shows component properties for instances', async () => {
+    const comp = await run('create component --x 300 --y 800 --width 100 --height 50 --name "PropTestComp" --json') as any
+    trackNode(comp.id)
+    const instance = await run(`create instance --component ${comp.id} --x 400 --y 800 --json`) as any
+    trackNode(instance.id)
+    
+    const node = await run(`node get ${instance.id} --json`) as any
+    expect(node.type).toBe('INSTANCE')
+  })
 })

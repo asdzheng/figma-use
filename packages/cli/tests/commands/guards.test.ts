@@ -49,8 +49,25 @@ describe('export guards', () => {
 })
 
 describe('tree guards', () => {
+  let frameId: string
+
+  beforeAll(async () => {
+    const frame = await run('create frame --x 0 --y 1100 --width 100 --height 100 --name "TreeTest" --json') as { id: string }
+    frameId = frame.id
+    trackNode(frameId)
+    // Add a child
+    await run(`create rect --parent ${frameId} --x 0 --y 0 --width 50 --height 50 --json`)
+  })
+
+  afterAll(async () => {
+    if (frameId) {
+      await run(`node delete ${frameId} --json`).catch(() => {})
+    }
+  })
+
   test('tree shows node count', async () => {
-    const output = await run('node tree --depth 1', false) as string
+    const output = await run(`node tree ${frameId}`, false) as string
     expect(output).toMatch(/\d+ nodes/)
+    expect(output).toContain('TreeTest')
   })
 })
