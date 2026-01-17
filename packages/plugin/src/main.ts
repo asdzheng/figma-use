@@ -129,9 +129,19 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'set-current-page': {
-      const { id } = args as { id: string }
-      const page = await figma.getNodeByIdAsync(id) as PageNode | null
-      if (!page || page.type !== 'PAGE') throw new Error('Page not found')
+      const { page: pageArg } = args as { page: string }
+      let page: PageNode | null = null
+      
+      // Try by ID first
+      const byId = await figma.getNodeByIdAsync(pageArg) as PageNode | null
+      if (byId && byId.type === 'PAGE') {
+        page = byId
+      } else {
+        // Try by name
+        page = figma.root.children.find(p => p.name === pageArg || p.name.includes(pageArg)) || null
+      }
+      
+      if (!page) throw new Error('Page not found')
       await figma.setCurrentPageAsync(page)
       return { id: page.id, name: page.name }
     }
