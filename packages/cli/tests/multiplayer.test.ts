@@ -184,8 +184,8 @@ describe('multiplayer/codec', () => {
       m10: 0, m11: 1, m12: 20,
     })
     expect(change.fillPaints).toHaveLength(1)
-    expect(change.fillPaints![0].type).toBe('SOLID')
-    expect(change.fillPaints![0].color).toEqual({ r: 1, g: 0, b: 0, a: 1 })
+    expect(change.fillPaints?.[0]?.type).toBe('SOLID')
+    expect(change.fillPaints?.[0]?.color).toEqual({ r: 1, g: 0, b: 0, a: 1 })
   })
 
   test('createNodeChange with color object', () => {
@@ -203,7 +203,7 @@ describe('multiplayer/codec', () => {
       fill: { r: 0.5, g: 0.25, b: 0.75, a: 0.8 },
     })
 
-    expect(change.fillPaints![0].color).toEqual({ r: 0.5, g: 0.25, b: 0.75, a: 0.8 })
+    expect(change.fillPaints?.[0]?.color).toEqual({ r: 0.5, g: 0.25, b: 0.75, a: 0.8 })
   })
 
   test('createNodeChange with stroke', () => {
@@ -223,7 +223,7 @@ describe('multiplayer/codec', () => {
     })
 
     expect(change.strokePaints).toHaveLength(1)
-    expect(change.strokePaints![0].color).toEqual({ r: 0, g: 0, b: 1, a: 1 })
+    expect(change.strokePaints?.[0]?.color).toEqual({ r: 0, g: 0, b: 1, a: 1 })
     expect(change.strokeWeight).toBe(2)
   })
 

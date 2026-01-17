@@ -6,7 +6,7 @@ import { existsSync, writeFileSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import * as React from 'react'
-import { renderToNodeChanges } from '../render/index.ts'
+import { renderToNodeChanges, INTRINSIC_ELEMENTS } from '../render/index.ts'
 import { FigmaMultiplayerClient, getCookiesFromDevTools, initCodec } from '../multiplayer/index.ts'
 import { transformSync } from 'esbuild'
 
@@ -33,8 +33,7 @@ function findNodeModulesDir(): string | null {
 
 // Map PascalCase component names to lowercase intrinsic elements via esbuild define
 const JSX_DEFINE = Object.fromEntries(
-  ['Frame', 'Rectangle', 'Ellipse', 'Text', 'Line', 'Star', 'Polygon', 'Vector', 'Component', 'Instance', 'Group', 'Page', 'View']
-    .map(name => [name, JSON.stringify(name.toLowerCase())])
+  INTRINSIC_ELEMENTS.map(name => [name, JSON.stringify(name.toLowerCase())])
 )
 
 /**

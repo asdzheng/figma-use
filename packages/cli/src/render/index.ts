@@ -17,4 +17,5 @@ export {
   Group,
   Page,
   View,
+  INTRINSIC_ELEMENTS,
 } from './components.tsx'

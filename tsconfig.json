@@ -17,5 +17,9 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "jsx": "react-jsx"
-  }
+  },
+  "exclude": [
+    "examples",
+    "packages/plugin"
+  ]
 }

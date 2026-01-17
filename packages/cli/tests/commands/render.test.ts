@@ -61,7 +61,7 @@ describe('render', () => {
     
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThan(0)
-    expect(result[0].name).toBe('Card')
+    expect(result[0]!.name).toBe('Card')
   })
 
   test('renders with multiple items', async () => {
@@ -73,7 +73,9 @@ describe('render', () => {
   test('renders into parent node', async () => {
     // Create parent via plugin
     const parent = await run('create frame --x 0 --y 0 --width 500 --height 500 --name "Container" --json') as { id: string }
-    const [pSession, pLocal] = parent.id.split(':').map(Number)
+    const parts = parent.id.split(':').map(Number)
+    const pSession = parts[0] ?? 0
+    const pLocal = parts[1] ?? 0
     
     // Render into parent
     const element = React.createElement(Card, { title: 'Nested', items: ['X'] })
@@ -86,7 +88,8 @@ describe('render', () => {
     
     await client!.sendNodeChangesSync(result.nodeChanges)
     
-    const cardId = `${result.nodeChanges[0].guid.sessionID}:${result.nodeChanges[0].guid.localID}`
+    const first = result.nodeChanges[0]!
+    const cardId = `${first.guid.sessionID}:${first.guid.localID}`
     const cardInfo = await run(`node get ${cardId} --json`) as { parentId?: string }
     expect(cardInfo.parentId).toBe(parent.id)
   })
@@ -94,7 +97,7 @@ describe('render', () => {
   test('applies layout props correctly', async () => {
     const result = await renderAndVerify({ title: 'Layout', items: ['A'] })
     
-    const card = await run(`node get ${result[0].id} --json`) as { layoutMode?: string; itemSpacing?: number }
+    const card = await run(`node get ${result[0]!.id} --json`) as { layoutMode?: string; itemSpacing?: number }
     expect(card.layoutMode).toBe('VERTICAL')
     expect(card.itemSpacing).toBe(16)
   })
@@ -102,7 +105,7 @@ describe('render', () => {
   test('applies padding correctly', async () => {
     const result = await renderAndVerify({ title: 'Padding', items: ['A'] })
     
-    const card = await run(`node get ${result[0].id} --json`) as { padding?: { top: number; left: number } }
+    const card = await run(`node get ${result[0]!.id} --json`) as { padding?: { top: number; left: number } }
     expect(card.padding?.top).toBe(24)
     expect(card.padding?.left).toBe(24)
   })
@@ -110,21 +113,21 @@ describe('render', () => {
   test('applies fill colors', async () => {
     const result = await renderAndVerify({ title: 'Colors', items: ['A'] })
     
-    const card = await run(`node get ${result[0].id} --json`) as { fills?: Array<{ color: string }> }
+    const card = await run(`node get ${result[0]!.id} --json`) as { fills?: Array<{ color: string }> }
     expect(card.fills?.[0]?.color).toBe('#FFFFFF')
   })
 
   test('applies corner radius', async () => {
     const result = await renderAndVerify({ title: 'Radius', items: ['A'] })
     
-    const card = await run(`node get ${result[0].id} --json`) as { cornerRadius?: number }
+    const card = await run(`node get ${result[0]!.id} --json`) as { cornerRadius?: number }
     expect(card.cornerRadius).toBe(12)
   })
 
   test('creates text nodes with content', async () => {
     const result = await renderAndVerify({ title: 'Hello World', items: ['A'] })
     
-    const titleNode = result.find(n => n.name === 'Title')
+    const titleNode = result.find(n => n.name === 'Title')!
     expect(titleNode).toBeDefined()
     
     const titleInfo = await run(`node get ${titleNode!.id} --json`) as { characters?: string }

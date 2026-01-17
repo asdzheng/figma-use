@@ -65,54 +65,27 @@ interface InstanceProps extends BaseProps {
   componentId?: string
 }
 
-// Component implementations
-export const Frame: React.FC<BaseProps> = (props) => {
-  return React.createElement('frame', props)
-}
+// Component factory - creates intrinsic element wrapper
+const c = <T extends BaseProps>(type: string): React.FC<T> => 
+  (props) => React.createElement(type, props)
 
-export const Rectangle: React.FC<BaseProps> = (props) => {
-  return React.createElement('rectangle', props)
-}
-
-export const Ellipse: React.FC<BaseProps> = (props) => {
-  return React.createElement('ellipse', props)
-}
-
-export const Text: React.FC<TextProps> = (props) => {
-  return React.createElement('text', props)
-}
-
-export const Line: React.FC<BaseProps> = (props) => {
-  return React.createElement('line', props)
-}
-
-export const Star: React.FC<StarProps> = (props) => {
-  return React.createElement('star', props)
-}
-
-export const Polygon: React.FC<PolygonProps> = (props) => {
-  return React.createElement('polygon', props)
-}
-
-export const Vector: React.FC<BaseProps> = (props) => {
-  return React.createElement('vector', props)
-}
-
-export const Component: React.FC<BaseProps> = (props) => {
-  return React.createElement('component', props)
-}
-
-export const Instance: React.FC<InstanceProps> = (props) => {
-  return React.createElement('instance', props)
-}
-
-export const Group: React.FC<BaseProps> = (props) => {
-  return React.createElement('group', props)
-}
-
-export const Page: React.FC<BaseProps> = (props) => {
-  return React.createElement('page', props)
-}
-
-// Alias for react-native compatibility
+// Components
+export const Frame = c<BaseProps>('frame')
+export const Rectangle = c<BaseProps>('rectangle')
+export const Ellipse = c<BaseProps>('ellipse')
+export const Text = c<TextProps>('text')
+export const Line = c<BaseProps>('line')
+export const Star = c<StarProps>('star')
+export const Polygon = c<PolygonProps>('polygon')
+export const Vector = c<BaseProps>('vector')
+export const Component = c<BaseProps>('component')
+export const Instance = c<InstanceProps>('instance')
+export const Group = c<BaseProps>('group')
+export const Page = c<BaseProps>('page')
 export const View = Frame
+
+// All component names for JSX transform
+export const INTRINSIC_ELEMENTS = [
+  'Frame', 'Rectangle', 'Ellipse', 'Text', 'Line', 'Star', 
+  'Polygon', 'Vector', 'Component', 'Instance', 'Group', 'Page', 'View'
+] as const

@@ -7,13 +7,14 @@ describe('page', () => {
     const pages = await run('page list --json') as { id: string; name: string }[]
     expect(Array.isArray(pages)).toBe(true)
     expect(pages.length).toBeGreaterThan(0)
-    expect(pages[0].id).toBeDefined()
-    expect(pages[0].name).toBeDefined()
+    const first = pages[0]!
+    expect(first.id).toBeDefined()
+    expect(first.name).toBeDefined()
   })
 
   test('set switches page by ID', async () => {
     const pages = await run('page list --json') as { id: string; name: string }[]
-    const page = pages[0]
+    const page = pages[0]!
     
     const result = await run(`page set "${page.id}" --json`) as { id: string; name: string }
     expect(result.id).toBe(page.id)
@@ -21,8 +22,7 @@ describe('page', () => {
 
   test('set switches page by partial name', async () => {
     const pages = await run('page list --json') as { id: string; name: string }[]
-    // Find a page with a distinctive name part
-    const page = pages.find(p => p.name.includes('Preview')) || pages[0]
+    const page = pages.find(p => p.name.includes('Preview')) ?? pages[0]!
     const namePart = page.name.slice(0, 10).trim()
     
     const result = await run(`page set "${namePart}" --json`) as { id: string; name: string }
