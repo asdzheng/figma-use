@@ -1,5 +1,5 @@
 import { defineCommand } from 'citty'
-import { sendCommand, handleError } from '../client.ts'
+import { handleError } from '../client.ts'
 import { ok, fail } from '../format.ts'
 import { resolve } from 'path'
 import { existsSync } from 'fs'
@@ -140,28 +140,60 @@ function flattenCommands(cmd: FigmaCommand | string): FigmaCommand[] {
   return [{ ...cmd, children: (cmd.children || []).flatMap(flattenCommands) }]
 }
 
-async function executeCommands(
+// Flatten tree to batch commands with parent references
+function flattenToBatch(
   commands: FigmaCommand[], 
-  parentId?: string,
-  onProgress?: (created: number) => void
-): Promise<{ id: string; name: string }[]> {
-  const results: { id: string; name: string }[] = []
+  parentRef?: string
+): Array<{ command: string; args: Record<string, unknown> }> {
+  const batch: Array<{ command: string; args: Record<string, unknown> }> = []
   
-  for (const cmd of commands) {
-    const args = { ...cmd.args, x: cmd.args.x ?? 0, y: cmd.args.y ?? 0 }
-    if (parentId) args.parentId = parentId
+  for (let i = 0; i < commands.length; i++) {
+    const cmd = commands[i]
+    const ref = `node_${batch.length}`
+    const args: Record<string, unknown> = { 
+      ...cmd.args, 
+      x: cmd.args.x ?? 0, 
+      y: cmd.args.y ?? 0,
+      ref 
+    }
+    if (parentRef) args.parentRef = parentRef
     
-    const result = await sendCommand(cmd.command, args, { timeout: 30000 }) as { id: string; name: string }
-    results.push(result)
-    onProgress?.(results.length)
+    batch.push({ command: cmd.command, args })
     
     if (cmd.children?.length) {
-      const childResults = await executeCommands(cmd.children, result.id, onProgress)
-      results.push(...childResults)
+      batch.push(...flattenToBatch(cmd.children, ref))
     }
   }
   
-  return results
+  return batch
+}
+
+async function executeBatch(
+  commands: FigmaCommand[], 
+  parentId?: string
+): Promise<{ id: string; name: string }[]> {
+  const batch = flattenToBatch(commands, parentId ? `__root__` : undefined)
+  
+  // If parentId provided, add it to first level commands
+  if (parentId) {
+    for (const cmd of batch) {
+      if (cmd.args.parentRef === '__root__') {
+        cmd.args.parentId = parentId
+        delete cmd.args.parentRef
+      }
+    }
+  }
+  
+  const response = await fetch('http://localhost:38451/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ commands: batch, timeout: 60000 })
+  })
+  
+  const data = await response.json() as { result?: { id: string; name: string }[]; error?: string }
+  if (data.error) throw new Error(data.error)
+  
+  return data.result || []
 }
 
 export default defineCommand({
@@ -221,12 +253,8 @@ export default defineCommand({
         cmds.reduce((sum, c) => sum + 1 + countNodes(c.children || []), 0)
       const total = countNodes(commands)
       
-      let created = 0
-      const results = await executeCommands(commands, args.parent, () => {
-        created++
-        if (!args.json) process.stdout.write(`\rRendering... ${created}/${total}`)
-      })
-      if (!args.json) console.log()
+      if (!args.json) console.log(`Rendering ${total} nodes (batched)...`)
+      const results = await executeBatch(commands, args.parent)
       
       if (args.json) {
         console.log(JSON.stringify(results, null, 2))

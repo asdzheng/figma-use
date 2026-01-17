@@ -16,6 +16,33 @@ figma.ui.onmessage = async (msg: { type: string; id: string; command: string; ar
 
 async function handleCommand(command: string, args?: unknown): Promise<unknown> {
   switch (command) {
+    // ==================== BATCH ====================
+    case 'batch': {
+      const { commands } = args as { 
+        commands: Array<{ command: string; args?: Record<string, unknown>; parentRef?: string }> 
+      }
+      const results: Array<{ id: string; name: string }> = []
+      const refMap = new Map<string, string>() // ref -> actual node id
+      
+      for (const cmd of commands) {
+        // Resolve parent reference if needed
+        if (cmd.args?.parentRef && refMap.has(cmd.args.parentRef)) {
+          cmd.args.parentId = refMap.get(cmd.args.parentRef)
+          delete cmd.args.parentRef
+        }
+        
+        const result = await handleCommand(cmd.command, cmd.args) as { id: string; name: string }
+        results.push(result)
+        
+        // Store ref for children to use
+        if (cmd.args?.ref) {
+          refMap.set(cmd.args.ref as string, result.id)
+        }
+      }
+      
+      return results
+    }
+
     // ==================== READ ====================
     case 'get-selection':
       return figma.currentPage.selection.map(serializeNode)
@@ -1187,6 +1214,9 @@ function serializeNode(node: BaseNode): object {
     id: node.id,
     name: node.name,
     type: node.type
+  }
+  if (node.parent && node.parent.type !== 'PAGE') {
+    base.parentId = node.parent.id
   }
   if ('x' in node) base.x = Math.round(node.x)
   if ('y' in node) base.y = Math.round(node.y)

@@ -81,6 +81,38 @@ new Elysia()
       return { error: e instanceof Error ? e.message : String(e) }
     }
   })
+  .post('/batch', async ({ body }) => {
+    if (!sendToPlugin) {
+      return { error: 'Plugin not connected' }
+    }
+
+    const { commands, timeout: customTimeout } = body as { 
+      commands: Array<{ command: string; args?: unknown; parentRef?: string }>
+      timeout?: number 
+    }
+    const id = crypto.randomUUID()
+
+    consola.info(`batch: ${commands.length} commands`)
+
+    try {
+      const timeoutMs = customTimeout || TIMEOUT_HEAVY
+      
+      const result = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          pendingRequests.delete(id)
+          reject(new Error('Request timeout'))
+        }, timeoutMs)
+
+        pendingRequests.set(id, { resolve, reject, timeout })
+        sendToPlugin!(JSON.stringify({ id, command: 'batch', args: { commands } }))
+      })
+
+      return { result }
+    } catch (e) {
+      consola.error('batch failed:', e instanceof Error ? e.message : e)
+      return { error: e instanceof Error ? e.message : String(e) }
+    }
+  })
   .get('/status', () => ({
     pluginConnected: sendToPlugin !== null
   }))
