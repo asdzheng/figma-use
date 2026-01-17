@@ -81,3 +81,4 @@ export { default as 'delete-node' } from './delete-node.ts'
 // Screenshot/Visual feedback
 export { default as 'screenshot' } from './screenshot.ts'
 export { default as 'export-selection' } from './export-selection.ts'
+export { default as 'create-page' } from './create-page.ts'

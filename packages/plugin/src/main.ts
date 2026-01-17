@@ -40,6 +40,13 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     case 'get-pages':
       return figma.root.children.map((page) => ({ id: page.id, name: page.name }))
 
+    case 'create-page': {
+      const { name } = args as { name: string }
+      const page = figma.createPage()
+      page.name = name
+      return { id: page.id, name: page.name }
+    }
+
     case 'get-local-styles': {
       const { type } = args as { type?: string } || {}
       const result: Record<string, object[]> = {}
