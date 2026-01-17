@@ -1,6 +1,6 @@
 {
   "name": "@dannote/figma-use",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Control Figma from the command line. Like browser-use, but for Figma.",
   "type": "module",
   "bin": {
