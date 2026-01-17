@@ -92,3 +92,18 @@ export { default as 'import-svg' } from './import-svg.ts'
 
 // Text
 export { default as 'set-text' } from './set-text.ts'
+
+// Font
+export { default as 'set-font' } from './set-font.ts'
+
+// Query
+export { default as 'get-children' } from './get-children.ts'
+export { default as 'find-by-name' } from './find-by-name.ts'
+
+// Selection
+export { default as 'select-nodes' } from './select-nodes.ts'
+
+// Layout & Constraints
+export { default as 'set-constraints' } from './set-constraints.ts'
+export { default as 'set-auto-layout' } from './set-auto-layout.ts'
+export { default as 'set-blend-mode' } from './set-blend-mode.ts'

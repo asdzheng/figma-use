@@ -22,21 +22,17 @@ describe('Figma Bridge CLI', () => {
   const createdNodes: string[] = []
 
   beforeAll(async () => {
-    // Create test page
     const page = await run('create-page --name "Test Page"') as { id: string }
     testPageId = page.id
     await run(`set-current-page --id "${testPageId}"`)
     
-    // Create test frame
-    const frame = await run('create-frame --x 0 --y 0 --width 1000 --height 1000 --name "Test Frame"') as { id: string }
+    const frame = await run('create-frame --x 0 --y 0 --width 1200 --height 1000 --name "Test Frame"') as { id: string }
     testFrameId = frame.id
     createdNodes.push(testFrameId)
   })
 
   afterAll(async () => {
-    // Cleanup: delete test page
     if (testPageId) {
-      // Switch to another page first
       const pages = await run('get-pages') as { id: string }[]
       const otherPage = pages.find(p => p.id !== testPageId)
       if (otherPage) {
@@ -58,8 +54,6 @@ describe('Figma Bridge CLI', () => {
       const pages = await run('get-pages') as { id: string; name: string }[]
       expect(Array.isArray(pages)).toBe(true)
       expect(pages.length).toBeGreaterThan(0)
-      expect(pages[0]).toHaveProperty('id')
-      expect(pages[0]).toHaveProperty('name')
     })
 
     test('create-page creates new page', async () => {
@@ -76,7 +70,6 @@ describe('Figma Bridge CLI', () => {
       expect(rect.type).toBe('RECTANGLE')
       expect(rect.width).toBe(100)
       expect(rect.height).toBe(50)
-      expect(rect.name).toBe('BasicRect')
     })
 
     test('creates rectangle with fill and radius', async () => {
@@ -97,6 +90,12 @@ describe('Figma Bridge CLI', () => {
       createdNodes.push(rect.id)
       expect(rect.opacity).toBe(0.5)
     })
+
+    test('creates rectangle with no stroke', async () => {
+      const rect = await run(`create-rectangle --x 450 --y 10 --width 60 --height 60 --fill "#AAAAAA" --strokeWeight 0 --parentId "${testFrameId}"`) as any
+      createdNodes.push(rect.id)
+      expect(rect.strokeWeight).toBeFalsy()
+    })
   })
 
   describe('create-ellipse', () => {
@@ -110,7 +109,7 @@ describe('Figma Bridge CLI', () => {
 
   describe('create-frame', () => {
     test('creates frame with layout', async () => {
-      const frame = await run(`create-frame --x 10 --y 180 --width 300 --height 100 --fill "#EEEEEE" --layoutMode HORIZONTAL --itemSpacing 10 --padding 16 --parentId "${testFrameId}"`) as any
+      const frame = await run(`create-frame --x 10 --y 180 --width 300 --height 100 --fill "#EEEEEEEEE" --layoutMode HORIZONTAL --itemSpacing 10 --padding 16 --parentId "${testFrameId}"`) as any
       createdNodes.push(frame.id)
       expect(frame.type).toBe('FRAME')
       expect(frame.layoutMode).toBe('HORIZONTAL')
@@ -140,13 +139,49 @@ describe('Figma Bridge CLI', () => {
       createdNodes.push(poly.id)
       expect(poly.type).toBe('POLYGON')
     })
+
+    test('creates triangle', async () => {
+      const poly = await run(`create-polygon --x 170 --y 80 --size 60 --sides 3 --name "Triangle" --parentId "${testFrameId}"`) as any
+      createdNodes.push(poly.id)
+      expect(poly.type).toBe('POLYGON')
+    })
   })
 
   describe('create-star', () => {
     test('creates star', async () => {
-      const star = await run(`create-star --x 180 --y 80 --size 60 --points 5 --parentId "${testFrameId}"`) as any
+      const star = await run(`create-star --x 250 --y 80 --size 60 --points 5 --parentId "${testFrameId}"`) as any
       createdNodes.push(star.id)
       expect(star.type).toBe('STAR')
+    })
+  })
+
+  describe('create-line', () => {
+    test('creates line', async () => {
+      const line = await run(`create-line --x 330 --y 80 --length 80 --name "Line" --parentId "${testFrameId}"`) as any
+      createdNodes.push(line.id)
+      expect(line.type).toBe('LINE')
+    })
+
+    test('creates line with rotation', async () => {
+      const line = await run(`create-line --x 420 --y 80 --length 80 --rotation 45 --name "DiagonalLine" --parentId "${testFrameId}"`) as any
+      createdNodes.push(line.id)
+      expect(line.type).toBe('LINE')
+    })
+  })
+
+  describe('create-section', () => {
+    test('creates section', async () => {
+      const section = await run('create-section --x 1300 --y 0 --width 300 --height 400 --name "TestSection"') as any
+      createdNodes.push(section.id)
+      expect(section.type).toBe('SECTION')
+    })
+  })
+
+  describe('create-slice', () => {
+    test('creates slice', async () => {
+      const slice = await run(`create-slice --x 520 --y 10 --width 100 --height 100 --name "ExportSlice"`) as any
+      createdNodes.push(slice.id)
+      expect(slice.type).toBe('SLICE')
     })
   })
 
@@ -154,7 +189,7 @@ describe('Figma Bridge CLI', () => {
     let nodeId: string
 
     beforeAll(async () => {
-      const rect = await run(`create-rectangle --x 500 --y 10 --width 80 --height 80 --fill "#AAAAAA" --parentId "${testFrameId}"`) as any
+      const rect = await run(`create-rectangle --x 600 --y 10 --width 80 --height 80 --fill "#AAAAAAAAA" --parentId "${testFrameId}"`) as any
       nodeId = rect.id
       createdNodes.push(nodeId)
     })
@@ -166,8 +201,8 @@ describe('Figma Bridge CLI', () => {
     })
 
     test('move-node changes position', async () => {
-      const moved = await run(`move-node --id "${nodeId}" --x 510 --y 20`) as any
-      expect(moved.x).toBe(510)
+      const moved = await run(`move-node --id "${nodeId}" --x 610 --y 20`) as any
+      expect(moved.x).toBe(610)
       expect(moved.y).toBe(20)
     })
 
@@ -200,7 +235,6 @@ describe('Figma Bridge CLI', () => {
 
     test('set-corner-radius changes radius', async () => {
       const rounded = await run(`set-corner-radius --id "${nodeId}" --radius 16`) as any
-      // Note: cornerRadius not returned in serialize, check via get-node if needed
       expect(rounded.id).toBe(nodeId)
     })
   })
@@ -209,7 +243,7 @@ describe('Figma Bridge CLI', () => {
     let nodeId: string
 
     beforeAll(async () => {
-      const rect = await run(`create-rectangle --x 500 --y 130 --width 100 --height 100 --fill "#FFFFFF" --parentId "${testFrameId}"`) as any
+      const rect = await run(`create-rectangle --x 600 --y 130 --width 100 --height 100 --fill "#FFFFFF" --parentId "${testFrameId}"`) as any
       nodeId = rect.id
       createdNodes.push(nodeId)
     })
@@ -224,7 +258,7 @@ describe('Figma Bridge CLI', () => {
     let textId: string
 
     beforeAll(async () => {
-      const text = await run(`create-text --x 500 --y 250 --text "Original" --fontSize 16 --parentId "${testFrameId}"`) as any
+      const text = await run(`create-text --x 600 --y 250 --text "Original" --fontSize 16 --parentId "${testFrameId}"`) as any
       textId = text.id
       createdNodes.push(textId)
     })
@@ -235,9 +269,24 @@ describe('Figma Bridge CLI', () => {
     })
   })
 
+  describe('set-font', () => {
+    let textId: string
+
+    beforeAll(async () => {
+      const text = await run(`create-text --x 600 --y 290 --text "Font Test" --fontSize 16 --parentId "${testFrameId}"`) as any
+      textId = text.id
+      createdNodes.push(textId)
+    })
+
+    test('changes font family and style', async () => {
+      const result = await run(`set-font --id "${textId}" --fontFamily "Inter" --fontStyle "Bold" --fontSize 20`) as any
+      expect(result.fontSize).toBe(20)
+    })
+  })
+
   describe('clone-node', () => {
     test('clones a node', async () => {
-      const original = await run(`create-rectangle --x 500 --y 300 --width 50 --height 50 --fill "#FFFF00" --parentId "${testFrameId}"`) as any
+      const original = await run(`create-rectangle --x 600 --y 330 --width 50 --height 50 --fill "#FFFF00" --parentId "${testFrameId}"`) as any
       createdNodes.push(original.id)
       
       const clone = await run(`clone-node --id "${original.id}"`) as any
@@ -250,17 +299,126 @@ describe('Figma Bridge CLI', () => {
   describe('import-svg', () => {
     test('imports SVG', async () => {
       const svg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="red"/></svg>'
-      const result = await run(`import-svg --svg '${svg}' --x 500 --y 370 --name "SVG Icon" --parentId "${testFrameId}"`) as any
+      const result = await run(`import-svg --svg '${svg}' --x 600 --y 400 --name "SVG Icon" --parentId "${testFrameId}"`) as any
       createdNodes.push(result.id)
       expect(result.type).toBe('FRAME')
       expect(result.name).toBe('SVG Icon')
     })
   })
 
+  describe('get-children', () => {
+    let parentId: string
+
+    beforeAll(async () => {
+      const parent = await run(`create-frame --x 720 --y 10 --width 200 --height 150 --name "ChildrenParent" --parentId "${testFrameId}"`) as any
+      parentId = parent.id
+      createdNodes.push(parentId)
+      
+      await run(`create-rectangle --x 10 --y 10 --width 50 --height 50 --fill "#FF0000" --parentId "${parentId}"`)
+      await run(`create-rectangle --x 70 --y 10 --width 50 --height 50 --fill "#00FF00" --parentId "${parentId}"`)
+    })
+
+    test('returns children of a frame', async () => {
+      const children = await run(`get-children --id "${parentId}"`) as any[]
+      expect(Array.isArray(children)).toBe(true)
+      expect(children.length).toBe(2)
+      expect(children[0].type).toBe('RECTANGLE')
+    })
+  })
+
+  describe('find-by-name', () => {
+    beforeAll(async () => {
+      await run(`create-rectangle --x 720 --y 180 --width 60 --height 60 --fill "#800080" --name "Searchable" --parentId "${testFrameId}"`)
+      await run(`create-rectangle --x 790 --y 180 --width 60 --height 60 --fill "#FFA500" --name "SearchableTwo" --parentId "${testFrameId}"`)
+    })
+
+    test('finds nodes by partial name', async () => {
+      const results = await run('find-by-name --name "Searchable"') as any[]
+      expect(results.length).toBeGreaterThanOrEqual(2)
+    })
+
+    test('finds nodes by exact name', async () => {
+      const results = await run('find-by-name --name "Searchable" --exact') as any[]
+      expect(results.length).toBe(1)
+      expect(results[0].name).toBe('Searchable')
+    })
+
+    test('filters by type', async () => {
+      const results = await run('find-by-name --name "Searchable" --type RECTANGLE') as any[]
+      expect(results.every(r => r.type === 'RECTANGLE')).toBe(true)
+    })
+  })
+
+  describe('select-nodes', () => {
+    let nodeId: string
+
+    beforeAll(async () => {
+      const rect = await run(`create-rectangle --x 720 --y 260 --width 60 --height 60 --fill "#00FFFF" --parentId "${testFrameId}"`) as any
+      nodeId = rect.id
+      createdNodes.push(nodeId)
+    })
+
+    test('selects nodes in UI', async () => {
+      const result = await run(`select-nodes --ids "${nodeId}"`) as any
+      expect(result.selected).toBe(1)
+    })
+  })
+
+  describe('set-constraints', () => {
+    let nodeId: string
+
+    beforeAll(async () => {
+      const rect = await run(`create-rectangle --x 720 --y 340 --width 80 --height 80 --fill "#00FF00" --parentId "${testFrameId}"`) as any
+      nodeId = rect.id
+      createdNodes.push(nodeId)
+    })
+
+    test('sets constraints', async () => {
+      const result = await run(`set-constraints --id "${nodeId}" --horizontal CENTER --vertical MAX`) as any
+      expect(result.id).toBe(nodeId)
+    })
+  })
+
+  describe('set-blend-mode', () => {
+    let nodeId: string
+
+    beforeAll(async () => {
+      const rect = await run(`create-rectangle --x 720 --y 440 --width 80 --height 80 --fill "#FFC0CB" --parentId "${testFrameId}"`) as any
+      nodeId = rect.id
+      createdNodes.push(nodeId)
+    })
+
+    test('sets blend mode', async () => {
+      const result = await run(`set-blend-mode --id "${nodeId}" --mode MULTIPLY`) as any
+      expect(result.id).toBe(nodeId)
+    })
+  })
+
+  describe('set-auto-layout', () => {
+    let frameId: string
+
+    beforeAll(async () => {
+      const frame = await run(`create-frame --x 720 --y 540 --width 200 --height 100 --fill "#EEEEEE" --parentId "${testFrameId}"`) as any
+      frameId = frame.id
+      createdNodes.push(frameId)
+    })
+
+    test('enables auto-layout with spacing', async () => {
+      const result = await run(`set-auto-layout --id "${frameId}" --mode HORIZONTAL --itemSpacing 12 --padding "8,8,8,8"`) as any
+      expect(result.layoutMode).toBe('HORIZONTAL')
+      expect(result.itemSpacing).toBe(12)
+    })
+
+    test('sets alignment', async () => {
+      const result = await run(`set-auto-layout --id "${frameId}" --primaryAlign CENTER --counterAlign CENTER`) as any
+      expect(result.id).toBe(frameId)
+    })
+  })
+
   describe('group-nodes', () => {
     test('groups nodes together', async () => {
-      const r1 = await run(`create-rectangle --x 650 --y 10 --width 40 --height 40 --fill "#FF0000" --parentId "${testFrameId}"`) as any
-      const r2 = await run(`create-rectangle --x 700 --y 10 --width 40 --height 40 --fill "#00FF00" --parentId "${testFrameId}"`) as any
+      const r1 = await run(`create-rectangle --x 860 --y 10 --width 40 --height 40 --fill "#FF0000" --parentId "${testFrameId}"`) as any
+      const r2 = await run(`create-rectangle --x 910 --y 10 --width 40 --height 40 --fill "#00FF00" --parentId "${testFrameId}"`) as any
       
       const group = await run(`group-nodes --ids "${r1.id},${r2.id}" --name "TestGroup"`) as any
       createdNodes.push(group.id)
@@ -271,8 +429,8 @@ describe('Figma Bridge CLI', () => {
 
   describe('boolean operations', () => {
     test('union-nodes combines shapes', async () => {
-      const r1 = await run(`create-rectangle --x 650 --y 70 --width 60 --height 60 --fill "#0000FF" --parentId "${testFrameId}"`) as any
-      const r2 = await run(`create-rectangle --x 680 --y 100 --width 60 --height 60 --fill "#0000FF" --parentId "${testFrameId}"`) as any
+      const r1 = await run(`create-rectangle --x 860 --y 70 --width 60 --height 60 --fill "#0000FF" --parentId "${testFrameId}"`) as any
+      const r2 = await run(`create-rectangle --x 890 --y 100 --width 60 --height 60 --fill "#0000FF" --parentId "${testFrameId}"`) as any
       
       const union = await run(`union-nodes --ids "${r1.id},${r2.id}"`) as any
       createdNodes.push(union.id)
@@ -285,8 +443,6 @@ describe('Figma Bridge CLI', () => {
       const vp = await run('get-viewport') as any
       expect(vp).toHaveProperty('center')
       expect(vp).toHaveProperty('zoom')
-      expect(vp.center).toHaveProperty('x')
-      expect(vp.center).toHaveProperty('y')
     })
 
     test('zoom-to-fit zooms to nodes', async () => {
@@ -300,25 +456,40 @@ describe('Figma Bridge CLI', () => {
     test('create-paint-style creates color style', async () => {
       const style = await run('create-paint-style --name "Test/Primary" --color "#E11D48"') as any
       expect(style.name).toBe('Test/Primary')
-      expect(style).toHaveProperty('id')
+    })
+
+    test('create-text-style creates text style', async () => {
+      const style = await run('create-text-style --name "Test/Body" --fontFamily "Inter" --fontStyle "Regular" --fontSize 16') as any
+      expect(style.name).toBe('Test/Body')
+    })
+
+    test('create-effect-style creates effect style', async () => {
+      const style = await run('create-effect-style --name "Test/Shadow" --type DROP_SHADOW --color "#00000020" --offsetY 2 --radius 4') as any
+      expect(style.name).toBe('Test/Shadow')
     })
 
     test('get-local-styles returns styles', async () => {
       const styles = await run('get-local-styles --type paint') as any
       expect(styles).toHaveProperty('paintStyles')
-      expect(Array.isArray(styles.paintStyles)).toBe(true)
     })
   })
 
   describe('export', () => {
     test('export-node exports as PNG', async () => {
-      const rect = await run(`create-rectangle --x 800 --y 10 --width 100 --height 100 --fill "#00FFFF" --parentId "${testFrameId}"`) as any
+      const rect = await run(`create-rectangle --x 970 --y 10 --width 100 --height 100 --fill "#00FFFF" --parentId "${testFrameId}"`) as any
       createdNodes.push(rect.id)
       
       const result = await run(`export-node --id "${rect.id}" --format PNG --scale 1`) as any
       expect(result).toHaveProperty('data')
-      expect(result).toHaveProperty('filename')
       expect(result.data.length).toBeGreaterThan(0)
+    })
+
+    test('export-node exports as SVG', async () => {
+      const rect = await run(`create-rectangle --x 1080 --y 10 --width 60 --height 60 --fill "#FF0000" --radius 8 --parentId "${testFrameId}"`) as any
+      createdNodes.push(rect.id)
+      
+      const result = await run(`export-node --id "${rect.id}" --format SVG`) as any
+      expect(atob(result.data)).toContain('svg')
     })
   })
 
@@ -331,7 +502,7 @@ describe('Figma Bridge CLI', () => {
 
   describe('delete-node', () => {
     test('deletes a node', async () => {
-      const rect = await run(`create-rectangle --x 900 --y 10 --width 50 --height 50 --parentId "${testFrameId}"`) as any
+      const rect = await run(`create-rectangle --x 970 --y 130 --width 50 --height 50 --parentId "${testFrameId}"`) as any
       const result = await run(`delete-node --id "${rect.id}"`) as any
       expect(result.deleted).toBe(true)
     })

@@ -1,96 +1,233 @@
 # Figma Bridge
 
-Minimal proxy server to control Figma via CLI.
+CLI and WebSocket proxy for controlling Figma through a plugin. No MCP protocol — direct WebSocket communication.
 
 ## Architecture
 
 ```
-┌─────────────┐     WebSocket      ┌─────────────┐       HTTP        ┌─────────────┐
-│   Figma     │ ←────────────────→ │   Proxy     │ ←───────────────→ │    CLI      │
-│   Plugin    │                    │   Server    │                   │             │
-└─────────────┘                    └─────────────┘                   └─────────────┘
+┌─────────┐      WebSocket      ┌─────────┐      WebSocket      ┌──────────────┐
+│   CLI   │ ◄─────────────────► │  Proxy  │ ◄─────────────────► │ Figma Plugin │
+└─────────┘    localhost:38451  └─────────┘    localhost:38451  └──────────────┘
 ```
 
-## Setup
+## Quick Start
 
 ```bash
+# Install dependencies
 bun install
-```
 
-## Usage
+# Start proxy server
+bun run --filter proxy start
 
-### 1. Start the proxy server
+# Build and install Figma plugin
+bun run --filter plugin build
+# Then in Figma: Plugins → Development → Import plugin from manifest
+# Select: packages/plugin/manifest.json
 
-```bash
-cd packages/proxy && bun dev
-```
-
-### 2. Install Figma plugin
-
-```bash
-cd packages/plugin && bun run build
-```
-
-In Figma: Plugins → Development → Import plugin from manifest → select `packages/plugin/manifest.json`
-
-### 3. CLI
-
-```bash
+# Use CLI
 cd packages/cli
-bun run dev <command> [options]
+bun run src/index.ts status
+bun run src/index.ts create-rectangle --x 0 --y 0 --width 100 --height 100 --fill "#E11D48" --radius 8
 ```
 
-## Commands
+## CLI Commands
 
-### Status & Info
+### Status & Pages
 
 ```bash
-figma status                      # Check if plugin is connected
-figma getPages                    # List all pages
-figma getSelection                # Get current selection
-figma getNode --id <id>           # Get node info
-figma getComponents               # Get all components
+status                                    # Check plugin connection
+get-pages                                 # List all pages
+create-page --name "New Page"             # Create page
+set-current-page --id "1:2"               # Switch to page
 ```
 
-### Create
+### Reading
 
 ```bash
-figma createRectangle --x 0 --y 0 --width 100 --height 100 [--name "Rect"] [--parentId "1:2"]
-figma createFrame --x 0 --y 0 --width 100 --height 100 [--name "Frame"] [--parentId "1:2"]
-figma createText --x 0 --y 0 --text "Hello" [--fontSize 14] [--fontName "Inter"] [--fontWeight 400] [--fontColor "#000000FF"] [--name "Text"] [--parentId "1:2"]
-figma createInstance --componentId "1:2" [--x 0] [--y 0] [--name "Instance"] [--parentId "1:3"]
-figma createComponent --name "Button" [--parentId "1:2"]
-figma cloneNode --id "1:2"
+get-selection                             # Get selected nodes
+get-node --id "1:2"                       # Get node by ID
+get-children --id "1:2" --depth 2         # Get children (nested)
+find-by-name --name "Button" --type FRAME # Find nodes by name
+get-components                            # List all components
+get-local-styles --type paint             # Get styles (paint/text/effect/grid)
+get-viewport                              # Get viewport position & zoom
 ```
 
-### Update
+### Creating Shapes
 
 ```bash
-figma moveNode --id "1:2" --x 100 --y 200
-figma resizeNode --id "1:2" --width 200 --height 150
-figma setFillColor --id "1:2" --color "#FF0000FF"
-figma setStrokeColor --id "1:2" --color "#0000FFFF"
-figma setCornerRadius --id "1:2" --radius 8 [--topLeft 4] [--topRight 4] [--bottomLeft 4] [--bottomRight 4]
-figma setParent --id "1:2" --parentId "1:3"
-figma setLayout --id "1:2" --mode HORIZONTAL [--wrap] [--clip] [--itemSpacing 8] [--paddingLeft 16] ...
-figma setInstanceProperties --id "1:2" --properties '{"prop1": "value1"}'
-figma setComponentPropertyRefs --id "1:2" --refs '{"characters": "prop1"}'
+create-rectangle --x 0 --y 0 --width 100 --height 50 \
+  --fill "#E11D48" --stroke "#000" --strokeWeight 1 --radius 8 --opacity 0.9 \
+  --name "Button" --parentId "1:2"
+
+create-ellipse --x 0 --y 0 --width 80 --height 80 --fill "#00FF00"
+
+create-polygon --x 0 --y 0 --size 60 --sides 6    # Hexagon
+
+create-star --x 0 --y 0 --size 60 --points 5 --innerRadius 0.5
+
+create-line --x 0 --y 0 --length 100 --rotation 45
+
+create-vector --x 0 --y 0 --path "M0 0 L100 100"  # SVG path
 ```
 
-### Component Properties
+### Creating Containers
 
 ```bash
-figma addComponentProperty --componentId "1:2" --name "Label" --type TEXT --defaultValue "Button"
-figma editComponentProperty --componentId "1:2" --name "Label" --type TEXT --defaultValue "New" [--preferredValues '["A","B"]']
-figma deleteComponentProperty --componentId "1:2" --name "Label"
+create-frame --x 0 --y 0 --width 400 --height 300 \
+  --fill "#FFF" --radius 16 \
+  --layoutMode HORIZONTAL --itemSpacing 10 --padding "16,16,16,16" \
+  --name "Card"
+
+create-section --x 0 --y 0 --width 500 --height 500 --name "Section"
+
+create-slice --x 0 --y 0 --width 100 --height 100 --name "Export Slice"
+```
+
+### Creating Text
+
+```bash
+create-text --x 0 --y 0 --text "Hello World" \
+  --fontSize 24 --fontFamily "Inter" --fontStyle "Bold" \
+  --fill "#333" --opacity 1 \
+  --name "Heading"
+```
+
+### Creating Components & Instances
+
+```bash
+create-component --name "Button Component"
+
+create-instance --componentId "1:2" --x 100 --y 100
+
+clone-node --id "1:2"                     # Duplicate any node
+```
+
+### Creating Styles
+
+```bash
+create-paint-style --name "Brand/Primary" --color "#E11D48"
+
+create-text-style --name "Heading/H1" --fontFamily "Inter" --fontStyle "Bold" --fontSize 48
+
+create-effect-style --name "Shadow/Medium" --type DROP_SHADOW --color "#00000040" --offsetY 4 --radius 12
+```
+
+### Modifying Nodes
+
+```bash
+# Position & Size
+move-node --id "1:2" --x 100 --y 200
+resize-node --id "1:2" --width 200 --height 100
+
+# Appearance
+set-fill-color --id "1:2" --color "#FF0000"
+set-stroke-color --id "1:2" --color "#000000"
+set-corner-radius --id "1:2" --radius 16
+set-opacity --id "1:2" --opacity 0.5
+set-blend-mode --id "1:2" --mode MULTIPLY
+
+# Effects
+set-effect --id "1:2" --type DROP_SHADOW --color "#00000030" --offsetX 0 --offsetY 4 --radius 12 --spread 0
+
+# Properties
+rename-node --id "1:2" --name "New Name"
+set-visible --id "1:2" --visible false
+set-locked --id "1:2" --locked true
+
+# Text
+set-text --id "1:2" --text "Updated text"
+set-font --id "1:2" --fontFamily "Inter" --fontStyle "Medium" --fontSize 18
+
+# Layout
+set-auto-layout --id "1:2" \
+  --mode VERTICAL --itemSpacing 8 --padding "16" \
+  --primaryAlign CENTER --counterAlign MIN \
+  --sizingH HUG --sizingV FILL
+
+set-constraints --id "1:2" --horizontal STRETCH --vertical MIN
+
+set-parent --id "1:2" --parentId "1:3"    # Move to different parent
+```
+
+### Grouping & Boolean Operations
+
+```bash
+group-nodes --ids "1:2,1:3,1:4" --name "Group"
+ungroup-node --id "1:5"
+flatten-nodes --ids "1:2,1:3"
+
+union-nodes --ids "1:2,1:3"
+subtract-nodes --ids "1:2,1:3"
+intersect-nodes --ids "1:2,1:3"
+exclude-nodes --ids "1:2,1:3"
+```
+
+### Components & Instances
+
+```bash
+set-instance-properties --instanceId "1:2" --properties '{"visible": true}'
+
+add-component-property --componentId "1:2" --name "showIcon" --type BOOLEAN --defaultValue true
+
+edit-component-property --componentId "1:2" --name "showIcon" --defaultValue false
+
+delete-component-property --componentId "1:2" --name "showIcon"
+
+set-component-property-refs --id "1:2" --componentPropertyReferences '{"visible": "showIcon"}'
+```
+
+### Viewport & Selection
+
+```bash
+get-viewport
+set-viewport --x 100 --y 100 --zoom 1.5
+zoom-to-fit --ids "1:2,1:3"
+
+select-nodes --ids "1:2,1:3"              # Select in Figma UI
+```
+
+### Import & Export
+
+```bash
+import-svg --svg '<svg>...</svg>' --x 0 --y 0 --name "Icon"
+
+set-image-fill --id "1:2" --url "https://..." --scaleMode FILL
+
+export-node --id "1:2" --format PNG --scale 2 --output ./export.png
+export-selection --output ./selection.png --format PNG --scale 2 --padding 20
+
+screenshot --output ./viewport.png --scale 1
 ```
 
 ### Delete
 
 ```bash
-figma deleteNode --id "1:2"
+delete-node --id "1:2"
 ```
 
-## Environment Variables
+## Configuration
 
-- `FIGMA_PROXY_URL` - Proxy server URL (default: `http://localhost:38451`)
+```bash
+PORT=38451              # Proxy server port (default: 38451)
+```
+
+## Development
+
+```bash
+# Run tests (requires Figma open with plugin connected)
+cd packages/cli && bun test
+
+# Build plugin after changes
+cd packages/plugin && bun run build
+```
+
+## Packages
+
+- **proxy** — Elysia WebSocket server
+- **plugin** — Figma plugin (connects to proxy)
+- **cli** — Command-line interface (citty-based)
+
+## License
+
+MIT

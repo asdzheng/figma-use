@@ -494,6 +494,107 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       return serializeNode(node)
     }
 
+    case 'set-font': {
+      const { id, fontFamily, fontStyle, fontSize } = args as {
+        id: string; fontFamily?: string; fontStyle?: string; fontSize?: number
+      }
+      const node = await figma.getNodeByIdAsync(id) as TextNode | null
+      if (!node || node.type !== 'TEXT') throw new Error('Text node not found')
+      const currentFont = node.fontName as FontName
+      const family = fontFamily || currentFont.family
+      const style = fontStyle || currentFont.style
+      await figma.loadFontAsync({ family, style })
+      node.fontName = { family, style }
+      if (fontSize !== undefined) node.fontSize = fontSize
+      return serializeNode(node)
+    }
+
+    case 'get-children': {
+      const { id, depth } = args as { id: string; depth?: number }
+      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      if (!node) throw new Error('Node not found')
+      if (!('children' in node)) return []
+      const maxDepth = depth || 1
+      const serializeWithDepth = (n: SceneNode, d: number): object => {
+        const base = serializeNode(n) as Record<string, unknown>
+        if (d < maxDepth && 'children' in n) {
+          base.children = (n as FrameNode).children.map(c => serializeWithDepth(c, d + 1))
+        }
+        return base
+      }
+      return (node as FrameNode).children.map(c => serializeWithDepth(c, 1))
+    }
+
+    case 'find-by-name': {
+      const { name, type, exact } = args as { name: string; type?: string; exact?: boolean }
+      const results: object[] = []
+      figma.currentPage.findAll(n => {
+        const nameMatch = exact ? n.name === name : n.name.toLowerCase().includes(name.toLowerCase())
+        const typeMatch = !type || n.type === type
+        if (nameMatch && typeMatch) results.push(serializeNode(n))
+        return false
+      })
+      return results
+    }
+
+    case 'select-nodes': {
+      const { ids } = args as { ids: string[] }
+      const nodes = await Promise.all(ids.map(id => figma.getNodeByIdAsync(id)))
+      const validNodes = nodes.filter((n): n is SceneNode => n !== null && 'id' in n)
+      figma.currentPage.selection = validNodes
+      return { selected: validNodes.length }
+    }
+
+    case 'set-constraints': {
+      const { id, horizontal, vertical } = args as {
+        id: string; horizontal?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE'
+        vertical?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE'
+      }
+      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      if (!node || !('constraints' in node)) throw new Error('Node not found')
+      node.constraints = {
+        horizontal: horizontal || node.constraints.horizontal,
+        vertical: vertical || node.constraints.vertical
+      }
+      return serializeNode(node)
+    }
+
+    case 'set-blend-mode': {
+      const { id, mode } = args as { id: string; mode: BlendMode }
+      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      if (!node || !('blendMode' in node)) throw new Error('Node not found')
+      node.blendMode = mode
+      return serializeNode(node)
+    }
+
+    case 'set-auto-layout': {
+      const { id, mode, wrap, itemSpacing, counterSpacing, padding, primaryAlign, counterAlign, sizingH, sizingV } = args as {
+        id: string; mode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE'; wrap?: boolean
+        itemSpacing?: number; counterSpacing?: number
+        padding?: { top: number; right: number; bottom: number; left: number }
+        primaryAlign?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'
+        counterAlign?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'
+        sizingH?: 'FIXED' | 'HUG' | 'FILL'; sizingV?: 'FIXED' | 'HUG' | 'FILL'
+      }
+      const node = await figma.getNodeByIdAsync(id) as FrameNode | null
+      if (!node || !('layoutMode' in node)) throw new Error('Frame not found')
+      if (mode) node.layoutMode = mode
+      if (wrap !== undefined) node.layoutWrap = wrap ? 'WRAP' : 'NO_WRAP'
+      if (itemSpacing !== undefined) node.itemSpacing = itemSpacing
+      if (counterSpacing !== undefined) node.counterAxisSpacing = counterSpacing
+      if (padding) {
+        node.paddingTop = padding.top
+        node.paddingRight = padding.right
+        node.paddingBottom = padding.bottom
+        node.paddingLeft = padding.left
+      }
+      if (primaryAlign) node.primaryAxisAlignItems = primaryAlign
+      if (counterAlign) node.counterAxisAlignItems = counterAlign
+      if (sizingH) node.layoutSizingHorizontal = sizingH
+      if (sizingV) node.layoutSizingVertical = sizingV
+      return serializeNode(node)
+    }
+
     // ==================== UPDATE STRUCTURE ====================
     case 'set-layout': {
       const { id, mode, wrap, clip, itemSpacing, primaryAxisAlignItems, counterAxisAlignItems,
