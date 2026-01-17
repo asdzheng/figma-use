@@ -3,3 +3,5 @@ dist
 *.log
 .DS_Store
 packages/plugin/dist
+FIGMA_INTERNALS.md
+FIGMA_INTERNALS.md
