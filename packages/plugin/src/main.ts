@@ -4,19 +4,37 @@ figma.showUI(__html__, { width: 300, height: 200 })
 
 // Font cache to avoid repeated loadFontAsync calls
 const loadedFonts = new Set<string>()
+const fontLoadPromises = new Map<string, Promise<void>>()
+
+// Preload common font
+const interPromise = figma.loadFontAsync({ family: 'Inter', style: 'Regular' })
+fontLoadPromises.set('Inter:Regular', interPromise)
+interPromise.then(() => loadedFonts.add('Inter:Regular'))
 
 function loadFont(family: string, style: string): Promise<void> | void {
   const key = `${family}:${style}`
   if (loadedFonts.has(key)) return // sync return if cached
-  loadedFonts.add(key) // add before await to prevent race
-  return figma.loadFontAsync({ family, style })
+  
+  // Check if already loading
+  const pending = fontLoadPromises.get(key)
+  if (pending) return pending
+  
+  // Start new load
+  const promise = figma.loadFontAsync({ family, style })
+  fontLoadPromises.set(key, promise)
+  promise.then(() => {
+    loadedFonts.add(key)
+    fontLoadPromises.delete(key)
+  })
+  return promise
 }
 
 // Fast node creation for batch operations - skips full serialization
 async function createNodeFast(
   command: string, 
   args: Record<string, unknown> | undefined,
-  nodeCache?: Map<string, SceneNode>
+  nodeCache?: Map<string, SceneNode>,
+  deferredLayouts?: Array<{ frame: FrameNode; layoutMode: 'HORIZONTAL' | 'VERTICAL'; itemSpacing?: number; padding?: { top: number; right: number; bottom: number; left: number } }>
 ): Promise<SceneNode | null> {
   if (!args) return null
   
@@ -43,16 +61,12 @@ async function createNodeFast(
       if (typeof radius === 'number') frame.cornerRadius = radius
       if (typeof opacity === 'number') frame.opacity = opacity
       if (layoutMode && layoutMode !== 'NONE') {
-        frame.layoutMode = layoutMode as 'HORIZONTAL' | 'VERTICAL'
-        frame.primaryAxisSizingMode = 'AUTO'
-        frame.counterAxisSizingMode = 'AUTO'
-        if (itemSpacing) frame.itemSpacing = itemSpacing
-        if (padding) {
-          frame.paddingTop = padding.top
-          frame.paddingRight = padding.right
-          frame.paddingBottom = padding.bottom
-          frame.paddingLeft = padding.left
-        }
+        deferredLayouts?.push({
+          frame,
+          layoutMode: layoutMode as 'HORIZONTAL' | 'VERTICAL',
+          itemSpacing,
+          padding
+        })
       }
       node = frame
       break
@@ -104,19 +118,6 @@ async function createNodeFast(
       return null
   }
   
-  if (node && parentId) {
-    // Try cache first, then async lookup
-    let parent = nodeCache?.get(parentId) as FrameNode | GroupNode | null
-    if (!parent) {
-      parent = await figma.getNodeByIdAsync(parentId) as FrameNode | GroupNode | null
-    }
-    if (parent && 'appendChild' in parent) {
-      parent.appendChild(node)
-    }
-  } else if (node) {
-    figma.currentPage.appendChild(node)
-  }
-  
   return node
 }
 
@@ -157,6 +158,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const results: Array<{ id: string; name: string }> = []
       const refMap = new Map<string, string>() // ref -> actual node id
       const nodeCache = new Map<string, SceneNode>() // cache created nodes for parent lookups
+      const deferredLayouts: Array<{ frame: FrameNode; layoutMode: 'HORIZONTAL' | 'VERTICAL'; itemSpacing?: number; padding?: { top: number; right: number; bottom: number; left: number } }> = []
+      const internalAttachments: Array<{ node: SceneNode; parentId: string }> = []
+      const externalAttachments: Array<{ node: SceneNode; parentId: string }> = []
+      const rootNodes: SceneNode[] = []
       
       for (const cmd of commands) {
         // Resolve parent reference if needed
@@ -166,12 +171,23 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         }
         
         // Use fast path for create commands
-        const node = await createNodeFast(cmd.command, cmd.args, nodeCache)
+        const node = await createNodeFast(cmd.command, cmd.args, nodeCache, deferredLayouts)
         if (node) {
           results.push({ id: node.id, name: node.name })
           nodeCache.set(node.id, node) // cache for child lookups
           if (cmd.args?.ref) {
             refMap.set(cmd.args.ref as string, node.id)
+          }
+
+          const parentId = cmd.args?.parentId as string | undefined
+          if (parentId) {
+            if (nodeCache.has(parentId)) {
+              internalAttachments.push({ node, parentId })
+            } else {
+              externalAttachments.push({ node, parentId })
+            }
+          } else {
+            rootNodes.push(node)
           }
         } else {
           // Fallback to full handler
@@ -180,6 +196,40 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           if (cmd.args?.ref) {
             refMap.set(cmd.args.ref as string, result.id)
           }
+        }
+      }
+      
+      for (const attachment of internalAttachments) {
+        const parent = nodeCache.get(attachment.parentId)
+        if (parent && 'appendChild' in parent) {
+          parent.appendChild(attachment.node)
+        }
+      }
+
+      for (const layout of deferredLayouts) {
+        layout.frame.layoutMode = layout.layoutMode
+        layout.frame.primaryAxisSizingMode = 'AUTO'
+        layout.frame.counterAxisSizingMode = 'AUTO'
+        if (layout.itemSpacing) layout.frame.itemSpacing = layout.itemSpacing
+        if (layout.padding) {
+          layout.frame.paddingTop = layout.padding.top
+          layout.frame.paddingRight = layout.padding.right
+          layout.frame.paddingBottom = layout.padding.bottom
+          layout.frame.paddingLeft = layout.padding.left
+        }
+      }
+
+      for (const node of rootNodes) {
+        figma.currentPage.appendChild(node)
+      }
+
+      for (const attachment of externalAttachments) {
+        let parent = nodeCache.get(attachment.parentId)
+        if (!parent) {
+          parent = await figma.getNodeByIdAsync(attachment.parentId) as SceneNode | null
+        }
+        if (parent && 'appendChild' in parent) {
+          parent.appendChild(attachment.node)
         }
       }
       
