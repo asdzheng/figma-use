@@ -9,10 +9,28 @@ export default defineCommand({
     width: { type: 'string', description: 'Width', required: true },
     height: { type: 'string', description: 'Height', required: true },
     name: { type: 'string', description: 'Name' },
-    parentId: { type: 'string', description: 'Parent node ID' }
+    parentId: { type: 'string', description: 'Parent node ID' },
+    fill: { type: 'string', description: 'Fill color (hex)' },
+    stroke: { type: 'string', description: 'Stroke color (hex)' },
+    strokeWeight: { type: 'string', description: 'Stroke weight' },
+    radius: { type: 'string', description: 'Corner radius' },
+    opacity: { type: 'string', description: 'Opacity (0-1)' },
+    layoutMode: { type: 'string', description: 'Layout mode: HORIZONTAL, VERTICAL, NONE' },
+    itemSpacing: { type: 'string', description: 'Item spacing' },
+    padding: { type: 'string', description: 'Padding (single value or "top,right,bottom,left")' }
   },
   async run({ args }) {
     try {
+      let paddingObj
+      if (args.padding) {
+        const parts = args.padding.split(',').map(Number)
+        if (parts.length === 1) {
+          paddingObj = { top: parts[0], right: parts[0], bottom: parts[0], left: parts[0] }
+        } else if (parts.length === 4) {
+          paddingObj = { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3] }
+        }
+      }
+
       printResult(
         await sendCommand('create-frame', {
           x: Number(args.x),
@@ -20,7 +38,15 @@ export default defineCommand({
           width: Number(args.width),
           height: Number(args.height),
           name: args.name,
-          parentId: args.parentId
+          parentId: args.parentId,
+          fill: args.fill,
+          stroke: args.stroke,
+          strokeWeight: args.strokeWeight ? Number(args.strokeWeight) : undefined,
+          radius: args.radius ? Number(args.radius) : undefined,
+          opacity: args.opacity ? Number(args.opacity) : undefined,
+          layoutMode: args.layoutMode,
+          itemSpacing: args.itemSpacing ? Number(args.itemSpacing) : undefined,
+          padding: paddingObj
         })
       )
     } catch (e) {

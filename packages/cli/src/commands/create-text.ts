@@ -8,9 +8,10 @@ export default defineCommand({
     y: { type: 'string', description: 'Y coordinate', required: true },
     text: { type: 'string', description: 'Text content', required: true },
     fontSize: { type: 'string', description: 'Font size' },
-    fontName: { type: 'string', description: 'Font name' },
-    fontWeight: { type: 'string', description: 'Font weight' },
-    fontColor: { type: 'string', description: 'Font color (hex, e.g. #000000FF)' },
+    fontFamily: { type: 'string', description: 'Font family (default: Inter)' },
+    fontStyle: { type: 'string', description: 'Font style (Regular, Bold, Medium, etc)' },
+    fill: { type: 'string', description: 'Text color (hex)' },
+    opacity: { type: 'string', description: 'Opacity (0-1)' },
     name: { type: 'string', description: 'Node name' },
     parentId: { type: 'string', description: 'Parent node ID' }
   },
@@ -22,9 +23,10 @@ export default defineCommand({
           y: Number(args.y),
           text: args.text,
           fontSize: args.fontSize ? Number(args.fontSize) : undefined,
-          fontName: args.fontName,
-          fontWeight: args.fontWeight ? Number(args.fontWeight) : undefined,
-          fontColor: args.fontColor,
+          fontFamily: args.fontFamily,
+          fontStyle: args.fontStyle,
+          fill: args.fill,
+          opacity: args.opacity ? Number(args.opacity) : undefined,
           name: args.name,
           parentId: args.parentId
         })

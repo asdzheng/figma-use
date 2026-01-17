@@ -47,6 +47,14 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       return { id: page.id, name: page.name }
     }
 
+    case 'set-current-page': {
+      const { id } = args as { id: string }
+      const page = await figma.getNodeByIdAsync(id) as PageNode | null
+      if (!page || page.type !== 'PAGE') throw new Error('Page not found')
+      await figma.setCurrentPageAsync(page)
+      return { id: page.id, name: page.name }
+    }
+
     case 'get-local-styles': {
       const { type } = args as { type?: string } || {}
       const result: Record<string, object[]> = {}
@@ -94,27 +102,38 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== CREATE SHAPES ====================
     case 'create-rectangle': {
-      const { x, y, width, height, name, parentId } = args as {
+      const { x, y, width, height, name, parentId, fill, stroke, strokeWeight, radius, opacity } = args as {
         x: number; y: number; width: number; height: number; name?: string; parentId?: string
+        fill?: string; stroke?: string; strokeWeight?: number; radius?: number; opacity?: number
       }
       const rect = figma.createRectangle()
       rect.x = x
       rect.y = y
       rect.resize(width, height)
       if (name) rect.name = name
+      if (fill) rect.fills = [{ type: 'SOLID', color: hexToRgb(fill) }]
+      if (stroke) rect.strokes = [{ type: 'SOLID', color: hexToRgb(stroke) }]
+      if (strokeWeight !== undefined) rect.strokeWeight = strokeWeight
+      if (radius !== undefined) rect.cornerRadius = radius
+      if (opacity !== undefined) rect.opacity = opacity
       await appendToParent(rect, parentId)
       return serializeNode(rect)
     }
 
     case 'create-ellipse': {
-      const { x, y, width, height, name, parentId } = args as {
+      const { x, y, width, height, name, parentId, fill, stroke, strokeWeight, opacity } = args as {
         x: number; y: number; width: number; height: number; name?: string; parentId?: string
+        fill?: string; stroke?: string; strokeWeight?: number; opacity?: number
       }
       const ellipse = figma.createEllipse()
       ellipse.x = x
       ellipse.y = y
       ellipse.resize(width, height)
       if (name) ellipse.name = name
+      if (fill) ellipse.fills = [{ type: 'SOLID', color: hexToRgb(fill) }]
+      if (stroke) ellipse.strokes = [{ type: 'SOLID', color: hexToRgb(stroke) }]
+      if (strokeWeight !== undefined) ellipse.strokeWeight = strokeWeight
+      if (opacity !== undefined) ellipse.opacity = opacity
       await appendToParent(ellipse, parentId)
       return serializeNode(ellipse)
     }
@@ -176,14 +195,32 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== CREATE CONTAINERS ====================
     case 'create-frame': {
-      const { x, y, width, height, name, parentId } = args as {
+      const { x, y, width, height, name, parentId, fill, stroke, strokeWeight, radius, opacity, layoutMode, itemSpacing, padding } = args as {
         x: number; y: number; width: number; height: number; name?: string; parentId?: string
+        fill?: string; stroke?: string; strokeWeight?: number; radius?: number; opacity?: number
+        layoutMode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE'; itemSpacing?: number
+        padding?: { top: number; right: number; bottom: number; left: number }
       }
       const frame = figma.createFrame()
       frame.x = x
       frame.y = y
       frame.resize(width, height)
       if (name) frame.name = name
+      if (fill) frame.fills = [{ type: 'SOLID', color: hexToRgb(fill) }]
+      if (stroke) frame.strokes = [{ type: 'SOLID', color: hexToRgb(stroke) }]
+      if (strokeWeight !== undefined) frame.strokeWeight = strokeWeight
+      if (radius !== undefined) frame.cornerRadius = radius
+      if (opacity !== undefined) frame.opacity = opacity
+      if (layoutMode && layoutMode !== 'NONE') {
+        frame.layoutMode = layoutMode
+        if (itemSpacing !== undefined) frame.itemSpacing = itemSpacing
+        if (padding) {
+          frame.paddingTop = padding.top
+          frame.paddingRight = padding.right
+          frame.paddingBottom = padding.bottom
+          frame.paddingLeft = padding.left
+        }
+      }
       await appendToParent(frame, parentId)
       return serializeNode(frame)
     }
@@ -214,17 +251,21 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== CREATE OTHER ====================
     case 'create-text': {
-      const { x, y, text, fontSize, fontName, fontWeight, fontColor, name, parentId } = args as {
-        x: number; y: number; text: string; fontSize?: number; fontName?: string
-        fontWeight?: number; fontColor?: string; name?: string; parentId?: string
+      const { x, y, text, fontSize, fontFamily, fontStyle, fill, opacity, name, parentId } = args as {
+        x: number; y: number; text: string; fontSize?: number; fontFamily?: string
+        fontStyle?: string; fill?: string; opacity?: number; name?: string; parentId?: string
       }
       const textNode = figma.createText()
-      await figma.loadFontAsync({ family: fontName || 'Inter', style: fontWeight === 700 ? 'Bold' : 'Regular' })
+      const family = fontFamily || 'Inter'
+      const style = fontStyle || 'Regular'
+      await figma.loadFontAsync({ family, style })
       textNode.x = x
       textNode.y = y
+      textNode.fontName = { family, style }
       textNode.characters = text
       if (fontSize) textNode.fontSize = fontSize
-      if (fontColor) textNode.fills = [{ type: 'SOLID', color: hexToRgb(fontColor) }]
+      if (fill) textNode.fills = [{ type: 'SOLID', color: hexToRgb(fill) }]
+      if (opacity !== undefined) textNode.opacity = opacity
       if (name) textNode.name = name
       await appendToParent(textNode, parentId)
       return serializeNode(textNode)
@@ -401,6 +442,55 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const node = await figma.getNodeByIdAsync(id) as SceneNode | null
       if (!node) throw new Error('Node not found')
       node.locked = locked
+      return serializeNode(node)
+    }
+
+    case 'set-effect': {
+      const { id, type, color, offsetX, offsetY, radius, spread } = args as {
+        id: string; type: string; color?: string; offsetX?: number; offsetY?: number; radius?: number; spread?: number
+      }
+      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      if (!node || !('effects' in node)) throw new Error('Node not found')
+      const rgba = color ? hexToRgba(color) : { r: 0, g: 0, b: 0, a: 0.25 }
+      if (type === 'DROP_SHADOW' || type === 'INNER_SHADOW') {
+        node.effects = [{
+          type: type as 'DROP_SHADOW' | 'INNER_SHADOW',
+          color: rgba,
+          offset: { x: offsetX ?? 0, y: offsetY ?? 4 },
+          radius: radius ?? 8,
+          spread: spread ?? 0,
+          visible: true,
+          blendMode: 'NORMAL'
+        }]
+      } else if (type === 'BLUR') {
+        node.effects = [{
+          type: 'LAYER_BLUR',
+          radius: radius ?? 8,
+          visible: true
+        }]
+      }
+      return serializeNode(node)
+    }
+
+    case 'set-text': {
+      const { id, text } = args as { id: string; text: string }
+      const node = await figma.getNodeByIdAsync(id) as TextNode | null
+      if (!node || node.type !== 'TEXT') throw new Error('Text node not found')
+      const fontName = node.fontName as FontName
+      await figma.loadFontAsync(fontName)
+      node.characters = text
+      return serializeNode(node)
+    }
+
+    case 'import-svg': {
+      const { svg, x, y, name, parentId } = args as {
+        svg: string; x?: number; y?: number; name?: string; parentId?: string
+      }
+      const node = figma.createNodeFromSvg(svg)
+      if (x !== undefined) node.x = x
+      if (y !== undefined) node.y = y
+      if (name) node.name = name
+      await appendToParent(node, parentId)
       return serializeNode(node)
     }
 

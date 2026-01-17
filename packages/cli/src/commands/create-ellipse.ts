@@ -9,7 +9,11 @@ export default defineCommand({
     width: { type: 'string', description: 'Width', required: true },
     height: { type: 'string', description: 'Height', required: true },
     name: { type: 'string', description: 'Node name' },
-    parentId: { type: 'string', description: 'Parent node ID' }
+    parentId: { type: 'string', description: 'Parent node ID' },
+    fill: { type: 'string', description: 'Fill color (hex)' },
+    stroke: { type: 'string', description: 'Stroke color (hex)' },
+    strokeWeight: { type: 'string', description: 'Stroke weight' },
+    opacity: { type: 'string', description: 'Opacity (0-1)' }
   },
   async run({ args }) {
     try {
@@ -19,7 +23,11 @@ export default defineCommand({
         width: Number(args.width),
         height: Number(args.height),
         name: args.name,
-        parentId: args.parentId
+        parentId: args.parentId,
+        fill: args.fill,
+        stroke: args.stroke,
+        strokeWeight: args.strokeWeight ? Number(args.strokeWeight) : undefined,
+        opacity: args.opacity ? Number(args.opacity) : undefined
       }))
     } catch (e) { handleError(e) }
   }
