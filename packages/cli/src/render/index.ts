@@ -1,8 +1,8 @@
 /**
- * React → Figma JSON Renderer
+ * React → Figma Renderer
  */
 
-export { renderToJSON, type FigmaNode } from './reconciler.ts'
+export { renderToNodeChanges, type RenderOptions, type RenderResult } from './reconciler.ts'
 export { 
   Frame, 
   Rectangle, 
