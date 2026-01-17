@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "citty": "^0.1.6",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "react": "18",
+    "react-reconciler": "0.29"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6"
