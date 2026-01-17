@@ -95,7 +95,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         const styles = await figma.getLocalEffectStylesAsync()
         if (styles.length > 0) {
           result.effectStyles = styles.map(s => ({
-            id: s.id, name: s.name, effects: s.effects.map(e => ({ type: e.type, radius: e.radius }))
+            id: s.id, name: s.name, effects: s.effects.map(e => ({ type: e.type, radius: 'radius' in e ? e.radius : undefined }))
           }))
         }
       }
@@ -359,9 +359,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       } else if (type === 'BLUR' || type === 'BACKGROUND_BLUR') {
         style.effects = [{
           type: type as 'LAYER_BLUR' | 'BACKGROUND_BLUR',
+          blurType: 'NORMAL',
           radius: radius || 10,
           visible: true
-        }]
+        } as BlurEffect]
       }
       return { id: style.id, name: style.name, key: style.key }
     }
@@ -484,9 +485,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       } else if (type === 'BLUR') {
         node.effects = [{
           type: 'LAYER_BLUR',
+          blurType: 'NORMAL',
           radius: radius ?? 8,
           visible: true
-        }]
+        } as BlurEffect]
       }
       return serializeNode(node)
     }
@@ -685,7 +687,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const { id, angle } = args as { id: string; angle: number }
       const node = await figma.getNodeByIdAsync(id) as SceneNode | null
       if (!node) throw new Error('Node not found')
-      node.rotation = angle
+      if ('rotation' in node) node.rotation = angle
       return serializeNode(node)
     }
 
@@ -704,7 +706,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       } = args as {
         id: string; mode: 'NONE' | 'HORIZONTAL' | 'VERTICAL'; wrap?: boolean; clip?: boolean
         itemSpacing?: number; primaryAxisAlignItems?: 'MIN' | 'MAX' | 'CENTER' | 'SPACE_BETWEEN'
-        counterAxisAlignItems?: 'MIN' | 'MAX' | 'CENTER' | 'SPACE_BETWEEN'
+        counterAxisAlignItems?: 'MIN' | 'MAX' | 'CENTER' | 'BASELINE'
         paddingLeft?: number; paddingRight?: number; paddingTop?: number; paddingBottom?: number
         layoutSizingVertical?: 'FIXED' | 'HUG' | 'FILL'; layoutSizingHorizontal?: 'FIXED' | 'HUG' | 'FILL'
       }
@@ -919,7 +921,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         }
       }
 
-      const bytes = await frame.exportAsync({ format: 'PNG', scale: scale || 1 })
+      const bytes = await frame.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: scale || 1 } })
       frame.remove()
       return { data: figma.base64Encode(bytes) }
     }

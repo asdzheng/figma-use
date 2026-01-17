@@ -55,7 +55,8 @@ function formatNode(node: NodeInfo, depth: number, index: number, options: {
     // Still recurse into children
     if (node.children) {
       for (let i = 0; i < node.children.length; i++) {
-        lines.push(...formatNode(node.children[i], depth, i, options))
+        const child = node.children[i]
+        if (child) lines.push(...formatNode(child, depth, i, options))
       }
     }
     return lines
@@ -134,12 +135,15 @@ function formatNode(node: NodeInfo, depth: number, index: number, options: {
   // Children
   if (node.children && (options.maxDepth === -1 || depth < options.maxDepth)) {
     for (let i = 0; i < node.children.length; i++) {
-      lines.push(...formatNode(node.children[i], depth + 1, i, options))
+      const child = node.children[i]
+      if (child) lines.push(...formatNode(child, depth + 1, i, options))
     }
   }
   
   return lines
 }
+
+const MAX_NODES = 500
 
 export default defineCommand({
   meta: { description: 'Get node tree with properties' },
@@ -148,12 +152,22 @@ export default defineCommand({
     depth: { type: 'string', description: 'Max depth (-1 for unlimited)', default: '-1' },
     interactive: { type: 'boolean', description: 'Only show interactive elements', alias: 'i' },
     hidden: { type: 'boolean', description: 'Include hidden nodes' },
-    json: { type: 'boolean', description: 'Output as JSON' }
+    json: { type: 'boolean', description: 'Output as JSON' },
+    force: { type: 'boolean', description: 'Skip node count limit', alias: 'f' }
   },
   async run({ args }) {
     try {
       const id = args.id || (await sendCommand('get-current-page', {}) as { id: string }).id
       const result = await sendCommand('get-node-tree', { id }) as NodeInfo
+      
+      const countNodes = (n: NodeInfo): number => 
+        1 + (n.children?.reduce((sum, c) => sum + countNodes(c), 0) || 0)
+      const total = countNodes(result)
+      
+      if (!args.force && total > MAX_NODES) {
+        console.error(`✗ Tree has ${total} nodes (limit: ${MAX_NODES}). Use --depth to limit or --force to override.`)
+        process.exit(1)
+      }
       
       if (args.json) {
         console.log(JSON.stringify(result, null, 2))
@@ -168,11 +182,6 @@ export default defineCommand({
       
       const lines = formatNode(result, 0, 0, options)
       console.log(lines.join('\n'))
-      
-      // Stats
-      const countNodes = (n: NodeInfo): number => 
-        1 + (n.children?.reduce((sum, c) => sum + countNodes(c), 0) || 0)
-      const total = countNodes(result)
       console.log(`\n${total} nodes`)
       
     } catch (e) { handleError(e) }

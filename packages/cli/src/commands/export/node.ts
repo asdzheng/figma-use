@@ -1,5 +1,6 @@
 import { defineCommand } from 'citty'
 import { sendCommand, handleError } from '../../client.ts'
+import { checkExportSize } from '../../export-guard.ts'
 import { writeFileSync } from 'fs'
 
 export default defineCommand({
@@ -9,14 +10,23 @@ export default defineCommand({
     format: { type: 'string', description: 'Format: PNG, JPG, SVG, PDF', default: 'PNG' },
     scale: { type: 'string', description: 'Export scale', default: '1' },
     output: { type: 'string', description: 'Output file path' },
-    timeout: { type: 'string', description: 'Timeout in seconds' }
+    timeout: { type: 'string', description: 'Timeout in seconds' },
+    force: { type: 'boolean', description: 'Skip size check', alias: 'f' }
   },
   async run({ args }) {
     try {
+      const scale = Number(args.scale)
+      
+      const check = await checkExportSize(args.id, scale, args.force || false)
+      if (!check.ok) {
+        console.error(`✗ ${check.message}`)
+        process.exit(1)
+      }
+
       const result = await sendCommand('export-node', {
         id: args.id,
         format: args.format.toUpperCase(),
-        scale: Number(args.scale)
+        scale
       }, { timeout: args.timeout ? Number(args.timeout) * 1000 : undefined }) as { data: string; filename: string }
       
       if (args.output) {

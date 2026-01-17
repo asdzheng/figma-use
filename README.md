@@ -195,6 +195,12 @@ figma-use export selection [--format PNG] [--scale 2] [--output file.png]
 figma-use export screenshot [--output viewport.png]
 ```
 
+Export commands have built-in guards against oversized exports (max 4096px dimension, 16MP total). Override with `--force`:
+
+```bash
+figma-use export node <id> --scale 10 --force
+```
+
 Heavy operations support `--timeout` (seconds):
 ```bash
 figma-use export node <id> --scale 2 --output large.png --timeout 300

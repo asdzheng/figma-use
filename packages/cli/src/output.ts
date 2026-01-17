@@ -83,7 +83,7 @@ function formatNode(node: Record<string, unknown>, indent = ''): string {
   }
 
   // Children count
-  if (node.childCount !== undefined && node.childCount > 0) {
+  if (node.childCount !== undefined && typeof node.childCount === 'number' && node.childCount > 0) {
     details.push(`children: ${node.childCount}`)
   }
 
