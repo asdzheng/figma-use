@@ -4,6 +4,20 @@ Control Figma from the command line. Like [browser-use](https://github.com/brows
 
 Built for AI agents to create and manipulate Figma designs programmatically.
 
+## How it works
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│   AI Agent /    │────▶│   figma-use     │────▶│     Figma       │
+│   CLI           │ HTTP│   proxy         │ WS  │     Plugin      │
+│                 │◀────│   :38451        │◀────│                 │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+The CLI sends commands to a local proxy server, which forwards them via WebSocket to a Figma plugin. The plugin executes commands using the Figma API and returns results.
+
 ## Installation
 
 ```bash
@@ -18,19 +32,23 @@ bun install -g @dannote/figma-use
 figma-use proxy
 ```
 
-### 2. Load the Figma plugin
-
-Open Figma, go to **Plugins → Development → Import plugin from manifest**, and select:
-
-```
-~/.bun/install/global/node_modules/@dannote/figma-use/packages/plugin/dist/manifest.json
-```
-
-Or find it with:
+### 2. Install the Figma plugin
 
 ```bash
+# Quit Figma first, then:
 figma-use plugin
+
+# Or force install while Figma is running (restart required):
+figma-use plugin --force
+
+# Show plugin path only:
+figma-use plugin --path
+
+# Uninstall:
+figma-use plugin --uninstall
 ```
+
+Start Figma and find the plugin in **Plugins → Development → Figma Use**.
 
 ### 3. Run commands
 
@@ -170,6 +188,30 @@ $ figma-use get-node --id "1:2" --json
 | `set-current-page` | Switch to page |
 | `zoom-to-fit` | Zoom to fit nodes |
 | `set-viewport` | Set viewport position and zoom |
+
+### Advanced
+
+| Command | Description |
+|---------|-------------|
+| `eval` | Execute arbitrary JavaScript in Figma |
+
+#### eval
+
+Run any JavaScript code in the Figma plugin context:
+
+```bash
+# Simple expression
+figma-use eval "return 2 + 2"
+
+# Access Figma API
+figma-use eval "return figma.currentPage.name"
+
+# Create nodes
+figma-use eval "const r = figma.createRectangle(); r.resize(100, 100); return r.id"
+
+# Async code (top-level await supported)
+figma-use eval "const node = await figma.getNodeByIdAsync('1:2'); return node.name"
+```
 
 ## Environment Variables
 

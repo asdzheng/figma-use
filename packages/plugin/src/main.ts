@@ -964,6 +964,18 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       return { deleted: true }
     }
 
+    // ==================== EVAL ====================
+    case 'eval': {
+      const { code } = args as { code: string }
+      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
+      // Wrap code to support top-level await
+      const wrappedCode = code.trim().startsWith('return') 
+        ? code 
+        : `return (async () => { ${code} })()`
+      const fn = new AsyncFunction('figma', wrappedCode)
+      return await fn(figma)
+    }
+
     default:
       throw new Error(`Unknown command: ${command}`)
   }

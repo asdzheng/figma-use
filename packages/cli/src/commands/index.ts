@@ -1,5 +1,6 @@
 export { default as proxy } from './proxy.ts'
 export { default as plugin } from './plugin.ts'
+export { default as eval } from './eval.ts'
 export { default as status } from './status.ts'
 
 // Read
