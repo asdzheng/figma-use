@@ -276,11 +276,13 @@ figma-use render ./Card.figma.tsx --parent "1:23"
 figma-use render ./Card.figma.tsx --dryRun
 ```
 
-**Important:** The `render` command requires Figma to be started with remote debugging enabled:
+**Important:** The `render` command requires:
+1. Figma running with remote debugging: `figma --remote-debugging-port=9222`
+2. Proxy server running: `figma-use proxy`
 
-```bash
-figma --remote-debugging-port=9222
-```
+The proxy maintains persistent WebSocket connections for fast repeated renders:
+- First render: ~4s (establishes connection)
+- Subsequent renders: ~0.4s (reuses connection)
 
 Example component (`Card.figma.tsx`):
 
