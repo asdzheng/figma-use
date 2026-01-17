@@ -122,6 +122,12 @@ figma-use screenshot --output viewport.png
 figma-use export-selection --format PNG --scale 2 --output selection.png
 ```
 
+Heavy operations (`export-node`, `screenshot`, `export-selection`, `eval`) default to 120s timeout. Override with `--timeout` (seconds):
+
+```bash
+figma-use export-node --id "1:2" --scale 2 --output large.png --timeout 300
+```
+
 ### SVG Import
 
 ```bash

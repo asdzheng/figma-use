@@ -191,6 +191,13 @@ $ figma-use get-node --id "1:2" --json
 | `export-node` | Export node as PNG/SVG/PDF |
 | `screenshot` | Screenshot current viewport |
 
+Heavy operations (`export-node`, `screenshot`, `export-selection`, `eval`) have a 120s default timeout. Override with `--timeout`:
+
+```bash
+# 5 minute timeout for large exports
+figma-use export-node --id "1:2" --scale 2 --output large.png --timeout 300
+```
+
 ### Query
 
 | Command | Description |
