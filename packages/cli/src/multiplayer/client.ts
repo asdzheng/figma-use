@@ -1,0 +1,309 @@
+/**
+ * Figma Multiplayer WebSocket Client
+ * 
+ * High-level interface for connecting to Figma's multiplayer server
+ * and creating/modifying nodes directly via WebSocket.
+ * 
+ * Performance: ~1000 nodes in 15-20ms (vs 50-100s via plugin API)
+ */
+
+import { 
+  buildMultiplayerUrl, 
+  MESSAGE_TYPES,
+  isZstdCompressed,
+  hasFigWireHeader,
+  skipFigWireHeader,
+} from './protocol.ts'
+import { 
+  initCodec, 
+  encodeMessage, 
+  decodeMessage, 
+  decompress,
+  createNodeChangesMessage,
+  type NodeChange,
+  type FigmaMessage,
+} from './codec.ts'
+
+export interface SessionInfo {
+  sessionID: number
+  reconnectSequenceNumber: number
+}
+
+export interface ConnectionOptions {
+  connectionTimeout?: number
+  onMessage?: (message: FigmaMessage) => void
+  onError?: (error: Error) => void
+}
+
+type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'ready'
+
+export class FigmaMultiplayerClient {
+  private fileKey: string
+  private ws: WebSocket | null = null
+  private state: ConnectionState = 'disconnected'
+  private sessionInfo: SessionInfo | null = null
+  private localIDCounter: number
+  private options: ConnectionOptions
+  
+  constructor(fileKey: string, options: ConnectionOptions = {}) {
+    this.fileKey = fileKey
+    this.localIDCounter = Date.now() % 10000000
+    this.options = {
+      connectionTimeout: 30000,
+      ...options,
+    }
+  }
+
+  /**
+   * Connect to Figma multiplayer server
+   */
+  async connect(cookies: string): Promise<SessionInfo> {
+    if (this.state !== 'disconnected') {
+      throw new Error(`Cannot connect: state is ${this.state}`)
+    }
+
+    await initCodec()
+    this.state = 'connecting'
+    
+    return new Promise((resolve, reject) => {
+      const url = buildMultiplayerUrl(this.fileKey)
+      
+      this.ws = new WebSocket(url, {
+        headers: {
+          'Cookie': cookies,
+          'Origin': 'https://www.figma.com',
+        },
+      } as WebSocketInit)
+      
+      this.ws.binaryType = 'arraybuffer'
+      
+      const timeout = setTimeout(() => {
+        this.close()
+        reject(new Error('Connection timeout'))
+      }, this.options.connectionTimeout)
+      
+      let sessionID = 0
+      let reconnectSequenceNumber = 0
+      let joinEndReceived = false
+      
+      this.ws.onmessage = (event) => {
+        if (!(event.data instanceof ArrayBuffer)) return
+        
+        let data = new Uint8Array(event.data)
+        
+        // Skip fig-wire header if present
+        if (hasFigWireHeader(data)) {
+          data = skipFigWireHeader(data)
+        }
+        
+        if (!isZstdCompressed(data)) return
+        
+        try {
+          const decompressed = decompress(data)
+          
+          // Kiwi messages start with field 1 (0x01). Skip non-message data.
+          if (decompressed[0] !== 1) return
+          
+          const msgType = decompressed[1]
+          
+          // JOIN_START: extract sessionID from raw bytes
+          if (msgType === MESSAGE_TYPES.JOIN_START && decompressed[2] === 2) {
+            let pos = 3, val = 0, shift = 0
+            while (pos < decompressed.length && (decompressed[pos] & 0x80)) {
+              val |= (decompressed[pos++] & 0x7F) << shift
+              shift += 7
+            }
+            if (pos < decompressed.length) {
+              val |= decompressed[pos] << shift
+            }
+            if (val > 10000 && val < 1000000) {
+              sessionID = val
+            }
+          }
+          
+          // JOIN_END: sync complete
+          if (msgType === MESSAGE_TYPES.JOIN_END) {
+            joinEndReceived = true
+          }
+          
+          // SIGNAL: extract reconnect-sequence-number
+          if (msgType === MESSAGE_TYPES.SIGNAL) {
+            const str = new TextDecoder().decode(decompressed)
+            const match = str.match(/reconnect-sequence-number[^\d]*(\d+)/)
+            if (match) {
+              reconnectSequenceNumber = parseInt(match[1])
+            }
+          }
+          
+          // Forward messages when ready
+          if (this.options.onMessage && this.state === 'ready') {
+            try {
+              const message = decodeMessage(data)
+              this.options.onMessage(message)
+            } catch {
+              // Ignore decode errors
+            }
+          }
+          
+          // Check if handshake complete
+          if (sessionID && reconnectSequenceNumber && joinEndReceived && (this.state === 'connecting' || this.state === 'connected')) {
+            clearTimeout(timeout)
+            this.state = 'ready'
+            this.sessionInfo = { sessionID, reconnectSequenceNumber }
+            resolve(this.sessionInfo)
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+      
+      this.ws.onopen = () => {
+        this.state = 'connected'
+      }
+      
+      this.ws.onerror = () => {
+        clearTimeout(timeout)
+        const error = new Error('WebSocket connection failed')
+        this.options.onError?.(error)
+        if (this.state === 'connecting') {
+          reject(error)
+        }
+      }
+      
+      this.ws.onclose = () => {
+        clearTimeout(timeout)
+        const wasConnecting = this.state === 'connecting'
+        this.state = 'disconnected'
+        this.ws = null
+        if (wasConnecting) {
+          reject(new Error('Connection closed during handshake'))
+        }
+      }
+    })
+  }
+
+  /**
+   * Send node changes to Figma
+   */
+  async sendNodeChanges(nodeChanges: NodeChange[]): Promise<void> {
+    if (this.state !== 'ready' || !this.ws || !this.sessionInfo) {
+      throw new Error('Not connected')
+    }
+    
+    const message = createNodeChangesMessage(
+      this.sessionInfo.sessionID,
+      this.sessionInfo.reconnectSequenceNumber,
+      nodeChanges
+    )
+    
+    const encoded = encodeMessage(message)
+    this.ws.send(encoded)
+  }
+
+  /**
+   * Generate unique local ID for new nodes
+   */
+  nextLocalID(): number {
+    return this.localIDCounter++
+  }
+
+  /**
+   * Get current session info
+   */
+  getSession(): SessionInfo | null {
+    return this.sessionInfo
+  }
+
+  /**
+   * Check if connected and ready
+   */
+  isReady(): boolean {
+    return this.state === 'ready'
+  }
+
+  /**
+   * Close the connection
+   */
+  close(): void {
+    if (this.ws) {
+      this.ws.close()
+      this.ws = null
+    }
+    this.state = 'disconnected'
+    this.sessionInfo = null
+  }
+}
+
+// WebSocket with headers support (Bun/Node specific)
+interface WebSocketInit {
+  headers?: Record<string, string>
+}
+
+/**
+ * Get Figma cookies from Chrome DevTools Protocol
+ * 
+ * Requires Chrome/Figma to be running with:
+ *   --remote-debugging-port=9222
+ */
+export async function getCookiesFromDevTools(pageId?: string): Promise<string> {
+  // Get list of pages if no ID provided
+  if (!pageId) {
+    const listResponse = await fetch('http://localhost:9222/json')
+    const pages = await listResponse.json() as Array<{ id: string; url: string }>
+    const figmaPage = pages.find(p => p.url.includes('figma.com'))
+    if (!figmaPage) {
+      throw new Error('No Figma tab found. Open Figma in Chrome with --remote-debugging-port=9222')
+    }
+    pageId = figmaPage.id
+  }
+  
+  const wsUrl = `ws://localhost:9222/devtools/page/${pageId}`
+  
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl)
+    
+    const timeout = setTimeout(() => {
+      ws.close()
+      reject(new Error('DevTools connection timeout'))
+    }, 5000)
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        id: 1,
+        method: 'Network.getCookies',
+        params: { urls: ['https://www.figma.com'] }
+      }))
+    }
+    
+    ws.onmessage = (e) => {
+      clearTimeout(timeout)
+      const data = JSON.parse(e.data as string)
+      if (data.result?.cookies) {
+        ws.close()
+        const cookieString = data.result.cookies
+          .map((c: { name: string; value: string }) => `${c.name}=${c.value}`)
+          .join('; ')
+        resolve(cookieString)
+      }
+    }
+    
+    ws.onerror = () => {
+      clearTimeout(timeout)
+      reject(new Error('Cannot connect to Chrome DevTools. Is Chrome running with --remote-debugging-port=9222?'))
+    }
+  })
+}
+
+/**
+ * Parse Figma file key from URL
+ */
+export function parseFileKey(urlOrKey: string): string {
+  if (!urlOrKey.includes('/')) {
+    return urlOrKey
+  }
+  const match = urlOrKey.match(/figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/)
+  if (!match) {
+    throw new Error('Invalid Figma URL')
+  }
+  return match[1]
+}
