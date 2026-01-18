@@ -1309,9 +1309,60 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     case 'trigger-layout': {
       // Fix TEXT nodes and trigger auto-layout recalculation
       // Multiplayer protocol doesn't auto-size text or trigger layout engine
-      const { nodeId } = args as { nodeId: string }
+      interface PendingInstance {
+        componentSetName: string
+        variantName: string
+        parentGUID: { sessionID: number; localID: number }
+        position: string
+        x: number
+        y: number
+      }
+      const { nodeId, pendingComponentSetInstances } = args as { 
+        nodeId: string
+        pendingComponentSetInstances?: PendingInstance[]
+      }
       const root = await figma.getNodeByIdAsync(nodeId)
       if (!root) return null
+      
+      // Create ComponentSet instances via Plugin API (multiplayer can't link them correctly)
+      if (pendingComponentSetInstances && pendingComponentSetInstances.length > 0) {
+        for (const pending of pendingComponentSetInstances) {
+          // Find the ComponentSet by name
+          const findComponentSet = (node: SceneNode): ComponentSetNode | null => {
+            if (node.type === 'COMPONENT_SET' && node.name === pending.componentSetName) {
+              return node
+            }
+            if ('children' in node) {
+              for (const child of node.children) {
+                const found = findComponentSet(child)
+                if (found) return found
+              }
+            }
+            return null
+          }
+          
+          const componentSet = findComponentSet(root as SceneNode)
+          if (!componentSet) continue
+          
+          // Find the variant component by name
+          const variantComp = componentSet.children.find(
+            c => c.type === 'COMPONENT' && c.name === pending.variantName
+          ) as ComponentNode | undefined
+          if (!variantComp) continue
+          
+          // Create instance
+          const instance = variantComp.createInstance()
+          instance.x = pending.x
+          instance.y = pending.y
+          
+          // Find parent node
+          const parentId = `${pending.parentGUID.sessionID}:${pending.parentGUID.localID}`
+          const parent = await figma.getNodeByIdAsync(parentId)
+          if (parent && 'appendChild' in parent) {
+            (parent as FrameNode).appendChild(instance)
+          }
+        }
+      }
       
       // First pass: fix children (bottom-up for correct sizing)
       const fixRecursive = async (node: SceneNode) => {

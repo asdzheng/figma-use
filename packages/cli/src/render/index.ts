@@ -2,7 +2,15 @@
  * React → Figma Renderer
  */
 
-export { renderToNodeChanges, resetRenderedComponents, type RenderOptions, type RenderResult } from './reconciler.ts'
+export { 
+  renderToNodeChanges, 
+  resetRenderedComponents,
+  getPendingComponentSetInstances,
+  clearPendingComponentSetInstances,
+  type RenderOptions, 
+  type RenderResult,
+  type PendingComponentSetInstance,
+} from './reconciler.ts'
 export { 
   Frame, 
   Rectangle, 

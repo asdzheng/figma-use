@@ -158,7 +158,14 @@ new Elysia()
               reject(new Error('Layout trigger timeout'))
             }, 5000)
             pendingRequests.set(layoutId, { resolve: () => resolve(), reject, timeout })
-            sendToPlugin!(JSON.stringify({ id: layoutId, command: 'trigger-layout', args: { nodeId: rootId } }))
+            sendToPlugin!(JSON.stringify({ 
+              id: layoutId, 
+              command: 'trigger-layout', 
+              args: { 
+                nodeId: rootId,
+                pendingComponentSetInstances: body.pendingComponentSetInstances || []
+              } 
+            }))
           })
         } catch {
           // Layout trigger failed, nodes will overlap but still work

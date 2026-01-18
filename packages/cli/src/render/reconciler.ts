@@ -26,6 +26,25 @@ const renderedComponentSets = new Map<symbol, { sessionID: number; localID: numb
 // Track variant component IDs within each ComponentSet
 const renderedComponentSetVariants = new Map<symbol, Map<string, { sessionID: number; localID: number }>>()
 
+// Pending ComponentSet instances to create via Plugin API
+export interface PendingComponentSetInstance {
+  componentSetName: string
+  variantName: string
+  parentGUID: { sessionID: number; localID: number }
+  position: string
+  x: number
+  y: number
+}
+const pendingComponentSetInstances: PendingComponentSetInstance[] = []
+
+export function getPendingComponentSetInstances(): PendingComponentSetInstance[] {
+  return [...pendingComponentSetInstances]
+}
+
+export function clearPendingComponentSetInstances() {
+  pendingComponentSetInstances.length = 0
+}
+
 export interface RenderOptions {
   sessionID: number
   parentGUID: { sessionID: number; localID: number }
@@ -512,58 +531,35 @@ function collectNodeChanges(
       // Store variant IDs for creating instances
       renderedComponentSetVariants.set(sym, variantComponentIds)
       
-      // Now create instance for the requested variant
+      // Store pending instances to create via Plugin API (multiplayer symbolData doesn't work for ComponentSet)
       const requestedVariantName = buildVariantName({
         ...getDefaultVariants(variants),
         ...variantProps
       })
-      const targetGUID = variantComponentIds.get(requestedVariantName)
-      
-      if (targetGUID) {
-        const instanceLocalID = container.localIDCounter++
-        const style = (instance.props.style || {}) as Record<string, unknown>
-        const instanceChange: NodeChange = {
-          guid: { sessionID, localID: instanceLocalID },
-          phase: 'CREATED',
-          parentIndex: { guid: parentGUID, position: String.fromCharCode(34 + combinations.length) },
-          type: 'INSTANCE',
-          name,
-          visible: true,
-          opacity: 1,
-          transform: { m00: 1, m01: 0, m02: Number(style.x ?? 0), m10: 0, m11: 1, m12: Number(style.y ?? 0) },
-        }
-        const instNc = instanceChange as unknown as Record<string, unknown>
-        instNc.symbolData = { symbolID: targetGUID }
-        result.push(instanceChange)
-      }
+      const style = (instance.props.style || {}) as Record<string, unknown>
+      pendingComponentSetInstances.push({
+        componentSetName: name,
+        variantName: requestedVariantName,
+        parentGUID,
+        position: String.fromCharCode(34 + combinations.length),
+        x: Number(style.x ?? 0),
+        y: Number(style.y ?? 0),
+      })
     } else {
-      // Subsequent instance: just create Instance
-      const variantComponentIds = renderedComponentSetVariants.get(sym)
-      if (!variantComponentIds) return
-      
+      // Subsequent instance: store for Plugin API creation
       const requestedVariantName = buildVariantName({
         ...getDefaultVariants(csDef.variants),
         ...variantProps
       })
-      const targetGUID = variantComponentIds.get(requestedVariantName)
-      
-      if (targetGUID) {
-        const instanceLocalID = container.localIDCounter++
-        const style = (instance.props.style || {}) as Record<string, unknown>
-        const instanceChange: NodeChange = {
-          guid: { sessionID, localID: instanceLocalID },
-          phase: 'CREATED',
-          parentIndex: { guid: parentGUID, position },
-          type: 'INSTANCE',
-          name,
-          visible: true,
-          opacity: 1,
-          transform: { m00: 1, m01: 0, m02: Number(style.x ?? 0), m10: 0, m11: 1, m12: Number(style.y ?? 0) },
-        }
-        const instNc = instanceChange as unknown as Record<string, unknown>
-        instNc.symbolData = { symbolID: targetGUID }
-        result.push(instanceChange)
-      }
+      const style = (instance.props.style || {}) as Record<string, unknown>
+      pendingComponentSetInstances.push({
+        componentSetName: name,
+        variantName: requestedVariantName,
+        parentGUID,
+        position,
+        x: Number(style.x ?? 0),
+        y: Number(style.y ?? 0),
+      })
     }
     return
   }
@@ -812,4 +808,5 @@ export function resetRenderedComponents() {
   renderedComponents.clear()
   renderedComponentSets.clear()
   renderedComponentSetVariants.clear()
+  pendingComponentSetInstances.length = 0
 }

@@ -6,7 +6,7 @@ import { existsSync, writeFileSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import * as React from 'react'
-import { renderToNodeChanges, INTRINSIC_ELEMENTS, loadVariablesIntoRegistry, isRegistryLoaded, resetRenderedComponents } from '../render/index.ts'
+import { renderToNodeChanges, INTRINSIC_ELEMENTS, loadVariablesIntoRegistry, isRegistryLoaded, resetRenderedComponents, getPendingComponentSetInstances, clearPendingComponentSetInstances } from '../render/index.ts'
 import { transformSync } from 'esbuild'
 
 const PROXY_URL = process.env.FIGMA_PROXY_URL || 'http://localhost:38451'
@@ -168,11 +168,11 @@ export default defineCommand({
       // Use proxy for connection pooling (fast repeated renders)
       const sessionID = parentGUID.sessionID || Date.now() % 1000000
       
-      const sendNodeChanges = async (changes: unknown[]) => {
+      const sendNodeChanges = async (changes: unknown[], pendingInstances?: unknown[]) => {
         const response = await fetch(`${PROXY_URL}/render`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileKey, nodeChanges: changes }),
+          body: JSON.stringify({ fileKey, nodeChanges: changes, pendingComponentSetInstances: pendingInstances }),
         })
         const data = await response.json() as { error?: string }
         if (data.error) {
@@ -212,8 +212,12 @@ export default defineCommand({
         console.log(`Rendering ${result.nodeChanges.length} nodes...`)
       }
       
+      // Get pending ComponentSet instances (created via Plugin API, not multiplayer)
+      const pendingInstances = getPendingComponentSetInstances()
+      clearPendingComponentSetInstances()
+      
       // Send to Figma via proxy
-      await sendNodeChanges(result.nodeChanges)
+      await sendNodeChanges(result.nodeChanges, pendingInstances)
       
       // Output
       if (args.json) {
