@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-01-18
+
+### Added
+
+- **`defineComponent` for reusable components**
+  ```tsx
+  const Button = defineComponent('Button',
+    <Frame style={{ padding: 12, backgroundColor: '#3B82F6' }}>
+      <Text style={{ color: '#FFF' }}>Click me</Text>
+    </Frame>
+  )
+  // First usage creates Component, subsequent create Instances
+  <Button />
+  <Button />
+  ```
+
+- **`defineComponentSet` for component variants**
+  ```tsx
+  const Button = defineComponentSet('Button', {
+    variant: ['Primary', 'Secondary'] as const,
+    size: ['Small', 'Large'] as const,
+  }, ({ variant, size }) => (
+    <Frame style={{ 
+      padding: size === 'Large' ? 16 : 8,
+      backgroundColor: variant === 'Primary' ? '#3B82F6' : '#E5E7EB' 
+    }}>
+      <Text>{variant} {size}</Text>
+    </Frame>
+  ))
+  // Creates ComponentSet with all variant combinations
+  <Button variant="Primary" size="Large" />
+  ```
+
+- Proper auto-sizing support (`hug contents`) for frames with `flexDirection`
+- ComponentSet creates real Figma ComponentSet with `isStateGroup=true`
+
+### Fixed
+
+- Auto-layout sizing mode now correctly set to FIXED when explicit dimensions provided
+- TEXT nodes render with correct height (lineHeight encoding fix)
+- Alignment fields use correct names (stackPrimaryAlignItems, not stackJustify)
+
+### Technical Notes
+
+ComponentSet instances are created via Plugin API instead of multiplayer because
+Figma reassigns GUIDs on receive, breaking symbolData.symbolID references within
+the same batch. See `component-set.tsx` for detailed explanation.
+
 ## [0.4.0] - 2026-01-18
 
 ### Added

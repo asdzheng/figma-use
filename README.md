@@ -334,6 +334,60 @@ export default function Card({ title, items }: CardProps) {
 
 Available elements: `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Component`, `Instance`, `Group`, `Page`, `View`
 
+#### Reusable Components
+
+Create Figma components that can be instantiated multiple times:
+
+```tsx
+import { defineComponent, Frame, Text } from '@dannote/figma-use/render'
+
+const Button = defineComponent('Button',
+  <Frame style={{ padding: 12, backgroundColor: '#3B82F6', borderRadius: 8 }}>
+    <Text style={{ color: '#FFF' }}>Click me</Text>
+  </Frame>
+)
+
+export default () => (
+  <Frame style={{ gap: 16, flexDirection: 'column' }}>
+    <Button />  {/* Creates Component */}
+    <Button />  {/* Creates Instance */}
+    <Button />  {/* Creates Instance */}
+  </Frame>
+)
+```
+
+#### Component Variants (ComponentSet)
+
+Create components with variants like in Figma's native UI:
+
+```tsx
+import { defineComponentSet, Frame, Text } from '@dannote/figma-use/render'
+
+const Button = defineComponentSet('Button', {
+  variant: ['Primary', 'Secondary'] as const,
+  size: ['Small', 'Large'] as const,
+}, ({ variant, size }) => (
+  <Frame style={{ 
+    padding: size === 'Large' ? 16 : 8,
+    backgroundColor: variant === 'Primary' ? '#3B82F6' : '#E5E7EB',
+    borderRadius: 8,
+  }}>
+    <Text style={{ color: variant === 'Primary' ? '#FFF' : '#111' }}>
+      {variant} {size}
+    </Text>
+  </Frame>
+))
+
+export default () => (
+  <Frame style={{ gap: 16, flexDirection: 'column' }}>
+    <Button variant="Primary" size="Large" />
+    <Button variant="Secondary" size="Small" />
+  </Frame>
+)
+```
+
+This creates a real Figma ComponentSet with all variant combinations (Primary/Small, Primary/Large, Secondary/Small, Secondary/Large).
+
 ### Advanced
 
 ```bash

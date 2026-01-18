@@ -1,10 +1,35 @@
 /**
  * ComponentSet (variants) support
  * 
- * ComponentSet = FRAME with:
+ * ## How ComponentSet works in Figma's multiplayer protocol
+ * 
+ * ComponentSet is NOT a separate node type - it's a FRAME with special fields:
+ *   - type = FRAME (4)
  *   - isStateGroup = true (field 225)
- *   - stateGroupPropertyValueOrders (field 238) = [{property, values}]
- *   - children are SYMBOL (Component) nodes with names like "variant=A, size=B"
+ *   - stateGroupPropertyValueOrders (field 238) = [{property: "variant", values: ["A", "B"]}]
+ * 
+ * Children are SYMBOL (Component) nodes with names like "variant=Primary, size=Large".
+ * Figma auto-generates componentPropertyDefinitions from these names.
+ * 
+ * ## Why Instances are created via Plugin API
+ * 
+ * IMPORTANT: Instance nodes with symbolData.symbolID CANNOT be created via multiplayer
+ * when linking to components in the same batch. Figma reassigns GUIDs on receive,
+ * breaking the symbolID references.
+ * 
+ * Example: We send SYMBOL with localID=100, Instance with symbolData.symbolID=100.
+ * Figma receives and assigns new IDs: SYMBOL becomes 200, but Instance still
+ * references 100 → broken link.
+ * 
+ * This works for defineComponent() because Component and first Instance are adjacent
+ * in the node tree, but fails for ComponentSet where variant components are created
+ * first, then instances are created as siblings of the ComponentSet.
+ * 
+ * Solution: Create the ComponentSet and variant Components via multiplayer (fast),
+ * then create Instances via Plugin API in trigger-layout (correct linking).
+ * The pendingComponentSetInstances array passes instance specs to the plugin.
+ * 
+ * Discovered through protocol sniffing - see scripts/sniff-ws.ts
  */
 
 import * as React from 'react'

@@ -2,7 +2,32 @@
  * React Reconciler that outputs Figma NodeChanges directly
  * 
  * Renders React components directly to NodeChanges array
- * ready for multiplayer WebSocket transmission
+ * ready for multiplayer WebSocket transmission.
+ * 
+ * ## Key implementation notes (discovered via protocol sniffing)
+ * 
+ * ### TEXT nodes require specific fields
+ * - fontName: { family, style, postscript } - ALWAYS required, even without explicit font
+ * - textAlignVertical: 'TOP' - required for height calculation
+ * - lineHeight: { value: 100, units: 'PERCENT' } - CRITICAL! Without this, height=0
+ * - textData: { characters: '...' } - text content wrapper
+ * 
+ * ### Auto-layout field names differ from Plugin API
+ * - justifyContent → stackPrimaryAlignItems (not stackJustify)
+ * - alignItems → stackCounterAlignItems (not stackCounterAlign)
+ * - Valid values: 'MIN', 'CENTER', 'MAX', 'SPACE_EVENLY' (not 'SPACE_BETWEEN')
+ * 
+ * ### Sizing modes for auto-layout
+ * - stackPrimarySizing/stackCounterSizing = 'FIXED' when explicit size given
+ * - stackPrimarySizing/stackCounterSizing = 'RESIZE_TO_FIT' for hug contents
+ * - Setting RESIZE_TO_FIT via multiplayer doesn't work; use Plugin API trigger-layout
+ * 
+ * ### Component types
+ * - SYMBOL (15) = Component in Figma (historical name)
+ * - INSTANCE (16) = Component instance
+ * - ComponentSet = FRAME with isStateGroup=true (field 225)
+ * 
+ * See also: component-set.tsx for ComponentSet/Instance linking issues
  */
 
 import Reconciler from 'react-reconciler'
@@ -194,7 +219,10 @@ function styleToNodeChange(
   // Auto-layout
   if (style.flexDirection) {
     nodeChange.stackMode = style.flexDirection === 'row' ? 'HORIZONTAL' : 'VERTICAL'
-    // Sizing mode: FIXED if size specified, otherwise RESIZE_TO_FIT (hug contents)
+    // Sizing mode determines if frame hugs content or has fixed size
+    // IMPORTANT: RESIZE_TO_FIT via multiplayer sets the MODE but doesn't recalculate size
+    // The actual resize happens in trigger-layout via Plugin API
+    // If explicit size given → FIXED, otherwise → RESIZE_TO_FIT (hug contents)
     const isRow = style.flexDirection === 'row'
     const primarySize = isRow ? width : height
     const counterSize = isRow ? height : width
@@ -216,7 +244,10 @@ function styleToNodeChange(
   if (pr !== undefined) nodeChange.stackPaddingRight = Number(pr)
   if (pb !== undefined) nodeChange.stackPaddingBottom = Number(pb)
   
-  // Alignment
+  // Alignment - NOTE: field names differ from Plugin API!
+  // Plugin API uses primaryAxisAlignItems/counterAxisAlignItems
+  // Multiplayer uses stackPrimaryAlignItems/stackCounterAlignItems
+  // Also: 'SPACE_BETWEEN' doesn't exist in multiplayer, only 'SPACE_EVENLY'
   if (style.justifyContent) {
     const validValues: Record<string, string> = {
       'flex-start': 'MIN', 'center': 'CENTER', 'flex-end': 'MAX', 'space-evenly': 'SPACE_EVENLY'
@@ -251,9 +282,11 @@ function styleToNodeChange(
     nc.textAlignVertical = 'TOP'  // Required for text height calculation
     
     if (style.fontSize) nc.fontSize = Number(style.fontSize)
-    // Set lineHeight to 100% (AUTO in Figma = 100% of fontSize)
+    // CRITICAL: lineHeight MUST be { value: 100, units: 'PERCENT' } for text to have height
+    // Without this, TEXT nodes render with height=0 and are invisible
+    // Discovered via sniffing Figma's own text creation - see scripts/sniff-text.ts
     nc.lineHeight = { value: 100, units: 'PERCENT' }
-    // Always set fontName for TEXT nodes (required for text to render)
+    // fontName is ALWAYS required for TEXT nodes, even without explicit fontFamily
     const family = (style.fontFamily as string) || 'Inter'
     const fontStyle = mapFontWeight(style.fontWeight as string)
     nc.fontName = {
