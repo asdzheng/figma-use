@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-01-18
+
+### Added
+
+- **`set font-range`** — style text ranges (bold, color, size for specific characters)
+  ```bash
+  figma-use set font-range <id> --start 0 --end 5 --style Bold --color "#FF0000"
+  ```
+- **`node to-component`** — convert frames to components
+  ```bash
+  figma-use node to-component <id>
+  figma-use node to-component "1:2 1:3 1:4"  # Multiple
+  ```
+- SKILL.md: added SVG import, font-range, grouping and auto-layout examples
+
 ## [0.5.2] - 2026-01-18
 
 ### Fixed
