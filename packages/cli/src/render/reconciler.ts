@@ -179,10 +179,10 @@ function styleToNodeChange(
     }
     const mapped = validValues[style.justifyContent as string]
     if (mapped) {
-      nodeChange.stackJustify = mapped
+      nodeChange.stackPrimaryAlignItems = mapped
     } else {
       consola.warn(`justifyContent: "${style.justifyContent}" not supported, using "flex-start"`)
-      nodeChange.stackJustify = 'MIN'
+      nodeChange.stackPrimaryAlignItems = 'MIN'
     }
   }
   if (style.alignItems) {
@@ -191,10 +191,10 @@ function styleToNodeChange(
     }
     const mapped = validValues[style.alignItems as string]
     if (mapped) {
-      nodeChange.stackCounterAlign = mapped
+      nodeChange.stackCounterAlignItems = mapped
     } else {
       consola.warn(`alignItems: "${style.alignItems}" not supported, using "flex-start"`)
-      nodeChange.stackCounterAlign = 'MIN'
+      nodeChange.stackCounterAlignItems = 'MIN'
     }
   }
   

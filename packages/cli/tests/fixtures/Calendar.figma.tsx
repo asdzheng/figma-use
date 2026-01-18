@@ -32,6 +32,7 @@ const DayHeader = ({ day }: { day: string }) => (
     style={{
       width: 40,
       height: 40,
+      flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
     }}
@@ -60,6 +61,7 @@ const DayCell = ({
     width: 40,
     height: 40,
     borderRadius: 8,
+    flexDirection: 'column' as const,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
   }
@@ -113,15 +115,15 @@ export default function Calendar() {
     >
       {/* Header - manual positioning since space-between not supported */}
       <Frame name="header" style={{ flexDirection: 'row', alignItems: 'center', width: 308, height: 40 }}>
-        <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, justifyContent: 'center', alignItems: 'center' }}>
+        <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 18, color: colors.textMuted }}>‹</Text>
         </Frame>
-        <Frame style={{ width: 244, height: 32, justifyContent: 'center', alignItems: 'center' }}>
+        <Frame style={{ width: 244, height: 32, flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 16, fontWeight: 600, color: colors.text }}>
             January 2026
           </Text>
         </Frame>
-        <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, justifyContent: 'center', alignItems: 'center' }}>
+        <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 18, color: colors.textMuted }}>›</Text>
         </Frame>
       </Frame>
