@@ -101,6 +101,7 @@ figma-use render ./MyComponent.figma.tsx
 ### Create
 
 ```bash
+figma-use create page "Page Name"
 figma-use create frame --width 400 --height 300 --fill "#FFF" --radius 12 --layout VERTICAL --gap 16
 figma-use create rect --width 100 --height 50 --fill "#FF0000" --radius 8
 figma-use create ellipse --width 80 --height 80 --fill "#00FF00"

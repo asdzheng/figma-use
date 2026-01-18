@@ -264,7 +264,17 @@ new Elysia()
       
       consola.info(`render: ${nodeChanges.length} nodes to ${fileKey}`)
       
-      await client.sendNodeChangesSync(nodeChanges)
+      try {
+        await client.sendNodeChangesSync(nodeChanges)
+      } catch (codecError) {
+        const msg = codecError instanceof Error ? codecError.message : String(codecError)
+        // Handle unsupported enum values gracefully
+        if (msg.includes('Invalid value') && msg.includes('for enum')) {
+          consola.error('Codec error:', msg)
+          return { error: `Unsupported value in node properties: ${msg}` }
+        }
+        throw codecError
+      }
       
       if (sendToPlugin) {
         const rootId = `${nodeChanges[0].guid.sessionID}:${nodeChanges[0].guid.localID}`
