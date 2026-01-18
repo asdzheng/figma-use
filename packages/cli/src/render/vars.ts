@@ -5,12 +5,12 @@
  * ```tsx
  * // tokens.figma.ts
  * export const colors = defineVars({
- *   primary: 'VariableID:38448:122296',
- *   secondary: 'VariableID:38448:122301',
+ *   primary: 'Colors/Gray/50',      // by name (recommended)
+ *   accent: 'Colors/Blue/500',
  * })
  * 
  * // Card.figma.tsx
- * <Frame style={{ fill: colors.primary }}>
+ * <Frame style={{ backgroundColor: colors.primary }}>
  * ```
  */
 
@@ -18,6 +18,15 @@ const VAR_SYMBOL = Symbol.for('figma.variable')
 
 export interface FigmaVariable {
   [VAR_SYMBOL]: true
+  name: string              // Variable name like "Colors/Gray/50"
+  _resolved?: {             // Filled in at render time
+    id: string
+    sessionID: number
+    localID: number
+  }
+}
+
+export interface ResolvedVariable {
   id: string
   sessionID: number
   localID: number
@@ -31,31 +40,77 @@ export function isVariable(value: unknown): value is FigmaVariable {
 }
 
 /**
- * Parse VariableID string to sessionID and localID
+ * Variable registry - maps names to IDs
+ * Populated by loadVariables() before render
  */
-function parseVariableId(id: string): { sessionID: number; localID: number } {
-  // Format: "VariableID:38448:122296" or "38448:122296"
-  const match = id.match(/(?:VariableID:)?(\d+):(\d+)/)
-  if (!match) {
-    throw new Error(`Invalid variable ID format: ${id}. Expected "VariableID:sessionID:localID" or "sessionID:localID"`)
-  }
-  return {
-    sessionID: parseInt(match[1], 10),
-    localID: parseInt(match[2], 10),
+const variableRegistry = new Map<string, ResolvedVariable>()
+
+/**
+ * Load variables from Figma into registry
+ */
+export function loadVariablesIntoRegistry(variables: Array<{ id: string; name: string }>) {
+  variableRegistry.clear()
+  for (const v of variables) {
+    const match = v.id.match(/VariableID:(\d+):(\d+)/)
+    if (match) {
+      variableRegistry.set(v.name, {
+        id: v.id,
+        sessionID: parseInt(match[1], 10),
+        localID: parseInt(match[2], 10),
+      })
+    }
   }
 }
 
 /**
- * Create a single variable reference
+ * Resolve a variable name to its ID
+ * @throws if variable not found in registry
  */
-function createVariable(id: string): FigmaVariable {
-  const { sessionID, localID } = parseVariableId(id)
-  return {
-    [VAR_SYMBOL]: true,
-    id: id.startsWith('VariableID:') ? id : `VariableID:${id}`,
-    sessionID,
-    localID,
+export function resolveVariable(variable: FigmaVariable): ResolvedVariable {
+  // Already resolved?
+  if (variable._resolved) {
+    return variable._resolved
   }
+  
+  // Check if it's an ID format (legacy support)
+  const idMatch = variable.name.match(/^(?:VariableID:)?(\d+):(\d+)$/)
+  if (idMatch) {
+    const resolved = {
+      id: `VariableID:${idMatch[1]}:${idMatch[2]}`,
+      sessionID: parseInt(idMatch[1], 10),
+      localID: parseInt(idMatch[2], 10),
+    }
+    variable._resolved = resolved
+    return resolved
+  }
+  
+  // Lookup by name
+  const resolved = variableRegistry.get(variable.name)
+  if (!resolved) {
+    const available = Array.from(variableRegistry.keys()).slice(0, 5).join(', ')
+    throw new Error(
+      `Variable "${variable.name}" not found. ` +
+      `Available: ${available}${variableRegistry.size > 5 ? '...' : ''}. ` +
+      `Make sure variables are loaded before render.`
+    )
+  }
+  
+  variable._resolved = resolved
+  return resolved
+}
+
+/**
+ * Check if variable registry is populated
+ */
+export function isRegistryLoaded(): boolean {
+  return variableRegistry.size > 0
+}
+
+/**
+ * Get registry size (for debugging)
+ */
+export function getRegistrySize(): number {
+  return variableRegistry.size
 }
 
 /**
@@ -64,12 +119,12 @@ function createVariable(id: string): FigmaVariable {
  * @example
  * ```ts
  * export const colors = defineVars({
- *   primary: 'VariableID:38448:122296',
- *   secondary: '38448:122301', // shorthand also works
+ *   primary: 'Colors/Gray/50',
+ *   secondary: 'Colors/Gray/500',
  * })
  * 
  * // Use in components:
- * <Frame style={{ fill: colors.primary }} />
+ * <Frame style={{ backgroundColor: colors.primary }} />
  * ```
  */
 export function defineVars<T extends Record<string, string>>(
@@ -78,7 +133,10 @@ export function defineVars<T extends Record<string, string>>(
   const result = {} as { [K in keyof T]: FigmaVariable }
   
   for (const [key, value] of Object.entries(vars)) {
-    result[key as keyof T] = createVariable(value)
+    result[key as keyof T] = {
+      [VAR_SYMBOL]: true,
+      name: value,
+    }
   }
   
   return result
@@ -89,9 +147,12 @@ export function defineVars<T extends Record<string, string>>(
  * 
  * @example
  * ```ts
- * const primaryColor = figmaVar('38448:122296')
+ * const primaryColor = figmaVar('Colors/Gray/50')
  * ```
  */
-export function figmaVar(id: string): FigmaVariable {
-  return createVariable(id)
+export function figmaVar(name: string): FigmaVariable {
+  return {
+    [VAR_SYMBOL]: true,
+    name,
+  }
 }

@@ -8,7 +8,7 @@
 import Reconciler from 'react-reconciler'
 import type { NodeChange, Paint } from '../multiplayer/codec.ts'
 import { parseColor } from '../color.ts'
-import { isVariable, type FigmaVariable } from './vars.ts'
+import { isVariable, resolveVariable, type FigmaVariable } from './vars.ts'
 
 export interface RenderOptions {
   sessionID: number
@@ -78,14 +78,14 @@ function styleToNodeChange(
   if (style.backgroundColor) {
     const bgColor = style.backgroundColor
     if (isVariable(bgColor)) {
-      // Figma variable binding
+      const resolved = resolveVariable(bgColor)
       nodeChange.fillPaints = [{
         type: 'SOLID',
         color: { r: 0, g: 0, b: 0, a: 1 }, // Placeholder, variable will override
         opacity: 1,
         visible: true,
         colorVariableBinding: {
-          variableID: { sessionID: bgColor.sessionID, localID: bgColor.localID }
+          variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
         }
       } as Paint]
     } else {
@@ -103,13 +103,14 @@ function styleToNodeChange(
   if (style.borderColor) {
     const borderColor = style.borderColor
     if (isVariable(borderColor)) {
+      const resolved = resolveVariable(borderColor)
       nodeChange.strokePaints = [{
         type: 'SOLID',
         color: { r: 0, g: 0, b: 0, a: 1 },
         opacity: 1,
         visible: true,
         colorVariableBinding: {
-          variableID: { sessionID: borderColor.sessionID, localID: borderColor.localID }
+          variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
         }
       } as Paint]
     } else {
@@ -201,13 +202,14 @@ function styleToNodeChange(
     if (style.color) {
       const textColor = style.color
       if (isVariable(textColor)) {
+        const resolved = resolveVariable(textColor)
         nodeChange.fillPaints = [{
           type: 'SOLID',
           color: { r: 0, g: 0, b: 0, a: 1 },
           opacity: 1,
           visible: true,
           colorVariableBinding: {
-            variableID: { sessionID: textColor.sessionID, localID: textColor.localID }
+            variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
           }
         } as Paint]
       } else {

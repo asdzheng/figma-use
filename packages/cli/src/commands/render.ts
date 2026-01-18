@@ -1,12 +1,12 @@
 import { defineCommand } from 'citty'
-import { handleError, getFileKey, getParentGUID } from '../client.ts'
+import { handleError, getFileKey, getParentGUID, sendCommand } from '../client.ts'
 import { ok, fail } from '../format.ts'
 import { resolve } from 'path'
 import { existsSync, writeFileSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import * as React from 'react'
-import { renderToNodeChanges, INTRINSIC_ELEMENTS } from '../render/index.ts'
+import { renderToNodeChanges, INTRINSIC_ELEMENTS, loadVariablesIntoRegistry, isRegistryLoaded } from '../render/index.ts'
 import { transformSync } from 'esbuild'
 
 const PROXY_URL = process.env.FIGMA_PROXY_URL || 'http://localhost:38451'
@@ -149,6 +149,16 @@ export default defineCommand({
         const data = await response.json() as { error?: string }
         if (data.error) {
           throw new Error(data.error)
+        }
+      }
+      
+      // Load Figma variables for name resolution (if not already loaded)
+      if (!isRegistryLoaded()) {
+        try {
+          const variables = await sendCommand<Array<{ id: string; name: string }>>('get-variables')
+          loadVariablesIntoRegistry(variables)
+        } catch {
+          // Variables not available - name-based lookup will fail, ID-based still works
         }
       }
       

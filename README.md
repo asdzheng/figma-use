@@ -453,8 +453,9 @@ Bind Figma variables to colors in your components:
 import { defineVars } from '@dannote/figma-use'
 
 export const colors = defineVars({
-  primary: 'VariableID:38448:122296',
-  secondary: '38448:122301', // shorthand works too
+  primary: 'Colors/Gray/50',      // Use variable names!
+  secondary: 'Colors/Gray/500',
+  accent: 'Colors/Blue/500',
 })
 
 // Card.figma.tsx
@@ -468,5 +469,4 @@ export function Card({ title }: { title: string }) {
   )
 }
 ```
-
 Variables are bound at the protocol level — no plugin API calls needed, instant updates.

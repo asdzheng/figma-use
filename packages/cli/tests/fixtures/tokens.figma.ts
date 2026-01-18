@@ -11,20 +11,21 @@
 
 import { defineVars } from '../../src/render/index.ts'
 
-// Color tokens mapped to Figma variables
+// Color tokens - use Figma variable names!
+// Names are resolved to IDs at render time
 export const colors = defineVars({
   // Grays
-  gray50: 'VariableID:38448:122296',
-  gray100: 'VariableID:38448:122297',
-  gray200: 'VariableID:38448:122298',
-  gray300: 'VariableID:38448:122299',
-  gray400: 'VariableID:38448:122300',
-  gray500: 'VariableID:38448:122301',
+  gray50: 'Colors/Gray/50',
+  gray100: 'Colors/Gray/100',
+  gray200: 'Colors/Gray/200',
+  gray300: 'Colors/Gray/300',
+  gray400: 'Colors/Gray/400',
+  gray500: 'Colors/Gray/500',
   
-  // Semantic
-  primary: 'VariableID:38448:122305',
-  secondary: 'VariableID:38448:122301',
-  background: 'VariableID:38448:122296',
+  // Semantic aliases
+  primary: 'Colors/Blue/500',
+  secondary: 'Colors/Gray/500',
+  background: 'Colors/Gray/50',
 })
 
 // Note: For non-color variables (spacing, radius), 

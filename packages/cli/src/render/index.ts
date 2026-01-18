@@ -22,5 +22,7 @@ export {
   defineVars,
   figmaVar,
   isVariable,
+  loadVariablesIntoRegistry,
+  isRegistryLoaded,
   type FigmaVariable,
 } from './components.tsx'

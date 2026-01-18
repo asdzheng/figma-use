@@ -117,22 +117,20 @@ describe('render with variables', () => {
     const { defineVars, isVariable } = await import('../../src/render/index.ts')
     
     const colors = defineVars({
-      primary: 'VariableID:38448:122296',
-      secondary: '38448:122301', // shorthand
+      primary: 'Colors/Gray/50',
+      secondary: 'Colors/Gray/500',
     })
     
     expect(isVariable(colors.primary)).toBe(true)
-    expect(colors.primary.sessionID).toBe(38448)
-    expect(colors.primary.localID).toBe(122296)
-    expect(colors.secondary.sessionID).toBe(38448)
-    expect(colors.secondary.localID).toBe(122301)
+    expect(colors.primary.name).toBe('Colors/Gray/50')
+    expect(colors.secondary.name).toBe('Colors/Gray/500')
   })
   
-  test('renders frame with variable backgroundColor', async () => {
+  test('renders frame with variable backgroundColor (ID format)', async () => {
     const React = (await import('react')).default
-    const { renderToNodeChanges } = await import('../../src/render/index.ts')
-    const { defineVars } = await import('../../src/render/vars.ts')
+    const { renderToNodeChanges, defineVars } = await import('../../src/render/index.ts')
     
+    // Legacy ID format still works without registry
     const colors = defineVars({
       primary: 'VariableID:38448:122296',
     })
@@ -150,6 +148,38 @@ describe('render with variables', () => {
     expect(result.nodeChanges).toHaveLength(1)
     const node = result.nodeChanges[0]
     expect(node.fillPaints?.[0]?.colorVariableBinding).toBeDefined()
+    expect(node.fillPaints?.[0]?.colorVariableBinding?.variableID).toEqual({
+      sessionID: 38448,
+      localID: 122296,
+    })
+  })
+  
+  test('renders frame with variable by name', async () => {
+    const React = (await import('react')).default
+    const { renderToNodeChanges, defineVars, loadVariablesIntoRegistry } = await import('../../src/render/index.ts')
+    
+    // Load mock variables into registry
+    loadVariablesIntoRegistry([
+      { id: 'VariableID:38448:122296', name: 'Colors/Gray/50' },
+      { id: 'VariableID:38448:122301', name: 'Colors/Gray/500' },
+    ])
+    
+    const colors = defineVars({
+      primary: 'Colors/Gray/50',
+    })
+    
+    const element = React.createElement('frame', {
+      name: 'VarFrame',
+      style: { backgroundColor: colors.primary, width: 100, height: 100 }
+    })
+    
+    const result = renderToNodeChanges(element, {
+      sessionID: 1,
+      parentGUID: { sessionID: 1, localID: 1 },
+    })
+    
+    expect(result.nodeChanges).toHaveLength(1)
+    const node = result.nodeChanges[0]
     expect(node.fillPaints?.[0]?.colorVariableBinding?.variableID).toEqual({
       sessionID: 38448,
       localID: 122296,
