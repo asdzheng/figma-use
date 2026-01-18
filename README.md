@@ -29,7 +29,7 @@ figma-use create frame --width 400 --height 300 --fill "#FFF" --radius 12 --layo
 
 vs MCP JSON request + response: **~200 tokens** for the same operation.
 
-For AI agents doing dozens of Figma operations, this adds up fast.
+For AI agents doing dozens of Figma operations, this adds up fast. If you still prefer MCP, see [MCP Server](#mcp-server) section.
 
 ## Why JSX?
 
