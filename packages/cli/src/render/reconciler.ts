@@ -257,6 +257,20 @@ function styleToNodeChange(
     }
   }
   
+  // Instance - link to component
+  if (type.toLowerCase() === 'instance' && props.componentId) {
+    const match = String(props.componentId).match(/(\d+):(\d+)/)
+    if (match) {
+      const nc = nodeChange as unknown as Record<string, unknown>
+      nc.symbolData = {
+        symbolID: {
+          sessionID: parseInt(match[1], 10),
+          localID: parseInt(match[2], 10),
+        }
+      }
+    }
+  }
+  
   return nodeChange
 }
 
@@ -270,7 +284,7 @@ function mapType(type: string): string {
     star: 'STAR',
     polygon: 'REGULAR_POLYGON',
     vector: 'VECTOR',
-    component: 'COMPONENT',
+    component: 'SYMBOL',      // Figma internally calls components "symbols"
     instance: 'INSTANCE',
     group: 'GROUP',
     page: 'CANVAS',
