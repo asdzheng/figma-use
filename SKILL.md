@@ -36,7 +36,7 @@ figma-use plugin
 
 ## JSX Rendering (Fastest Way)
 
-For complex layouts, use `render --stdin` with pure JSX. No imports needed — elements are built-in:
+Use `render --stdin` with **pure JSX only**. No variables, no functions, no imports — just JSX tags:
 
 ```bash
 echo '<Frame style={{padding: 24, gap: 16, flexDirection: "column", backgroundColor: "#FFF", borderRadius: 12}}>
@@ -45,14 +45,18 @@ echo '<Frame style={{padding: 24, gap: 16, flexDirection: "column", backgroundCo
 </Frame>' | figma-use render --stdin
 ```
 
+⚠️ **stdin does NOT support:** `const`, `let`, `function`, `defineComponent`, `defineComponentSet`, ternary operators, or any JavaScript logic. Only literal JSX.
+
 **Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`
 
 **Style props:** `width`, `height`, `x`, `y`, `padding`, `paddingTop/Right/Bottom/Left`, `gap`, `flexDirection` (row|column), `justifyContent`, `alignItems`, `backgroundColor`, `borderColor`, `borderWidth`, `borderRadius`, `opacity`, `fontSize`, `fontFamily`, `fontWeight`, `color`, `textAlign`
 
 ### Buttons Example (3 sizes)
 
+Since stdin doesn't support variables, write out each variant explicitly:
+
 ```bash
-echo '<Frame style={{gap: 16, flexDirection: "row", padding: 24}}>
+echo '<Frame name="Buttons" style={{gap: 16, flexDirection: "row", padding: 24}}>
   <Frame name="Small" style={{paddingLeft: 12, paddingRight: 12, paddingTop: 6, paddingBottom: 6, backgroundColor: "#3B82F6", borderRadius: 6, flexDirection: "row", justifyContent: "center", alignItems: "center"}}>
     <Text style={{fontSize: 12, color: "#FFF"}}>Button</Text>
   </Frame>
@@ -65,9 +69,18 @@ echo '<Frame style={{gap: 16, flexDirection: "row", padding: 24}}>
 </Frame>' | figma-use render --stdin
 ```
 
-### Advanced: Components & Variants
+### Converting Frames to Components
 
-For `defineComponent`, `defineComponentSet`, `defineVars` — use files with imports:
+After creating frames, convert them to components:
+
+```bash
+figma-use node to-component <id>           # Single frame
+figma-use node to-component "1:2 1:3 1:4"  # Multiple frames
+```
+
+### Advanced: ComponentSets with Variants (via files)
+
+For proper Figma ComponentSets with variant properties, create a `.figma.tsx` file:
 
 ```bash
 figma-use render --examples  # Full API reference

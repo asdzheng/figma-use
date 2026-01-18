@@ -8,6 +8,7 @@ import rename from './rename.ts'
 import move from './move.ts'
 import resize from './resize.ts'
 import setParent from './set-parent.ts'
+import toComponent from './to-component.ts'
 
 export default defineCommand({
   meta: { description: 'Node operations' },
@@ -20,6 +21,7 @@ export default defineCommand({
     rename,
     move,
     resize,
-    'set-parent': setParent
+    'set-parent': setParent,
+    'to-component': toComponent,
   }
 })
