@@ -155,7 +155,7 @@ export default defineCommand({
       // Load Figma variables for name resolution (if not already loaded)
       if (!isRegistryLoaded()) {
         try {
-          const variables = await sendCommand<Array<{ id: string; name: string }>>('get-variables')
+          const variables = await sendCommand<Array<{ id: string; name: string }>>('get-variables', { simple: true })
           loadVariablesIntoRegistry(variables)
         } catch {
           // Variables not available - name-based lookup will fail, ID-based still works

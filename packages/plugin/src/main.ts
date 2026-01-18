@@ -1307,8 +1307,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== VARIABLES ====================
     case 'get-variables': {
-      const { type } = args as { type?: string }
+      const { type, simple } = args as { type?: string; simple?: boolean }
       const variables = await figma.variables.getLocalVariablesAsync(type as VariableResolvedDataType | undefined)
+      // Simple mode returns only id and name (for variable registry)
+      if (simple) {
+        return variables.map(v => ({ id: v.id, name: v.name }))
+      }
       return variables.map(v => serializeVariable(v))
     }
 

@@ -99,7 +99,7 @@ export function encodeMessage(message: FigmaMessage): Uint8Array {
   const emptyArrayIdx = baseHex.indexOf(emptyArrayPattern)
   
   if (emptyArrayIdx === -1) {
-    // Fallback
+    // Fallback to standard encoding
     const encoded = compiledSchema.encodeMessage(message)
     return compress(encoded)
   }
@@ -454,36 +454,47 @@ export function encodeNodeChangeWithVariables(nodeChange: NodeChange): Uint8Arra
     return baseBytes
   }
   
-  // Find end of fillPaints (look for next field or double-00)
-  // fillPaints ends with: ...0401050100 (visible=true, blendMode=NORMAL, terminator)
-  const paintEndPattern = '0401050100'
-  const paintEndIdx = baseHex.indexOf(paintEndPattern, markerIdx)
+  // Find visible=true pattern in paint
+  // Pattern: 04 01 (visible=true) followed by 00 (terminator) or 05 01 (blendMode)
+  // We need to insert BEFORE the terminator
+  const visiblePattern = '0401'
+  let patternIdx = baseHex.indexOf(visiblePattern, markerIdx)
   
-  if (paintEndIdx === -1) {
+  if (patternIdx === -1) {
     return baseBytes
   }
   
-  // Extract paint without terminator
-  const paintStartIdx = markerIdx + 4 // skip "2601"
-  const paintHex = baseHex.slice(paintStartIdx, paintEndIdx + paintEndPattern.length - 2) // exclude final 00
+  // Move past 0401 to find where to insert
+  let insertPoint = patternIdx + visiblePattern.length
   
-  // Build variable binding suffix
+  // Check if blendMode follows (05 01)
+  if (baseHex.slice(insertPoint, insertPoint + 4) === '0501') {
+    insertPoint += 4 // skip blendMode
+  }
+  
+  // Insert variable binding after visible/blendMode, before terminator
+  // Original: ...04010501 00 33... (terminator, next field)
+  // New:      ...04010501 1501 0401 <varints> 0000020303040000 00 33...
+  
   const binding = nodeChange.fillPaints[0].colorVariableBinding!
   const varBytes = [
-    0x15, 0x01, // Field 21 = 1
-    0x04, 0x01, // Field 4 = 1
+    0x15, 0x01, // Field 21 (variableBinding) = 1
+    0x04, 0x01, // Nested field 4 = 1
     ...encodeVarint(binding.variableID.sessionID),
     ...encodeVarint(binding.variableID.localID),
-    0x00, 0x00, 0x02, 0x03, 0x03, 0x04, // Observed terminators
-    0x00, 0x00 // Final terminators
+    0x00, 0x00, 0x02, 0x03, 0x03, 0x04, 0x00, 0x00 // Terminators (observed from Figma)
   ]
   const varHex = Buffer.from(varBytes).toString('hex')
   
-  // Reconstruct: before fillPaints + fillPaints header + paint + var binding + after fillPaints
-  const beforeFillPaints = baseHex.slice(0, markerIdx)
-  const afterFillPaints = baseHex.slice(paintEndIdx + paintEndPattern.length)
+  const beforeVar = baseHex.slice(0, insertPoint)
+  // Skip original paint terminator (00) but keep one for nodeChange
+  let afterIdx = insertPoint
+  if (baseHex.slice(afterIdx, afterIdx + 2) === '00') {
+    afterIdx += 2 // skip first 00 (paint terminator - our varHex includes this)
+  }
+  const afterVar = baseHex.slice(afterIdx)
   
-  const newHex = beforeFillPaints + fillPaintsMarker + paintHex + varHex + afterFillPaints
+  const newHex = beforeVar + varHex + afterVar
   
   return new Uint8Array(newHex.match(/.{2}/g)!.map(b => parseInt(b, 16)))
 }
