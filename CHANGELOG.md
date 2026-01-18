@@ -12,9 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `comment list|add|delete` — manage file comments
-- `version list` — view file version history
+- `version list` — view file version history  
 - `file info` — get file key and name
 - `me` — get current user info
+- `font list` — list available fonts with optional family filter
 
 ## [0.5.4] - 2026-01-18
 

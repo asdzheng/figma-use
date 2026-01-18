@@ -4,7 +4,7 @@ import add from './add.ts'
 import del from './delete.ts'
 
 export default defineCommand({
-  meta: { description: 'Manage file comments (REST API)' },
+  meta: { description: 'Manage file comments ' },
   subCommands: {
     list,
     add,

@@ -1,9 +1,9 @@
 import { defineCommand } from 'citty'
-import info from './info.ts'
+import list from './list.ts'
 
 export default defineCommand({
-  meta: { description: 'File operations ' },
+  meta: { description: 'Font operations' },
   subCommands: {
-    info
+    list
   }
 })

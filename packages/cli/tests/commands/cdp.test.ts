@@ -91,3 +91,23 @@ describe('CDP commands', () => {
     })
   })
 })
+
+describe('font', () => {
+  test('list returns fonts array', async () => {
+    const result = await run('font list --json') as { family: string; style: string }[]
+    expect(Array.isArray(result)).toBe(true)
+    expect(result.length).toBeGreaterThan(0)
+    expect(result[0].family).toBeDefined()
+    expect(result[0].style).toBeDefined()
+  })
+
+  test('list filters by family', async () => {
+    // Get first font family to use as filter
+    const all = await run('font list --json') as { family: string }[]
+    const firstFamily = all[0].family
+    
+    const result = await run(`font list --family "${firstFamily}" --json`) as { family: string }[]
+    expect(result.length).toBeGreaterThan(0)
+    expect(result.every(f => f.family.toLowerCase().includes(firstFamily.toLowerCase()))).toBe(true)
+  })
+})

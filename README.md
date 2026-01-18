@@ -260,6 +260,13 @@ figma-use style list
 figma-use style create-paint "Brand/Primary" --color "#E11D48"
 ```
 
+### Fonts
+
+```bash
+figma-use font list                  # All available fonts
+figma-use font list --family Roboto  # Filter by family name
+```
+
 ### Comments & History
 
 ```bash

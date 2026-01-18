@@ -30,3 +30,6 @@ export { default as component } from './component/index.ts'
 export { default as comment } from './comment/index.ts'
 export { default as version } from './version/index.ts'
 export { default as file } from './file/index.ts'
+
+// Other
+export { default as font } from './font/index.ts'

@@ -251,6 +251,11 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     case 'get-current-page':
       return { id: figma.currentPage.id, name: figma.currentPage.name }
 
+    case 'list-fonts': {
+      const fonts = await figma.listAvailableFontsAsync()
+      return fonts.map(f => ({ family: f.fontName.family, style: f.fontName.style }))
+    }
+
     case 'get-node-tree': {
       const { id } = args as { id: string }
       const node = await figma.getNodeByIdAsync(id)
