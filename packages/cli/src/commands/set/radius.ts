@@ -14,8 +14,8 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-corner-radius', { 
-        id: args.id, 
+      const result = await sendCommand('set-corner-radius', {
+        id: args.id,
         cornerRadius: args.radius ? Number(args.radius) : 0,
         topLeftRadius: args.topLeft ? Number(args.topLeft) : undefined,
         topRightRadius: args.topRight ? Number(args.topRight) : undefined,
@@ -23,6 +23,8 @@ export default defineCommand({
         bottomRightRadius: args.bottomRight ? Number(args.bottomRight) : undefined
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

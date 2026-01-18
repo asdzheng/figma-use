@@ -12,7 +12,7 @@ export default defineCommand({
     style: { type: 'string', description: 'Font style (Regular, Bold, Italic, etc)' },
     size: { type: 'string', description: 'Font size' },
     color: { type: 'string', description: 'Text color (hex)' },
-    json: { type: 'boolean', description: 'Output as JSON' },
+    json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {
     try {
@@ -23,7 +23,7 @@ export default defineCommand({
         family: args.family,
         style: args.style,
         size: args.size ? parseFloat(args.size) : undefined,
-        color: args.color,
+        color: args.color
       })
       printResult(result, args.json)
     } catch (error) {

@@ -11,12 +11,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('move-node', { 
-        id: args.id, 
-        x: Number(args.x), 
-        y: Number(args.y) 
+      const result = await sendCommand('move-node', {
+        id: args.id,
+        x: Number(args.x),
+        y: Number(args.y)
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

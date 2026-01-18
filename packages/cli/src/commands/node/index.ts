@@ -24,6 +24,6 @@ export default defineCommand({
     resize,
     'set-parent': setParent,
     'to-component': toComponent,
-    bounds,
+    bounds
   }
 })

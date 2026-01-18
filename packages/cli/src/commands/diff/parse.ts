@@ -1,6 +1,6 @@
 /**
  * Parse unified diff format for Figma nodes.
- * 
+ *
  * Format:
  *   --- /Parent/Child #sessionID:localID
  *   +++ /Parent/Child #sessionID:localID
@@ -10,7 +10,8 @@
  *   +opacity: 1
  */
 
-import { parsePatch, type ParsedDiff } from 'diff'
+import { parsePatch } from 'diff'
+import type { StructuredPatch } from 'diff'
 
 export interface FigmaPatch {
   /** Node path like /Cat Illustration/Head */
@@ -22,7 +23,7 @@ export interface FigmaPatch {
   /** Whether this is a create operation (old is /dev/null, new exists) */
   isCreate: boolean
   /** Parsed hunks from diff library */
-  hunks: ParsedDiff['hunks']
+  hunks: StructuredPatch['hunks']
   /** Raw old content (reconstructed from - lines) */
   oldContent: string
   /** Raw new content (reconstructed from + lines) */
@@ -35,17 +36,17 @@ export interface FigmaPatch {
 export function parseFigmaPatch(patchText: string): FigmaPatch[] {
   const parsed = parsePatch(patchText)
   const patches: FigmaPatch[] = []
-  
+
   for (const file of parsed) {
     const { path, nodeId } = parseFileName(file.oldFileName || file.newFileName || '')
-    
+
     const isDelete = file.newFileName === '/dev/null' || file.newFileName === ''
     const isCreate = file.oldFileName === '/dev/null' || file.oldFileName === ''
-    
+
     // Reconstruct content from hunks
     let oldContent = ''
     let newContent = ''
-    
+
     for (const hunk of file.hunks) {
       for (const line of hunk.lines) {
         if (line.startsWith('-') && !line.startsWith('---')) {
@@ -58,7 +59,7 @@ export function parseFigmaPatch(patchText: string): FigmaPatch[] {
         }
       }
     }
-    
+
     patches.push({
       path,
       nodeId,
@@ -66,10 +67,10 @@ export function parseFigmaPatch(patchText: string): FigmaPatch[] {
       isCreate,
       hunks: file.hunks,
       oldContent: oldContent.trimEnd(),
-      newContent: newContent.trimEnd(),
+      newContent: newContent.trimEnd()
     })
   }
-  
+
   return patches
 }
 
@@ -78,7 +79,7 @@ export function parseFigmaPatch(patchText: string): FigmaPatch[] {
  */
 function parseFileName(filename: string): { path: string; nodeId: string | null } {
   const match = filename.match(/^(.+?)\s+#(\d+:\d+)$/)
-  if (match) {
+  if (match && match[1] && match[2]) {
     return { path: match[1], nodeId: match[2] }
   }
   return { path: filename, nodeId: null }
@@ -95,22 +96,22 @@ export function buildPatch(
 ): string {
   const filename = `${path} #${nodeId}`
   const lines: string[] = []
-  
+
   lines.push(`--- ${filename}`)
   lines.push(`+++ ${filename}`)
-  
+
   const oldLines = oldContent ? oldContent.split('\n') : []
   const newLines = newContent ? newContent.split('\n') : []
-  
+
   // Simple hunk: replace all
   lines.push(`@@ -1,${oldLines.length} +1,${newLines.length} @@`)
-  
+
   for (const line of oldLines) {
     lines.push(`-${line}`)
   }
   for (const line of newLines) {
     lines.push(`+${line}`)
   }
-  
+
   return lines.join('\n')
 }

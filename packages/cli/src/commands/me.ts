@@ -11,15 +11,17 @@ export default defineCommand({
   async run({ args }) {
     try {
       const user = await getCurrentUser()
-      
+
       if (args.json) {
         console.log(JSON.stringify(user, null, 2))
         return
       }
-      
+
       console.log(`${accent(user.handle || user.name)}`)
       console.log(`  ID: ${user.id}`)
       if (user.email) console.log(`  Email: ${user.email}`)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

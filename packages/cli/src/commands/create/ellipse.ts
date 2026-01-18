@@ -31,6 +31,8 @@ export default defineCommand({
         opacity: args.opacity ? Number(args.opacity) : undefined
       })
       printResult(result, args.json, 'create')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

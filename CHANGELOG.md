@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `bun run format` — format code with oxfmt
+- `bun run lint` — lint code with oxlint
+
 ## [0.6.1] - 2026-01-19
+
+### Added
+
+- **`diff` commands** (experimental) — incremental updates via unified diff patches
+  - `diff create --from <id> --to <id>` — compare two node trees and generate patch
+  - `diff apply` — apply a patch to Figma nodes (validates old values!)
+  - `diff show` — show diff between current state and new properties
+  ```bash
+  # Compare two frames (e.g., before/after, A/B variants)
+  figma-use diff create --from 123:456 --to 789:012
+  
+  # Apply patch (validates old values match)
+  figma-use diff apply --stdin < patch.diff
+  
+  # Dry run
+  figma-use diff apply --stdin --dry-run < patch.diff
+  ```
+- Uses `diff` library for unified diff parsing and validation
 
 ### Fixed
 
@@ -222,7 +245,7 @@ the same batch. See `component-set.tsx` for detailed explanation.
   - From stdin: `echo '<Frame style={{...}} />' | figma-use render --stdin`
   - With props: `--props '{"title": "Hello"}'`
   - Into parent: `--parent "1:23"`
-  - Dry run: `--dryRun` outputs NodeChanges JSON
+  - Dry run: `--dry-run` outputs NodeChanges JSON
 - **Multiplayer WebSocket connection pooling** in proxy
   - First render: ~4s (establishes connection)
   - Subsequent renders: ~0.4s (10x faster!)

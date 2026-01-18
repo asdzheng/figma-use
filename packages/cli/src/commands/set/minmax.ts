@@ -21,6 +21,8 @@ export default defineCommand({
         maxHeight: args.maxHeight ? Number(args.maxHeight) : undefined
       })
       printResult(result, args.json, 'update')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

@@ -49,6 +49,8 @@ export default defineCommand({
         padding: paddingObj
       })
       printResult(result, args.json, 'create')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

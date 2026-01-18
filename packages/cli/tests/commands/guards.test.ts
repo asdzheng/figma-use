@@ -6,7 +6,9 @@ describe('export guards', () => {
 
   beforeAll(async () => {
     await setupTestPage('guards')
-    const rect = await run('create rect --x 0 --y 0 --width 100 --height 100 --name "GuardTest" --json') as { id: string }
+    const rect = (await run(
+      'create rect --x 0 --y 0 --width 100 --height 100 --name "GuardTest" --json'
+    )) as { id: string }
     nodeId = rect.id
     trackNode(nodeId)
   })
@@ -26,7 +28,10 @@ describe('export guards', () => {
   })
 
   test('export node allows with --force', async () => {
-    const output = await run(`export node ${nodeId} --scale 2 --output /tmp/guard-test.png`, false) as string
+    const output = (await run(
+      `export node ${nodeId} --scale 2 --output /tmp/guard-test.png`,
+      false
+    )) as string
     expect(output).toContain('/tmp/guard-test.png')
   })
 })
@@ -35,14 +40,16 @@ describe('tree guards', () => {
   let frameId: string
 
   beforeAll(async () => {
-    const frame = await run('create frame --x 0 --y 200 --width 100 --height 100 --name "TreeTest" --json') as { id: string }
+    const frame = (await run(
+      'create frame --x 0 --y 200 --width 100 --height 100 --name "TreeTest" --json'
+    )) as { id: string }
     frameId = frame.id
     trackNode(frameId)
     await run(`create rect --parent ${frameId} --x 0 --y 0 --width 50 --height 50 --json`)
   })
 
   test('tree shows node count', async () => {
-    const output = await run(`node tree ${frameId}`, false) as string
+    const output = (await run(`node tree ${frameId}`, false)) as string
     expect(output).toMatch(/\d+ nodes/)
     expect(output).toContain('TreeTest')
   })

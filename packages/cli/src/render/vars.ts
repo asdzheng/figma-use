@@ -1,6 +1,6 @@
 /**
  * Figma Variable Bindings (StyleX-inspired API)
- * 
+ *
  * @example
  * ```tsx
  * // tokens.figma.ts - with explicit values (recommended)
@@ -8,13 +8,13 @@
  *   primary: { name: 'Colors/Gray/50', value: '#F8FAFC' },
  *   accent: { name: 'Colors/Blue/500', value: '#3B82F6' },
  * })
- * 
+ *
  * // tokens.figma.ts - name only (value loaded from Figma)
  * export const colors = defineVars({
  *   primary: 'Colors/Gray/50',
  *   accent: 'Colors/Blue/500',
  * })
- * 
+ *
  * // Card.figma.tsx
  * <Frame style={{ backgroundColor: colors.primary }}>
  * ```
@@ -29,9 +29,10 @@ export type VarDef = string | { name: string; value: string }
 
 export interface FigmaVariable {
   [VAR_SYMBOL]: true
-  name: string              // Variable name like "Colors/Gray/50"
-  value?: string            // Fallback color value like "#F8FAFC"
-  _resolved?: {             // Filled in at render time
+  name: string // Variable name like "Colors/Gray/50"
+  value?: string // Fallback color value like "#F8FAFC"
+  _resolved?: {
+    // Filled in at render time
     id: string
     sessionID: number
     localID: number
@@ -68,7 +69,7 @@ export function loadVariablesIntoRegistry(variables: Array<{ id: string; name: s
       variableRegistry.set(v.name, {
         id: v.id,
         sessionID: parseInt(match[1], 10),
-        localID: parseInt(match[2], 10),
+        localID: parseInt(match[2], 10)
       })
     }
   }
@@ -83,30 +84,30 @@ export function resolveVariable(variable: FigmaVariable): ResolvedVariable {
   if (variable._resolved) {
     return variable._resolved
   }
-  
+
   // Check if it's an ID format (legacy support)
   const idMatch = variable.name.match(/^(?:VariableID:)?(\d+):(\d+)$/)
   if (idMatch) {
     const resolved = {
       id: `VariableID:${idMatch[1]}:${idMatch[2]}`,
       sessionID: parseInt(idMatch[1], 10),
-      localID: parseInt(idMatch[2], 10),
+      localID: parseInt(idMatch[2], 10)
     }
     variable._resolved = resolved
     return resolved
   }
-  
+
   // Lookup by name
   const resolved = variableRegistry.get(variable.name)
   if (!resolved) {
     const available = Array.from(variableRegistry.keys()).slice(0, 5).join(', ')
     throw new Error(
       `Variable "${variable.name}" not found. ` +
-      `Available: ${available}${variableRegistry.size > 5 ? '...' : ''}. ` +
-      `Make sure variables are loaded before render.`
+        `Available: ${available}${variableRegistry.size > 5 ? '...' : ''}. ` +
+        `Make sure variables are loaded before render.`
     )
   }
-  
+
   variable._resolved = resolved
   return resolved
 }
@@ -127,7 +128,7 @@ export function getRegistrySize(): number {
 
 /**
  * Define Figma variables for use in styles
- * 
+ *
  * @example
  * ```ts
  * // With explicit fallback values (recommended)
@@ -135,12 +136,12 @@ export function getRegistrySize(): number {
  *   primary: { name: 'Colors/Gray/50', value: '#F8FAFC' },
  *   accent: { name: 'Colors/Blue/500', value: '#3B82F6' },
  * })
- * 
+ *
  * // Name only (value loaded from Figma registry)
  * export const colors = defineVars({
  *   primary: 'Colors/Gray/50',
  * })
- * 
+ *
  * // Use in components:
  * <Frame style={{ backgroundColor: colors.primary }} />
  * ```
@@ -149,28 +150,28 @@ export function defineVars<T extends Record<string, VarDef>>(
   vars: T
 ): { [K in keyof T]: FigmaVariable } {
   const result = {} as { [K in keyof T]: FigmaVariable }
-  
+
   for (const [key, def] of Object.entries(vars)) {
     if (typeof def === 'string') {
       result[key as keyof T] = {
         [VAR_SYMBOL]: true,
-        name: def,
+        name: def
       }
     } else {
       result[key as keyof T] = {
         [VAR_SYMBOL]: true,
         name: def.name,
-        value: def.value,
+        value: def.value
       }
     }
   }
-  
+
   return result
 }
 
 /**
  * Shorthand for single variable
- * 
+ *
  * @example
  * ```ts
  * const primaryColor = figmaVar('Colors/Gray/50', '#F8FAFC')
@@ -180,6 +181,6 @@ export function figmaVar(name: string, value?: string): FigmaVariable {
   return {
     [VAR_SYMBOL]: true,
     name,
-    value,
+    value
   }
 }

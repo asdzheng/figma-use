@@ -28,9 +28,13 @@ export const bold = pc.bold
 
 export function formatColor(paint: FigmaPaint): string {
   if (paint.type === 'SOLID' && paint.color) {
-    const alpha = paint.opacity !== undefined && paint.opacity < 1
-      ? Math.round(paint.opacity * 255).toString(16).padStart(2, '0').toUpperCase()
-      : ''
+    const alpha =
+      paint.opacity !== undefined && paint.opacity < 1
+        ? Math.round(paint.opacity * 255)
+            .toString(16)
+            .padStart(2, '0')
+            .toUpperCase()
+        : ''
     return paint.color + alpha
   }
   return paint.type.toLowerCase()
@@ -38,19 +42,24 @@ export function formatColor(paint: FigmaPaint): string {
 
 export function formatFill(fills?: FigmaPaint[]): string | null {
   if (!fills || fills.length === 0) return null
-  const solid = fills.find(f => f.type === 'SOLID')
+  const solid = fills.find((f) => f.type === 'SOLID')
   return solid ? formatColor(solid) : null
 }
 
 export function formatStroke(strokes?: FigmaPaint[], weight?: number): string | null {
   if (!strokes || strokes.length === 0) return null
-  const solid = strokes.find(f => f.type === 'SOLID')
+  const solid = strokes.find((f) => f.type === 'SOLID')
   if (!solid?.color) return null
   const color = formatColor(solid)
   return weight ? `${color} ${weight}px` : color
 }
 
-export function formatBox(node: { width?: number; height?: number; x?: number; y?: number }): string | null {
+export function formatBox(node: {
+  width?: number
+  height?: number
+  x?: number
+  y?: number
+}): string | null {
   if (node.width === undefined || node.height === undefined) return null
   const size = `${Math.round(node.width)}×${Math.round(node.height)}`
   if (node.x !== undefined && node.y !== undefined) {
@@ -72,9 +81,7 @@ export function formatLayout(node: FigmaNode): string | null {
 
 export function formatText(characters?: string, maxLen = 40): string | null {
   if (!characters) return null
-  const text = characters.length > maxLen
-    ? characters.slice(0, maxLen) + '…'
-    : characters
+  const text = characters.length > maxLen ? characters.slice(0, maxLen) + '…' : characters
   return `"${text.replace(/\n/g, '↵')}"`
 }
 

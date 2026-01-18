@@ -3,7 +3,7 @@ import { execSync } from 'child_process'
 
 export function getFigmaSettingsPath(): string | null {
   const home = process.env.HOME || process.env.USERPROFILE || ''
-  
+
   if (process.platform === 'darwin') {
     return join(home, 'Library', 'Application Support', 'Figma', 'settings.json')
   } else if (process.platform === 'win32') {

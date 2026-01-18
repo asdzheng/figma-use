@@ -1,13 +1,13 @@
 /**
  * Figma Multiplayer Protocol
- * 
+ *
  * This module handles the low-level WebSocket communication with Figma's
  * multiplayer server. The protocol uses:
- * 
+ *
  * - Kiwi binary serialization (schema-based, like Protocol Buffers)
  * - Zstd compression for all messages
  * - Session-based authentication via cookies
- * 
+ *
  * Message types (from Figma's schema):
  *   0 = JOIN_START     - Server sends session info
  *   1 = NODE_CHANGES   - Create/update/delete nodes
@@ -16,7 +16,7 @@
  *   4 = SIGNAL         - Various metadata (reconnect info, etc.)
  *   5 = STYLE          - Style updates
  *   ...and more
- * 
+ *
  * Wire format:
  *   All messages are Zstd-compressed Kiwi-encoded binary data.
  *   Zstd magic bytes: 0x28 0xB5 0x2F 0xFD
@@ -37,7 +37,7 @@ export const MESSAGE_TYPES = {
   SCENE_GRAPH_QUERY: 11,
   SCENE_GRAPH_REPLY: 12,
   DIFF: 13,
-  CLIENT_BROADCAST: 14,
+  CLIENT_BROADCAST: 14
 } as const
 
 export const NODE_TYPES = {
@@ -69,12 +69,12 @@ export const NODE_TYPES = {
   SECTION: 25,
   SECTION_OVERLAY: 26,
   WASHI_TAPE: 27,
-  VARIABLE: 28,
+  VARIABLE: 28
 } as const
 
 export const NODE_PHASES = {
   CREATED: 0,
-  REMOVED: 1,
+  REMOVED: 1
 } as const
 
 export const BLEND_MODES = {
@@ -96,7 +96,7 @@ export const BLEND_MODES = {
   HUE: 15,
   SATURATION: 16,
   COLOR: 17,
-  LUMINOSITY: 18,
+  LUMINOSITY: 18
 } as const
 
 export const PAINT_TYPES = {
@@ -107,13 +107,13 @@ export const PAINT_TYPES = {
   GRADIENT_DIAMOND: 4,
   IMAGE: 5,
   EMOJI: 6,
-  VIDEO: 7,
+  VIDEO: 7
 } as const
 
 /**
  * Zstd magic bytes
  */
-export const ZSTD_MAGIC = new Uint8Array([0x28, 0xB5, 0x2F, 0xFD])
+export const ZSTD_MAGIC = new Uint8Array([0x28, 0xb5, 0x2f, 0xfd])
 
 // ============================================================================
 // Kiwi Binary Format Constants
@@ -126,18 +126,18 @@ export const ZSTD_MAGIC = new Uint8Array([0x28, 0xB5, 0x2F, 0xFD])
 export const KIWI = {
   /** First byte of valid Kiwi messages (field number 1) */
   MESSAGE_MARKER: 1,
-  
+
   /** Field number for sessionID in JOIN_START message */
   SESSION_ID_FIELD: 2,
-  
+
   /** Varint continuation bit (MSB set = more bytes follow) */
   VARINT_CONTINUE_BIT: 0x80,
-  
+
   /** Varint value mask (lower 7 bits contain data) */
-  VARINT_VALUE_MASK: 0x7F,
-  
+  VARINT_VALUE_MASK: 0x7f,
+
   /** Bits per varint byte */
-  VARINT_BITS_PER_BYTE: 7,
+  VARINT_BITS_PER_BYTE: 7
 } as const
 
 /**
@@ -145,7 +145,7 @@ export const KIWI = {
  */
 export const SESSION_ID = {
   MIN: 10000,
-  MAX: 1000000,
+  MAX: 1000000
 } as const
 
 /**
@@ -155,19 +155,19 @@ export const SESSION_ID = {
 export function parseVarint(data: Uint8Array, pos: number): [number, number] {
   let value = 0
   let shift = 0
-  
+
   while (pos < data.length) {
     const byte = data[pos]
     if (byte === undefined) break
     pos++
     value |= (byte & KIWI.VARINT_VALUE_MASK) << shift
-    
+
     if (!(byte & KIWI.VARINT_CONTINUE_BIT)) {
       break
     }
     shift += KIWI.VARINT_BITS_PER_BYTE
   }
-  
+
   return [value, pos]
 }
 
@@ -195,11 +195,9 @@ export const FIG_WIRE_MAGIC = 'fig-wire'
  * Check if data is Zstd-compressed
  */
 export function isZstdCompressed(data: Uint8Array): boolean {
-  return data.length >= 4 &&
-    data[0] === 0x28 &&
-    data[1] === 0xB5 &&
-    data[2] === 0x2F &&
-    data[3] === 0xFD
+  return (
+    data.length >= 4 && data[0] === 0x28 && data[1] === 0xb5 && data[2] === 0x2f && data[3] === 0xfd
+  )
 }
 
 /**
@@ -234,7 +232,7 @@ export function buildMultiplayerUrl(fileKey: string, trackingId?: string): strin
     role: 'editor',
     version: String(PROTOCOL_VERSION),
     recentReload: '0',
-    tracking_session_id: trackingId || `ws-${Date.now()}`,
+    tracking_session_id: trackingId || `ws-${Date.now()}`
   })
   return `wss://www.figma.com/api/multiplayer/${fileKey}?${params}`
 }

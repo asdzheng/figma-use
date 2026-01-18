@@ -25,6 +25,8 @@ export default defineCommand({
         fill: args.fill
       })
       printResult(result, args.json, 'create')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

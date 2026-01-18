@@ -12,6 +12,8 @@ export default defineCommand({
     try {
       const result = await sendCommand('set-rotation', { id: args.id, angle: Number(args.angle) })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

@@ -27,6 +27,8 @@ export default defineCommand({
         strokeWeight: args.strokeWeight ? Number(args.strokeWeight) : undefined
       })
       printResult(result, args.json, 'create')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

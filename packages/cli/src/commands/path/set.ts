@@ -7,7 +7,11 @@ export default defineCommand({
   args: {
     id: { type: 'positional', description: 'Vector node ID', required: true },
     path: { type: 'positional', description: 'SVG path data', required: true },
-    windingRule: { type: 'string', description: 'Winding rule (NONZERO or EVENODD)', default: 'NONZERO' },
+    windingRule: {
+      type: 'string',
+      description: 'Winding rule (NONZERO or EVENODD)',
+      default: 'NONZERO'
+    },
     json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {
@@ -18,6 +22,8 @@ export default defineCommand({
         windingRule: args.windingRule
       })
       printResult(result, args.json, 'update')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

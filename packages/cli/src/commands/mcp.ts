@@ -9,8 +9,8 @@ export default defineCommand({
   async run({ args }) {
     const config = {
       mcpServers: {
-        "figma-use": {
-          url: "http://localhost:38451/mcp"
+        'figma-use': {
+          url: 'http://localhost:38451/mcp'
         }
       }
     }

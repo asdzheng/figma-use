@@ -11,12 +11,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-viewport', { 
+      const result = await sendCommand('set-viewport', {
         x: args.x ? Number(args.x) : undefined,
         y: args.y ? Number(args.y) : undefined,
         zoom: args.zoom ? Number(args.zoom) : undefined
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

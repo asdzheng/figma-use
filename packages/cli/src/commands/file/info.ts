@@ -11,14 +11,16 @@ export default defineCommand({
   async run({ args }) {
     try {
       const info = await getFileInfoViaBrowser()
-      
+
       if (args.json) {
         console.log(JSON.stringify(info, null, 2))
         return
       }
-      
+
       console.log(`${accent(info.name)}`)
       console.log(`  Key: ${info.key}`)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

@@ -11,6 +11,8 @@ export default defineCommand({
     try {
       const result = await sendCommand('create-variable-collection', { name: args.name })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

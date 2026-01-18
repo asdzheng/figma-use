@@ -1,6 +1,6 @@
 /**
  * Multiplayer connection pool for proxy server
- * 
+ *
  * Holds persistent WebSocket connections to Figma multiplayer servers.
  * Connections are created lazily and reused across render requests.
  */
@@ -28,17 +28,17 @@ let initialized = false
 
 async function ensureInitialized() {
   if (initialized) return
-  
+
   const clientModule = await import('../../cli/src/multiplayer/client.ts')
   const codecModule = await import('../../cli/src/multiplayer/codec.ts')
-  
+
   FigmaMultiplayerClient = clientModule.FigmaMultiplayerClient
   getCookiesFromDevTools = clientModule.getCookiesFromDevTools
   initCodec = codecModule.initCodec
-  
+
   await initCodec()
   initialized = true
-  
+
   // Cleanup idle connections periodically
   setInterval(cleanupIdleConnections, 60_000)
 }
@@ -59,7 +59,7 @@ export async function getMultiplayerConnection(fileKey: string): Promise<{
   sessionID: number
 }> {
   await ensureInitialized()
-  
+
   // Close connections to OTHER files (user switched files)
   for (const [key, conn] of connectionPool) {
     if (key !== fileKey) {
@@ -68,7 +68,7 @@ export async function getMultiplayerConnection(fileKey: string): Promise<{
       connectionPool.delete(key)
     }
   }
-  
+
   // Check for existing connection to this file
   const existing = connectionPool.get(fileKey)
   if (existing) {
@@ -83,23 +83,23 @@ export async function getMultiplayerConnection(fileKey: string): Promise<{
       connectionPool.delete(fileKey)
     }
   }
-  
+
   // Create new connection
   consola.info(`Creating multiplayer connection for ${fileKey}`)
-  
+
   const cookies = await getCookiesFromDevTools()
   const client = new FigmaMultiplayerClient(fileKey)
   const session = await client.connect(cookies)
-  
+
   connectionPool.set(fileKey, {
     client,
     sessionID: session.sessionID,
     fileKey,
-    lastUsed: Date.now(),
+    lastUsed: Date.now()
   })
-  
+
   consola.success(`Multiplayer connected: sessionID=${session.sessionID}`)
-  
+
   return { client, sessionID: session.sessionID }
 }
 
@@ -111,15 +111,15 @@ export function closeAllConnections() {
   consola.info('All multiplayer connections closed')
 }
 
-export function getConnectionStatus(): { 
-  connections: Array<{ fileKey: string; sessionID: number; idleMs: number }> 
+export function getConnectionStatus(): {
+  connections: Array<{ fileKey: string; sessionID: number; idleMs: number }>
 } {
   const now = Date.now()
   return {
-    connections: Array.from(connectionPool.values()).map(conn => ({
+    connections: Array.from(connectionPool.values()).map((conn) => ({
       fileKey: conn.fileKey,
       sessionID: conn.sessionID,
-      idleMs: now - conn.lastUsed,
+      idleMs: now - conn.lastUsed
     }))
   }
 }

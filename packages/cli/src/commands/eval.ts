@@ -9,9 +9,13 @@ export default defineCommand({
     json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {
-    const result = await sendCommand('eval', { code: args.code }, { 
-      timeout: args.timeout ? Number(args.timeout) * 1000 : undefined 
-    })
+    const result = await sendCommand(
+      'eval',
+      { code: args.code },
+      {
+        timeout: args.timeout ? Number(args.timeout) * 1000 : undefined
+      }
+    )
     printResult(result, args.json)
   }
 })

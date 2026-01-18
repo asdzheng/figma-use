@@ -11,12 +11,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-parent-id', { 
-        id: args.id, 
+      const result = await sendCommand('set-parent-id', {
+        id: args.id,
         parentId: args.parent,
         index: args.index ? Number(args.index) : undefined
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

@@ -12,6 +12,8 @@ export default defineCommand({
     try {
       const result = await sendCommand('rename-node', { id: args.id, name: args.name })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

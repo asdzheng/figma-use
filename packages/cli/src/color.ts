@@ -19,18 +19,18 @@ export interface RGBA {
  */
 export function parseColor(color: string): RGBA {
   const parsed = parse(color)
-  
+
   if (!parsed) {
     return { r: 0, g: 0, b: 0, a: 1 }
   }
-  
+
   const rgb = toRgb(parsed)
-  
+
   return {
     r: rgb?.r ?? 0,
     g: rgb?.g ?? 0,
     b: rgb?.b ?? 0,
-    a: parsed.alpha ?? 1,
+    a: parsed.alpha ?? 1
   }
 }
 
@@ -43,7 +43,7 @@ export function colorToFill(color: string | RGBA) {
     type: 'SOLID' as const,
     color: { r: rgba.r, g: rgba.g, b: rgba.b, a: rgba.a },
     opacity: rgba.a,
-    visible: true,
+    visible: true
   }
 }
 

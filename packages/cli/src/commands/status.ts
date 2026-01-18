@@ -10,9 +10,9 @@ export default defineCommand({
       plugin: false,
       devtools: false,
       fileKey: null as string | null,
-      multiplayer: false,
+      multiplayer: false
     }
-    
+
     // Check proxy
     try {
       const status = await getStatus()
@@ -21,7 +21,7 @@ export default defineCommand({
     } catch {
       // Proxy not running
     }
-    
+
     // Check DevTools (required for render command)
     try {
       result.fileKey = await getFileKey()
@@ -30,17 +30,23 @@ export default defineCommand({
     } catch {
       // DevTools not available or no Figma file open
     }
-    
+
     if (args.json) {
       console.log(JSON.stringify(result, null, 2))
       return
     }
-    
+
     // Human-readable output
     console.log(result.proxy ? '✓ Proxy running' : '✗ Proxy not running (run: figma-use proxy)')
-    console.log(result.plugin ? '✓ Plugin connected' : '✗ Plugin not connected (open plugin in Figma)')
-    console.log(result.devtools ? '✓ DevTools available' : '✗ DevTools not available (run: figma --remote-debugging-port=9222)')
-    
+    console.log(
+      result.plugin ? '✓ Plugin connected' : '✗ Plugin not connected (open plugin in Figma)'
+    )
+    console.log(
+      result.devtools
+        ? '✓ DevTools available'
+        : '✗ DevTools not available (run: figma --remote-debugging-port=9222)'
+    )
+
     if (result.devtools) {
       if (result.fileKey) {
         console.log(`✓ Figma file ready (${result.fileKey})`)
@@ -48,14 +54,14 @@ export default defineCommand({
         console.log('✗ No Figma file open (open a file from figma.com, not local)')
       }
     }
-    
+
     // Summary for render command
     if (result.proxy && result.plugin && result.multiplayer) {
       console.log('\n✓ Ready for render command')
     } else if (result.proxy && result.plugin) {
       console.log('\n⚠ CLI commands work, but render requires DevTools + Figma file')
     }
-    
+
     if (!result.proxy) process.exit(1)
   }
 })

@@ -42,7 +42,7 @@ describe('color', () => {
     expect(red.r).toBeCloseTo(1, 2)
     expect(red.g).toBeCloseTo(0, 2)
     expect(red.b).toBeCloseTo(0, 2)
-    
+
     const white = parseColor('white')
     expect(white.r).toBeCloseTo(1, 2)
     expect(white.g).toBeCloseTo(1, 2)

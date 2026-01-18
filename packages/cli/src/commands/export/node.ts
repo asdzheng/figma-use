@@ -17,19 +17,23 @@ export default defineCommand({
   async run({ args }) {
     try {
       const scale = Number(args.scale)
-      
+
       const check = await checkExportSize(args.id, scale, args.force || false)
       if (!check.ok) {
         console.error(fail(check.message!))
         process.exit(1)
       }
 
-      const result = await sendCommand('export-node', {
-        id: args.id,
-        format: args.format.toUpperCase(),
-        scale
-      }, { timeout: args.timeout ? Number(args.timeout) * 1000 : undefined }) as { data: string; filename: string }
-      
+      const result = (await sendCommand(
+        'export-node',
+        {
+          id: args.id,
+          format: args.format.toUpperCase(),
+          scale
+        },
+        { timeout: args.timeout ? Number(args.timeout) * 1000 : undefined }
+      )) as { data: string; filename: string }
+
       if (args.output) {
         const buffer = Buffer.from(result.data, 'base64')
         writeFileSync(args.output, buffer)
@@ -37,6 +41,8 @@ export default defineCommand({
       } else {
         console.log(JSON.stringify(result, null, 2))
       }
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

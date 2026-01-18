@@ -1,17 +1,17 @@
 /**
  * Figma Multiplayer Module
- * 
+ *
  * Direct WebSocket access to Figma's multiplayer protocol.
  * Enables creating nodes 1000-5000x faster than the plugin API.
- * 
+ *
  * @example
  * ```ts
  * import { FigmaMultiplayerClient, getCookiesFromDevTools } from './multiplayer'
- * 
+ *
  * const cookies = await getCookiesFromDevTools()
  * const client = new FigmaMultiplayerClient('fileKey')
  * await client.connect(cookies)
- * 
+ *
  * await client.createNodes([{
  *   guid: { sessionID: client.getSessionInfo()!.sessionID, localID: 1 },
  *   phase: 'CREATED',
@@ -19,17 +19,17 @@
  *   name: 'My Rect',
  *   // ...
  * }])
- * 
+ *
  * client.close()
  * ```
  */
 
-export { 
-  FigmaMultiplayerClient, 
+export {
+  FigmaMultiplayerClient,
   getCookiesFromDevTools,
   parseFileKey,
   type SessionInfo,
-  type ConnectionOptions,
+  type ConnectionOptions
 } from './client.ts'
 
 export {
@@ -47,7 +47,7 @@ export {
   type VariableBinding,
   type ParentIndex,
   type NodeChange,
-  type FigmaMessage,
+  type FigmaMessage
 } from './codec.ts'
 
 export {
@@ -66,5 +66,5 @@ export {
   skipFigWireHeader,
   isKiwiMessage,
   getKiwiMessageType,
-  parseVarint,
+  parseVarint
 } from './protocol.ts'

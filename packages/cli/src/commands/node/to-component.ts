@@ -6,12 +6,12 @@ export default defineCommand({
   meta: { description: 'Convert frame(s) to component(s)' },
   args: {
     ids: { type: 'positional', description: 'Node IDs to convert', required: true },
-    json: { type: 'boolean', description: 'Output as JSON' },
+    json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {
     try {
       const ids = args.ids.split(/[\s,]+/).filter(Boolean)
-      
+
       const result = await sendCommand<Array<{ id: string; name: string }>>('eval', {
         code: `
           const ids = ${JSON.stringify(ids)}
@@ -26,7 +26,7 @@ export default defineCommand({
           return result
         `
       })
-      
+
       if (args.json) {
         console.log(JSON.stringify(result, null, 2))
       } else {

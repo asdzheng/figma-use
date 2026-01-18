@@ -20,39 +20,41 @@ export default defineCommand({
   async run({ args }) {
     try {
       const settingsPath = getFigmaSettingsPath()
-      
+
       if (!settingsPath || !existsSync(settingsPath)) {
         console.log('No Figma settings found')
         return
       }
-      
+
       const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
       const extensions: PluginEntry[] = settings.localFileExtensions || []
-      
+
       const plugins = extensions
-        .filter(e => e.fileMetadata?.type === 'manifest')
-        .map(e => ({
+        .filter((e) => e.fileMetadata?.type === 'manifest')
+        .map((e) => ({
           id: e.lastKnownPluginId || 'unknown',
           name: e.lastKnownName || 'Unnamed',
           path: e.manifestPath
         }))
-      
+
       if (args.json) {
         console.log(JSON.stringify(plugins, null, 2))
         return
       }
-      
+
       if (plugins.length === 0) {
         console.log('No development plugins installed')
         return
       }
-      
+
       for (const p of plugins) {
         console.log(`${accent(p.name)} ${dim(`(${p.id})`)}`)
         console.log(`  ${dim(p.path)}`)
       }
-      
+
       console.log(`\n${plugins.length} plugin${plugins.length === 1 ? '' : 's'}`)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

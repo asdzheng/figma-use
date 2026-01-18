@@ -10,8 +10,13 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-visible', { id: args.id, visible: args.value === 'true' })
+      const result = await sendCommand('set-visible', {
+        id: args.id,
+        visible: args.value === 'true'
+      })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

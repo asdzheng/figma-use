@@ -8,8 +8,14 @@ export default defineCommand({
     mode: { type: 'string', description: 'Layout mode: HORIZONTAL, VERTICAL, NONE' },
     gap: { type: 'string', description: 'Item spacing (gap)' },
     padding: { type: 'string', description: 'Padding (single or "top,right,bottom,left")' },
-    align: { type: 'string', description: 'Primary axis alignment: MIN, CENTER, MAX, SPACE_BETWEEN' },
-    counterAlign: { type: 'string', description: 'Counter axis alignment: MIN, CENTER, MAX, BASELINE' },
+    align: {
+      type: 'string',
+      description: 'Primary axis alignment: MIN, CENTER, MAX, SPACE_BETWEEN'
+    },
+    counterAlign: {
+      type: 'string',
+      description: 'Counter axis alignment: MIN, CENTER, MAX, BASELINE'
+    },
     wrap: { type: 'boolean', description: 'Enable wrap' },
     json: { type: 'boolean', description: 'Output as JSON' }
   },
@@ -24,9 +30,9 @@ export default defineCommand({
           paddingObj = { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3] }
         }
       }
-      
-      const result = await sendCommand('set-auto-layout', { 
-        id: args.id, 
+
+      const result = await sendCommand('set-auto-layout', {
+        id: args.id,
         mode: args.mode,
         itemSpacing: args.gap ? Number(args.gap) : undefined,
         padding: paddingObj,
@@ -35,6 +41,8 @@ export default defineCommand({
         wrap: args.wrap
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

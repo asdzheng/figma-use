@@ -2,23 +2,23 @@
  * React → Figma Renderer
  */
 
-export { 
-  renderToNodeChanges, 
+export {
+  renderToNodeChanges,
   resetRenderedComponents,
   getPendingComponentSetInstances,
   clearPendingComponentSetInstances,
-  type RenderOptions, 
+  type RenderOptions,
   type RenderResult,
-  type PendingComponentSetInstance,
+  type PendingComponentSetInstance
 } from './reconciler.ts'
-export { 
-  Frame, 
-  Rectangle, 
-  Ellipse, 
-  Text, 
-  Line, 
-  Star, 
-  Polygon, 
+export {
+  Frame,
+  Rectangle,
+  Ellipse,
+  Text,
+  Line,
+  Star,
+  Polygon,
   Vector,
   Component,
   Instance,
@@ -36,12 +36,12 @@ export {
   // Component definitions
   defineComponent,
   resetComponentRegistry,
-  getComponentRegistry,
+  getComponentRegistry
 } from './components.tsx'
 
 export {
   // ComponentSet (variants)
   defineComponentSet,
   resetComponentSetRegistry,
-  getComponentSetRegistry,
+  getComponentSetRegistry
 } from './component-set.tsx'

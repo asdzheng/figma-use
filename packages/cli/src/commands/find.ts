@@ -11,12 +11,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('find-by-name', { 
+      const result = await sendCommand('find-by-name', {
         name: args.name,
         type: args.type,
         limit: Number(args.limit)
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

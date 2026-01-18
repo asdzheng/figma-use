@@ -12,18 +12,18 @@ const MONTH_DAYS = [
   [10, 11, 12, 13, 14, 15, 16],
   [17, 18, 19, 20, 21, 22, 23],
   [24, 25, 26, 27, 28, 29, 30],
-  [31, null, null, null, null, null, null],
+  [31, null, null, null, null, null, null]
 ]
 
 const colors = {
   bg: '#FFFFFF',
-  bgHover: '#EFF6FF',  // Blue-50, subtle blue tint for today
+  bgHover: '#EFF6FF', // Blue-50, subtle blue tint for today
   text: '#111827',
   textMuted: '#9CA3AF',
   border: '#E5E7EB',
   primary: '#3B82F6',
   primaryHover: '#2563EB',
-  primaryText: '#FFFFFF',
+  primaryText: '#FFFFFF'
 }
 
 const DayHeader = ({ day }: { day: string }) => (
@@ -34,23 +34,21 @@ const DayHeader = ({ day }: { day: string }) => (
       height: 40,
       flexDirection: 'column',
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'center'
     }}
   >
-    <Text style={{ fontSize: 12, fontWeight: 500, color: colors.textMuted }}>
-      {day}
-    </Text>
+    <Text style={{ fontSize: 12, fontWeight: 500, color: colors.textMuted }}>{day}</Text>
   </Frame>
 )
 
-const DayCell = ({ 
-  day, 
-  isSelected, 
-  isToday 
-}: { 
+const DayCell = ({
+  day,
+  isSelected,
+  isToday
+}: {
   day: number | null
   isSelected?: boolean
-  isToday?: boolean 
+  isToday?: boolean
 }) => {
   if (day === null) {
     return <Frame name="empty" style={{ width: 40, height: 40 }} />
@@ -63,33 +61,38 @@ const DayCell = ({
     borderRadius: 8,
     flexDirection: 'column' as const,
     justifyContent: 'center' as const,
-    alignItems: 'center' as const,
+    alignItems: 'center' as const
   }
 
-  const style = isSelected 
+  const style = isSelected
     ? { ...baseStyle, backgroundColor: colors.primary }
-    : isToday 
+    : isToday
       ? { ...baseStyle, backgroundColor: colors.bgHover }
       : baseStyle
 
   return (
     <Frame name={`day-${day}`} style={style}>
-      <Text style={{ fontSize: 14, fontWeight: isSelected || isToday ? 600 : 400, color: textColor }}>
+      <Text
+        style={{ fontSize: 14, fontWeight: isSelected || isToday ? 600 : 400, color: textColor }}
+      >
         {String(day)}
       </Text>
     </Frame>
   )
 }
 
-const WeekRow = ({ days, selectedDay, today }: { days: (number | null)[]; selectedDay?: number; today?: number }) => (
+const WeekRow = ({
+  days,
+  selectedDay,
+  today
+}: {
+  days: (number | null)[]
+  selectedDay?: number
+  today?: number
+}) => (
   <Frame style={{ flexDirection: 'row', gap: 4, width: 308, height: 40 }}>
     {days.map((day, i) => (
-      <DayCell 
-        key={i} 
-        day={day} 
-        isSelected={day === selectedDay}
-        isToday={day === today}
-      />
+      <DayCell key={i} day={day} isSelected={day === selectedDay} isToday={day === today} />
     ))}
   </Frame>
 )
@@ -110,26 +113,63 @@ export default function Calendar() {
         flexDirection: 'column',
         gap: 8,
         borderColor: colors.border,
-        borderWidth: 1,
+        borderWidth: 1
       }}
     >
-      <Frame name="header" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: 308, height: 40 }}>
-        <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+      <Frame
+        name="header"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: 308,
+          height: 40
+        }}
+      >
+        <Frame
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 6,
+            backgroundColor: colors.bgHover,
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
           <Text style={{ fontSize: 18, color: colors.textMuted }}>‹</Text>
         </Frame>
-        <Frame style={{ width: 244, height: 32, flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ fontSize: 16, fontWeight: 600, color: colors.text }}>
-            January 2026
-          </Text>
+        <Frame
+          style={{
+            width: 244,
+            height: 32,
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: 600, color: colors.text }}>January 2026</Text>
         </Frame>
-        <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <Frame
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 6,
+            backgroundColor: colors.bgHover,
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
           <Text style={{ fontSize: 18, color: colors.textMuted }}>›</Text>
         </Frame>
       </Frame>
 
       {/* Days header */}
       <Frame style={{ flexDirection: 'row', gap: 4, width: 308, height: 40 }}>
-        {DAYS.map(day => <DayHeader key={day} day={day} />)}
+        {DAYS.map((day) => (
+          <DayHeader key={day} day={day} />
+        ))}
       </Frame>
 
       {/* Calendar grid */}

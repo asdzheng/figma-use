@@ -2,109 +2,136 @@ import { defineCommand } from 'citty'
 import { sendCommand, handleError } from '../../client.ts'
 import { fail } from '../../format.ts'
 import { serializeNode } from './serialize.ts'
-import { createPatch } from 'diff'
+import { createTwoFilesPatch } from 'diff'
+
+interface NodeInfo {
+  id: string
+  name: string
+  type: string
+  children?: NodeInfo[]
+  [key: string]: unknown
+}
+
+/**
+ * Recursively collect all nodes from a tree into a flat map by name path.
+ */
+function collectNodes(
+  node: NodeInfo,
+  parentPath: string = ''
+): Map<string, { path: string; id: string; node: NodeInfo }> {
+  const result = new Map<string, { path: string; id: string; node: NodeInfo }>()
+
+  const path = parentPath ? `${parentPath}/${node.name}` : `/${node.name}`
+  result.set(path, { path, id: node.id, node })
+
+  if (node.children) {
+    for (const child of node.children) {
+      const childNodes = collectNodes(child, path)
+      for (const [k, v] of childNodes) {
+        result.set(k, v)
+      }
+    }
+  }
+
+  return result
+}
 
 export default defineCommand({
-  meta: { description: 'Create a diff patch for a node with new properties' },
+  meta: { description: 'Create a diff patch between two nodes/trees' },
   args: {
-    id: { type: 'positional', description: 'Node ID', required: true },
-    fill: { type: 'string', description: 'New fill color (hex)' },
-    stroke: { type: 'string', description: 'New stroke color (hex)' },
-    opacity: { type: 'string', description: 'New opacity (0-1)' },
-    radius: { type: 'string', description: 'New corner radius' },
-    width: { type: 'string', description: 'New width' },
-    height: { type: 'string', description: 'New height' },
-    x: { type: 'string', description: 'New x position' },
-    y: { type: 'string', description: 'New y position' },
+    from: { type: 'string', description: 'Source node ID', required: true },
+    to: { type: 'string', description: 'Target node ID', required: true },
+    depth: { type: 'string', description: 'Tree depth (default: 10)' }
   },
   async run({ args }) {
     try {
-      // Get current node state
-      const node = await sendCommand('get-node-info', { id: args.id }) as Record<string, unknown>
-      const nodeName = node.name as string || 'Node'
-      
-      // Build path
-      const path = `/${nodeName} #${args.id}`
-      
-      // Current serialized state
-      const oldContent = serializeNode(node)
-      
-      // Apply new props to a copy
-      const modifiedNode = { ...node }
-      
-      if (args.fill) {
-        modifiedNode.fills = [{ type: 'SOLID', color: args.fill }]
-      }
-      if (args.stroke) {
-        modifiedNode.strokes = [{ type: 'SOLID', color: args.stroke }]
-      }
-      if (args.opacity !== undefined) {
-        modifiedNode.opacity = Number(args.opacity)
-      }
-      if (args.radius !== undefined) {
-        modifiedNode.cornerRadius = Number(args.radius)
-      }
-      if (args.width !== undefined) {
-        modifiedNode.width = Number(args.width)
-      }
-      if (args.height !== undefined) {
-        modifiedNode.height = Number(args.height)
-      }
-      if (args.x !== undefined) {
-        modifiedNode.x = Number(args.x)
-      }
-      if (args.y !== undefined) {
-        modifiedNode.y = Number(args.y)
-      }
-      
-      const newContent = serializeNode(modifiedNode)
-      
-      if (oldContent === newContent) {
-        console.error(fail('No changes detected'))
+      const depth = args.depth ? Number(args.depth) : 10
+
+      // Get both trees
+      const [fromTree, toTree] = await Promise.all([
+        sendCommand('get-node-tree', { id: args.from, depth }) as Promise<NodeInfo>,
+        sendCommand('get-node-tree', { id: args.to, depth }) as Promise<NodeInfo>
+      ])
+
+      if (!fromTree || !toTree) {
+        console.error(fail('Could not fetch node trees'))
         process.exit(1)
       }
-      
-      // Generate unified diff (without Index header for cleaner output)
-      const lines: string[] = []
-      lines.push(`--- ${path}`)
-      lines.push(`+++ ${path}`)
-      
-      const oldLines = oldContent.split('\n')
-      const newLines = newContent.split('\n')
-      
-      // Find changed lines
-      const contextLines: string[] = []
-      const removedLines: string[] = []
-      const addedLines: string[] = []
-      
-      for (const line of oldLines) {
-        if (newLines.includes(line)) {
-          contextLines.push(line)
-        } else {
-          removedLines.push(line)
+
+      // Collect all nodes by path
+      const fromNodes = collectNodes(fromTree)
+      const toNodes = collectNodes(toTree)
+
+      // Find all unique paths
+      const allPaths = new Set([...fromNodes.keys(), ...toNodes.keys()])
+
+      const patches: string[] = []
+
+      for (const path of allPaths) {
+        const fromEntry = fromNodes.get(path)
+        const toEntry = toNodes.get(path)
+
+        // Normalize path: replace root name with target's root for consistent naming
+        const normalizedPath = path.replace(/^\/[^/]+/, `/${toTree.name}`)
+
+        if (!fromEntry && toEntry) {
+          // Node added in target
+          const newContent = serializeNode(toEntry.node)
+          const filename = `${normalizedPath} #${toEntry.id}`
+          patches.push(`--- /dev/null
++++ ${filename}
+@@ -0,0 +1,${newContent.split('\n').length} @@
+${newContent
+  .split('\n')
+  .map((l) => `+${l}`)
+  .join('\n')}`)
+        } else if (fromEntry && !toEntry) {
+          // Node removed in target
+          const oldContent = serializeNode(fromEntry.node)
+          const filename = `${normalizedPath} #${fromEntry.id}`
+          patches.push(`--- ${filename}
++++ /dev/null
+@@ -1,${oldContent.split('\n').length} +0,0 @@
+${oldContent
+  .split('\n')
+  .map((l) => `-${l}`)
+  .join('\n')}`)
+        } else if (fromEntry && toEntry) {
+          // Both exist — compare
+          const oldContent = serializeNode(fromEntry.node)
+          const newContent = serializeNode(toEntry.node)
+
+          if (oldContent !== newContent) {
+            const fromFilename = `${normalizedPath} #${fromEntry.id}`
+            const toFilename = `${normalizedPath} #${toEntry.id}`
+
+            const patch = createTwoFilesPatch(
+              fromFilename,
+              toFilename,
+              oldContent,
+              newContent,
+              '',
+              ''
+            )
+
+            // Remove the Index header line
+            const lines = patch.split('\n')
+            const filtered = lines.filter(
+              (l) =>
+                !l.startsWith('Index:') &&
+                l !== '==================================================================='
+            )
+            patches.push(filtered.join('\n').trim())
+          }
         }
       }
-      
-      for (const line of newLines) {
-        if (!oldLines.includes(line)) {
-          addedLines.push(line)
-        }
+
+      if (patches.length === 0) {
+        console.error(fail('No differences found'))
+        process.exit(1)
       }
-      
-      lines.push(`@@ -1,${oldLines.length} +1,${newLines.length} @@`)
-      
-      for (const line of contextLines) {
-        lines.push(` ${line}`)
-      }
-      for (const line of removedLines) {
-        lines.push(`-${line}`)
-      }
-      for (const line of addedLines) {
-        lines.push(`+${line}`)
-      }
-      
-      console.log(lines.join('\n'))
-      
+
+      console.log(patches.join('\n'))
     } catch (e) {
       handleError(e)
     }

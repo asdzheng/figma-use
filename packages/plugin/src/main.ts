@@ -16,11 +16,11 @@ interPromise.then(() => loadedFonts.add('Inter:Regular'))
 function loadFont(family: string, style: string): Promise<void> | void {
   const key = `${family}:${style}`
   if (loadedFonts.has(key)) return // sync return if cached
-  
+
   // Check if already loading
   const pending = fontLoadPromises.get(key)
   if (pending) return pending
-  
+
   // Start new load
   const promise = figma.loadFontAsync({ family, style })
   fontLoadPromises.set(key, promise)
@@ -33,23 +33,60 @@ function loadFont(family: string, style: string): Promise<void> | void {
 
 // Fast node creation for batch operations - skips full serialization
 async function createNodeFast(
-  command: string, 
+  command: string,
   args: Record<string, unknown> | undefined,
   nodeCache?: Map<string, SceneNode>,
-  deferredLayouts?: Array<{ frame: FrameNode; layoutMode: 'HORIZONTAL' | 'VERTICAL'; itemSpacing?: number; padding?: { top: number; right: number; bottom: number; left: number } }>
+  deferredLayouts?: Array<{
+    frame: FrameNode
+    layoutMode: 'HORIZONTAL' | 'VERTICAL'
+    itemSpacing?: number
+    padding?: { top: number; right: number; bottom: number; left: number }
+  }>
 ): Promise<SceneNode | null> {
   if (!args) return null
-  
-  const { x = 0, y = 0, width, height, name, parentId, fill, stroke, strokeWeight, radius, opacity,
-          layoutMode, itemSpacing, padding, text, fontSize, fontFamily, fontStyle } = args as {
-    x?: number; y?: number; width?: number; height?: number; name?: string; parentId?: string
-    fill?: string; stroke?: string; strokeWeight?: number; radius?: number; opacity?: number
-    layoutMode?: string; itemSpacing?: number; padding?: { top: number; right: number; bottom: number; left: number }
-    text?: string; fontSize?: number; fontFamily?: string; fontStyle?: string
+
+  const {
+    x = 0,
+    y = 0,
+    width,
+    height,
+    name,
+    parentId,
+    fill,
+    stroke,
+    strokeWeight,
+    radius,
+    opacity,
+    layoutMode,
+    itemSpacing,
+    padding,
+    text,
+    fontSize,
+    fontFamily,
+    fontStyle
+  } = args as {
+    x?: number
+    y?: number
+    width?: number
+    height?: number
+    name?: string
+    parentId?: string
+    fill?: string
+    stroke?: string
+    strokeWeight?: number
+    radius?: number
+    opacity?: number
+    layoutMode?: string
+    itemSpacing?: number
+    padding?: { top: number; right: number; bottom: number; left: number }
+    text?: string
+    fontSize?: number
+    fontFamily?: string
+    fontStyle?: string
   }
-  
+
   let node: SceneNode | null = null
-  
+
   switch (command) {
     case 'create-frame': {
       const frame = figma.createFrame()
@@ -119,17 +156,24 @@ async function createNodeFast(
     default:
       return null
   }
-  
+
   return node
 }
 
 // Commands that need access to nodes on other pages
 const NEEDS_ALL_PAGES = new Set([
-  'get-node-info', 'get-node-tree', 'get-node-children',
-  'set-parent', 'clone-node', 'delete-node',
-  'get-pages', 'set-current-page',
-  'get-components', 'get-styles',
-  'export-node', 'screenshot'
+  'get-node-info',
+  'get-node-tree',
+  'get-node-children',
+  'set-parent',
+  'clone-node',
+  'delete-node',
+  'get-pages',
+  'set-current-page',
+  'get-components',
+  'get-styles',
+  'export-node',
+  'screenshot'
 ])
 
 let allPagesLoaded = false
@@ -154,24 +198,29 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
   switch (command) {
     // ==================== BATCH ====================
     case 'batch': {
-      const { commands } = args as { 
-        commands: Array<{ command: string; args?: Record<string, unknown>; parentRef?: string }> 
+      const { commands } = args as {
+        commands: Array<{ command: string; args?: Record<string, unknown>; parentRef?: string }>
       }
       const results: Array<{ id: string; name: string }> = []
       const refMap = new Map<string, string>() // ref -> actual node id
       const nodeCache = new Map<string, SceneNode>() // cache created nodes for parent lookups
-      const deferredLayouts: Array<{ frame: FrameNode; layoutMode: 'HORIZONTAL' | 'VERTICAL'; itemSpacing?: number; padding?: { top: number; right: number; bottom: number; left: number } }> = []
+      const deferredLayouts: Array<{
+        frame: FrameNode
+        layoutMode: 'HORIZONTAL' | 'VERTICAL'
+        itemSpacing?: number
+        padding?: { top: number; right: number; bottom: number; left: number }
+      }> = []
       const internalAttachments: Array<{ node: SceneNode; parentId: string }> = []
       const externalAttachments: Array<{ node: SceneNode; parentId: string }> = []
       const rootNodes: SceneNode[] = []
-      
+
       for (const cmd of commands) {
         // Resolve parent reference if needed
         if (cmd.args?.parentRef && refMap.has(cmd.args.parentRef)) {
           cmd.args.parentId = refMap.get(cmd.args.parentRef)
           delete cmd.args.parentRef
         }
-        
+
         // Use fast path for create commands
         const node = await createNodeFast(cmd.command, cmd.args, nodeCache, deferredLayouts)
         if (node) {
@@ -193,14 +242,17 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           }
         } else {
           // Fallback to full handler
-          const result = await handleCommand(cmd.command, cmd.args) as { id: string; name: string }
+          const result = (await handleCommand(cmd.command, cmd.args)) as {
+            id: string
+            name: string
+          }
           results.push(result)
           if (cmd.args?.ref) {
             refMap.set(cmd.args.ref as string, result.id)
           }
         }
       }
-      
+
       for (const attachment of internalAttachments) {
         const parent = nodeCache.get(attachment.parentId)
         if (parent && 'appendChild' in parent) {
@@ -230,7 +282,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       for (const attachment of externalAttachments) {
         let parent = nodeCache.get(attachment.parentId)
         if (!parent) {
-          parent = await figma.getNodeByIdAsync(attachment.parentId) as SceneNode | null
+          parent = (await figma.getNodeByIdAsync(attachment.parentId)) as SceneNode | null
         }
         if (parent && 'appendChild' in parent) {
           parent.appendChild(attachment.node)
@@ -238,7 +290,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       }
 
       figma.commitUndo()
-      
+
       return results
     }
 
@@ -257,14 +309,14 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'list-fonts': {
       const fonts = await figma.listAvailableFontsAsync()
-      return fonts.map(f => ({ family: f.fontName.family, style: f.fontName.style }))
+      return fonts.map((f) => ({ family: f.fontName.family, style: f.fontName.style }))
     }
 
     case 'get-node-tree': {
       const { id } = args as { id: string }
       const node = await figma.getNodeByIdAsync(id)
       if (!node) throw new Error('Node not found')
-      
+
       const serializeTreeNode = (n: BaseNode): object => {
         const base: Record<string, unknown> = {
           id: n.id,
@@ -275,7 +327,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         if ('y' in n) base.y = Math.round(n.y)
         if ('width' in n) base.width = Math.round(n.width)
         if ('height' in n) base.height = Math.round(n.height)
-        
+
         // Only essential properties for tree view
         if ('fills' in n && Array.isArray(n.fills)) {
           const solid = n.fills.find((f: Paint) => f.type === 'SOLID') as SolidPaint | undefined
@@ -307,7 +359,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
             base.fontStyle = t.fontName.style
           }
         }
-        
+
         if ('children' in n && (n as FrameNode).children) {
           base.children = (n as FrameNode).children.map(serializeTreeNode)
         }
@@ -317,10 +369,14 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'get-all-components': {
-      const { name, limit = 50, page } = (args as { name?: string; limit?: number; page?: string }) || {}
+      const {
+        name,
+        limit = 50,
+        page
+      } = (args as { name?: string; limit?: number; page?: string }) || {}
       const components: object[] = []
       const nameLower = name?.toLowerCase()
-      
+
       const searchNode = (node: SceneNode): boolean => {
         if (components.length >= limit) return false
         if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
@@ -335,11 +391,13 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         }
         return components.length < limit
       }
-      
-      const pages = page 
-        ? figma.root.children.filter(p => p.id === page || p.name === page || p.name.includes(page))
+
+      const pages = page
+        ? figma.root.children.filter(
+            (p) => p.id === page || p.name === page || p.name.includes(page)
+          )
         : figma.root.children
-      
+
       for (const pageNode of pages) {
         if (components.length >= limit) break
         for (const child of pageNode.children) {
@@ -362,53 +420,67 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     case 'set-current-page': {
       const { page: pageArg } = args as { page: string }
       let page: PageNode | null = null
-      
+
       // Try by ID first
-      const byId = await figma.getNodeByIdAsync(pageArg) as PageNode | null
+      const byId = (await figma.getNodeByIdAsync(pageArg)) as PageNode | null
       if (byId && byId.type === 'PAGE') {
         page = byId
       } else {
         // Try by name
-        page = figma.root.children.find(p => p.name === pageArg || p.name.includes(pageArg)) || null
+        page =
+          figma.root.children.find((p) => p.name === pageArg || p.name.includes(pageArg)) || null
       }
-      
+
       if (!page) throw new Error('Page not found')
       await figma.setCurrentPageAsync(page)
       return { id: page.id, name: page.name }
     }
 
     case 'get-local-styles': {
-      const { type } = args as { type?: string } || {}
+      const { type } = (args as { type?: string }) || {}
       const result: Record<string, object[]> = {}
       if (!type || type === 'all' || type === 'paint') {
         const styles = await figma.getLocalPaintStylesAsync()
         if (styles.length > 0) {
-          result.paintStyles = styles.map(s => ({
-            id: s.id, name: s.name, paints: s.paints.map(serializePaint)
+          result.paintStyles = styles.map((s) => ({
+            id: s.id,
+            name: s.name,
+            paints: s.paints.map(serializePaint)
           }))
         }
       }
       if (!type || type === 'all' || type === 'text') {
         const styles = await figma.getLocalTextStylesAsync()
         if (styles.length > 0) {
-          result.textStyles = styles.map(s => ({
-            id: s.id, name: s.name, fontSize: s.fontSize, fontFamily: s.fontName.family, fontStyle: s.fontName.style
+          result.textStyles = styles.map((s) => ({
+            id: s.id,
+            name: s.name,
+            fontSize: s.fontSize,
+            fontFamily: s.fontName.family,
+            fontStyle: s.fontName.style
           }))
         }
       }
       if (!type || type === 'all' || type === 'effect') {
         const styles = await figma.getLocalEffectStylesAsync()
         if (styles.length > 0) {
-          result.effectStyles = styles.map(s => ({
-            id: s.id, name: s.name, effects: s.effects.map(e => ({ type: e.type, radius: 'radius' in e ? e.radius : undefined }))
+          result.effectStyles = styles.map((s) => ({
+            id: s.id,
+            name: s.name,
+            effects: s.effects.map((e) => ({
+              type: e.type,
+              radius: 'radius' in e ? e.radius : undefined
+            }))
           }))
         }
       }
       if (!type || type === 'all' || type === 'grid') {
         const styles = await figma.getLocalGridStylesAsync()
         if (styles.length > 0) {
-          result.gridStyles = styles.map(s => ({
-            id: s.id, name: s.name, grids: s.layoutGrids.length
+          result.gridStyles = styles.map((s) => ({
+            id: s.id,
+            name: s.name,
+            grids: s.layoutGrids.length
           }))
         }
       }
@@ -424,10 +496,20 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== CREATE SHAPES ====================
     case 'create-rectangle': {
-      const { x, y, width, height, name, parentId, fill, stroke, strokeWeight, radius, opacity } = args as {
-        x: number; y: number; width: number; height: number; name?: string; parentId?: string
-        fill?: string; stroke?: string; strokeWeight?: number; radius?: number; opacity?: number
-      }
+      const { x, y, width, height, name, parentId, fill, stroke, strokeWeight, radius, opacity } =
+        args as {
+          x: number
+          y: number
+          width: number
+          height: number
+          name?: string
+          parentId?: string
+          fill?: string
+          stroke?: string
+          strokeWeight?: number
+          radius?: number
+          opacity?: number
+        }
       const rect = figma.createRectangle()
       rect.x = x
       rect.y = y
@@ -444,8 +526,16 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-ellipse': {
       const { x, y, width, height, name, parentId, fill, stroke, strokeWeight, opacity } = args as {
-        x: number; y: number; width: number; height: number; name?: string; parentId?: string
-        fill?: string; stroke?: string; strokeWeight?: number; opacity?: number
+        x: number
+        y: number
+        width: number
+        height: number
+        name?: string
+        parentId?: string
+        fill?: string
+        stroke?: string
+        strokeWeight?: number
+        opacity?: number
       }
       const ellipse = figma.createEllipse()
       ellipse.x = x
@@ -462,7 +552,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-line': {
       const { x, y, length, rotation, name, parentId } = args as {
-        x: number; y: number; length: number; rotation?: number; name?: string; parentId?: string
+        x: number
+        y: number
+        length: number
+        rotation?: number
+        name?: string
+        parentId?: string
       }
       const line = figma.createLine()
       line.x = x
@@ -476,7 +571,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-polygon': {
       const { x, y, size, sides, name, parentId } = args as {
-        x: number; y: number; size: number; sides?: number; name?: string; parentId?: string
+        x: number
+        y: number
+        size: number
+        sides?: number
+        name?: string
+        parentId?: string
       }
       const polygon = figma.createPolygon()
       polygon.x = x
@@ -490,7 +590,13 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-star': {
       const { x, y, size, points, innerRadius, name, parentId } = args as {
-        x: number; y: number; size: number; points?: number; innerRadius?: number; name?: string; parentId?: string
+        x: number
+        y: number
+        size: number
+        points?: number
+        innerRadius?: number
+        name?: string
+        parentId?: string
       }
       const star = figma.createStar()
       star.x = x
@@ -505,7 +611,11 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-vector': {
       const { x, y, path, name, parentId } = args as {
-        x: number; y: number; path: string; name?: string; parentId?: string
+        x: number
+        y: number
+        path: string
+        name?: string
+        parentId?: string
       }
       const frame = figma.createNodeFromSvg(`<svg><path d="${path}"/></svg>`)
       frame.x = x
@@ -517,10 +627,35 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== CREATE CONTAINERS ====================
     case 'create-frame': {
-      const { x, y, width, height, name, parentId, fill, stroke, strokeWeight, radius, opacity, layoutMode, itemSpacing, padding } = args as {
-        x: number; y: number; width: number; height: number; name?: string; parentId?: string
-        fill?: string; stroke?: string; strokeWeight?: number; radius?: number; opacity?: number
-        layoutMode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE'; itemSpacing?: number
+      const {
+        x,
+        y,
+        width,
+        height,
+        name,
+        parentId,
+        fill,
+        stroke,
+        strokeWeight,
+        radius,
+        opacity,
+        layoutMode,
+        itemSpacing,
+        padding
+      } = args as {
+        x: number
+        y: number
+        width: number
+        height: number
+        name?: string
+        parentId?: string
+        fill?: string
+        stroke?: string
+        strokeWeight?: number
+        radius?: number
+        opacity?: number
+        layoutMode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE'
+        itemSpacing?: number
         padding?: { top: number; right: number; bottom: number; left: number }
       }
       const frame = figma.createFrame()
@@ -549,7 +684,11 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-section': {
       const { x, y, width, height, name } = args as {
-        x: number; y: number; width: number; height: number; name?: string
+        x: number
+        y: number
+        width: number
+        height: number
+        name?: string
       }
       const section = figma.createSection()
       section.x = x
@@ -561,7 +700,11 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-slice': {
       const { x, y, width, height, name } = args as {
-        x: number; y: number; width: number; height: number; name?: string
+        x: number
+        y: number
+        width: number
+        height: number
+        name?: string
       }
       const slice = figma.createSlice()
       slice.x = x
@@ -573,10 +716,19 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== CREATE OTHER ====================
     case 'create-text': {
-      const { x, y, text, fontSize, fontFamily, fontStyle, fill, opacity, name, parentId } = args as {
-        x: number; y: number; text: string; fontSize?: number; fontFamily?: string
-        fontStyle?: string; fill?: string; opacity?: number; name?: string; parentId?: string
-      }
+      const { x, y, text, fontSize, fontFamily, fontStyle, fill, opacity, name, parentId } =
+        args as {
+          x: number
+          y: number
+          text: string
+          fontSize?: number
+          fontFamily?: string
+          fontStyle?: string
+          fill?: string
+          opacity?: number
+          name?: string
+          parentId?: string
+        }
       const textNode = figma.createText()
       const family = fontFamily || 'Inter'
       const style = fontStyle || 'Regular'
@@ -595,9 +747,13 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-instance': {
       const { componentId, x, y, name, parentId } = args as {
-        componentId: string; x?: number; y?: number; name?: string; parentId?: string
+        componentId: string
+        x?: number
+        y?: number
+        name?: string
+        parentId?: string
       }
-      const component = await figma.getNodeByIdAsync(componentId) as ComponentNode | null
+      const component = (await figma.getNodeByIdAsync(componentId)) as ComponentNode | null
       if (!component || component.type !== 'COMPONENT') throw new Error('Component not found')
       const instance = component.createInstance()
       if (x !== undefined) instance.x = x
@@ -617,7 +773,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'clone-node': {
       const { id } = args as { id: string }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node || !('clone' in node)) throw new Error('Node not found')
       const clone = node.clone()
       return serializeNode(clone)
@@ -634,7 +790,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-text-style': {
       const { name, fontFamily, fontStyle, fontSize } = args as {
-        name: string; fontFamily?: string; fontStyle?: string; fontSize?: number
+        name: string
+        fontFamily?: string
+        fontStyle?: string
+        fontSize?: number
       }
       const style = figma.createTextStyle()
       style.name = name
@@ -646,28 +805,37 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'create-effect-style': {
       const { name, type, radius, color, offsetX, offsetY } = args as {
-        name: string; type: string; radius?: number; color?: string; offsetX?: number; offsetY?: number
+        name: string
+        type: string
+        radius?: number
+        color?: string
+        offsetX?: number
+        offsetY?: number
       }
       const style = figma.createEffectStyle()
       style.name = name
       const rgba = color ? hexToRgba(color) : { r: 0, g: 0, b: 0, a: 0.25 }
       if (type === 'DROP_SHADOW' || type === 'INNER_SHADOW') {
-        style.effects = [{
-          type: type as 'DROP_SHADOW' | 'INNER_SHADOW',
-          color: rgba,
-          offset: { x: offsetX || 0, y: offsetY || 4 },
-          radius: radius || 10,
-          spread: 0,
-          visible: true,
-          blendMode: 'NORMAL'
-        }]
+        style.effects = [
+          {
+            type: type as 'DROP_SHADOW' | 'INNER_SHADOW',
+            color: rgba,
+            offset: { x: offsetX || 0, y: offsetY || 4 },
+            radius: radius || 10,
+            spread: 0,
+            visible: true,
+            blendMode: 'NORMAL'
+          }
+        ]
       } else if (type === 'BLUR' || type === 'BACKGROUND_BLUR') {
-        style.effects = [{
-          type: type as 'LAYER_BLUR' | 'BACKGROUND_BLUR',
-          blurType: 'NORMAL',
-          radius: radius || 10,
-          visible: true
-        } as BlurEffect]
+        style.effects = [
+          {
+            type: type as 'LAYER_BLUR' | 'BACKGROUND_BLUR',
+            blurType: 'NORMAL',
+            radius: radius || 10,
+            visible: true
+          } as BlurEffect
+        ]
       }
       return { id: style.id, name: style.name, key: style.key }
     }
@@ -675,7 +843,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     // ==================== UPDATE POSITION/SIZE ====================
     case 'move-node': {
       const { id, x, y } = args as { id: string; x: number; y: number }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       node.x = x
       node.y = y
@@ -684,12 +852,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'resize-node': {
       const { id, width, height } = args as { id: string; width: number; height: number }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       if ('resize' in node) {
         node.resize(width, height)
       } else if ('width' in node && 'height' in node) {
-        (node as SectionNode).resizeWithoutConstraints(width, height)
+        ;(node as SectionNode).resizeWithoutConstraints(width, height)
       } else {
         throw new Error('Node cannot be resized')
       }
@@ -699,28 +867,45 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     // ==================== UPDATE APPEARANCE ====================
     case 'set-fill-color': {
       const { id, color } = args as { id: string; color: string }
-      const node = await figma.getNodeByIdAsync(id) as GeometryMixin | null
+      const node = (await figma.getNodeByIdAsync(id)) as GeometryMixin | null
       if (!node || !('fills' in node)) throw new Error('Node not found')
       node.fills = [{ type: 'SOLID', color: hexToRgb(color) }]
       return serializeNode(node as BaseNode)
     }
 
     case 'set-stroke-color': {
-      const { id, color, weight, align } = args as { id: string; color: string; weight?: number; align?: string }
-      const node = await figma.getNodeByIdAsync(id) as GeometryMixin | null
+      const { id, color, weight, align } = args as {
+        id: string
+        color: string
+        weight?: number
+        align?: string
+      }
+      const node = (await figma.getNodeByIdAsync(id)) as GeometryMixin | null
       if (!node || !('strokes' in node)) throw new Error('Node not found')
       node.strokes = [{ type: 'SOLID', color: hexToRgb(color) }]
       if (weight !== undefined && 'strokeWeight' in node) (node as any).strokeWeight = weight
-      if (align && 'strokeAlign' in node) (node as any).strokeAlign = align as 'INSIDE' | 'OUTSIDE' | 'CENTER'
+      if (align && 'strokeAlign' in node)
+        (node as any).strokeAlign = align as 'INSIDE' | 'OUTSIDE' | 'CENTER'
       return serializeNode(node as BaseNode)
     }
 
     case 'set-corner-radius': {
-      const { id, cornerRadius, topLeftRadius, topRightRadius, bottomLeftRadius, bottomRightRadius } = args as {
-        id: string; cornerRadius: number; topLeftRadius?: number; topRightRadius?: number
-        bottomLeftRadius?: number; bottomRightRadius?: number
+      const {
+        id,
+        cornerRadius,
+        topLeftRadius,
+        topRightRadius,
+        bottomLeftRadius,
+        bottomRightRadius
+      } = args as {
+        id: string
+        cornerRadius: number
+        topLeftRadius?: number
+        topRightRadius?: number
+        bottomLeftRadius?: number
+        bottomRightRadius?: number
       }
-      const node = await figma.getNodeByIdAsync(id) as RectangleNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as RectangleNode | null
       if (!node || !('cornerRadius' in node)) throw new Error('Node not found')
       node.cornerRadius = cornerRadius
       if (topLeftRadius !== undefined) node.topLeftRadius = topLeftRadius
@@ -732,7 +917,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-opacity': {
       const { id, opacity } = args as { id: string; opacity: number }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node || !('opacity' in node)) throw new Error('Node not found')
       node.opacity = opacity
       return serializeNode(node)
@@ -740,21 +925,23 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-image-fill': {
       const { id, url, scaleMode } = args as { id: string; url: string; scaleMode?: string }
-      const node = await figma.getNodeByIdAsync(id) as GeometryMixin | null
+      const node = (await figma.getNodeByIdAsync(id)) as GeometryMixin | null
       if (!node || !('fills' in node)) throw new Error('Node not found')
       const image = await figma.createImageAsync(url)
-      node.fills = [{
-        type: 'IMAGE',
-        imageHash: image.hash,
-        scaleMode: (scaleMode || 'FILL') as 'FILL' | 'FIT' | 'CROP' | 'TILE'
-      }]
+      node.fills = [
+        {
+          type: 'IMAGE',
+          imageHash: image.hash,
+          scaleMode: (scaleMode || 'FILL') as 'FILL' | 'FIT' | 'CROP' | 'TILE'
+        }
+      ]
       return serializeNode(node as BaseNode)
     }
 
     // ==================== UPDATE PROPERTIES ====================
     case 'rename-node': {
       const { id, name } = args as { id: string; name: string }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       node.name = name
       return serializeNode(node)
@@ -762,7 +949,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-visible': {
       const { id, visible } = args as { id: string; visible: boolean }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       node.visible = visible
       return serializeNode(node)
@@ -770,7 +957,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-locked': {
       const { id, locked } = args as { id: string; locked: boolean }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       node.locked = locked
       return serializeNode(node)
@@ -778,35 +965,45 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-effect': {
       const { id, type, color, offsetX, offsetY, radius, spread } = args as {
-        id: string; type: string; color?: string; offsetX?: number; offsetY?: number; radius?: number; spread?: number
+        id: string
+        type: string
+        color?: string
+        offsetX?: number
+        offsetY?: number
+        radius?: number
+        spread?: number
       }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node || !('effects' in node)) throw new Error('Node not found')
       const rgba = color ? hexToRgba(color) : { r: 0, g: 0, b: 0, a: 0.25 }
       if (type === 'DROP_SHADOW' || type === 'INNER_SHADOW') {
-        node.effects = [{
-          type: type as 'DROP_SHADOW' | 'INNER_SHADOW',
-          color: rgba,
-          offset: { x: offsetX ?? 0, y: offsetY ?? 4 },
-          radius: radius ?? 8,
-          spread: spread ?? 0,
-          visible: true,
-          blendMode: 'NORMAL'
-        }]
+        node.effects = [
+          {
+            type: type as 'DROP_SHADOW' | 'INNER_SHADOW',
+            color: rgba,
+            offset: { x: offsetX ?? 0, y: offsetY ?? 4 },
+            radius: radius ?? 8,
+            spread: spread ?? 0,
+            visible: true,
+            blendMode: 'NORMAL'
+          }
+        ]
       } else if (type === 'BLUR') {
-        node.effects = [{
-          type: 'LAYER_BLUR',
-          blurType: 'NORMAL',
-          radius: radius ?? 8,
-          visible: true
-        } as BlurEffect]
+        node.effects = [
+          {
+            type: 'LAYER_BLUR',
+            blurType: 'NORMAL',
+            radius: radius ?? 8,
+            visible: true
+          } as BlurEffect
+        ]
       }
       return serializeNode(node)
     }
 
     case 'set-text': {
       const { id, text } = args as { id: string; text: string }
-      const node = await figma.getNodeByIdAsync(id) as TextNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as TextNode | null
       if (!node || node.type !== 'TEXT') throw new Error('Text node not found')
       const fontName = node.fontName as FontName
       await loadFont(fontName.family, fontName.style)
@@ -816,7 +1013,11 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'import-svg': {
       const { svg, x, y, name, parentId } = args as {
-        svg: string; x?: number; y?: number; name?: string; parentId?: string
+        svg: string
+        x?: number
+        y?: number
+        name?: string
+        parentId?: string
       }
       const node = figma.createNodeFromSvg(svg)
       if (x !== undefined) node.x = x
@@ -828,9 +1029,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-font': {
       const { id, fontFamily, fontStyle, fontSize } = args as {
-        id: string; fontFamily?: string; fontStyle?: string; fontSize?: number
+        id: string
+        fontFamily?: string
+        fontStyle?: string
+        fontSize?: number
       }
-      const node = await figma.getNodeByIdAsync(id) as TextNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as TextNode | null
       if (!node || node.type !== 'TEXT') throw new Error('Text node not found')
       const currentFont = node.fontName as FontName
       const family = fontFamily || currentFont.family
@@ -843,12 +1047,17 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-font-range': {
       const { id, start, end, family, style, size, color } = args as {
-        id: string; start: number; end: number
-        family?: string; style?: string; size?: number; color?: string
+        id: string
+        start: number
+        end: number
+        family?: string
+        style?: string
+        size?: number
+        color?: string
       }
-      const node = await figma.getNodeByIdAsync(id) as TextNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as TextNode | null
       if (!node || node.type !== 'TEXT') throw new Error('Text node not found')
-      
+
       if (family || style) {
         const currentFont = node.getRangeFontName(start, end) as FontName
         const newFamily = family || currentFont.family
@@ -856,43 +1065,49 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         await loadFont(newFamily, newStyle)
         node.setRangeFontName(start, end, { family: newFamily, style: newStyle })
       }
-      
+
       if (size !== undefined) {
         node.setRangeFontSize(start, end, size)
       }
-      
+
       if (color) {
         const rgb = hexToRgb(color)
         node.setRangeFills(start, end, [{ type: 'SOLID', color: rgb }])
       }
-      
+
       return serializeNode(node)
     }
 
     case 'get-children': {
       const { id, depth } = args as { id: string; depth?: number }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       if (!('children' in node)) return []
       const maxDepth = depth || 1
       const serializeWithDepth = (n: SceneNode, d: number): object => {
         const base = serializeNode(n) as Record<string, unknown>
         if (d < maxDepth && 'children' in n) {
-          base.children = (n as FrameNode).children.map(c => serializeWithDepth(c, d + 1))
+          base.children = (n as FrameNode).children.map((c) => serializeWithDepth(c, d + 1))
         }
         return base
       }
-      return (node as FrameNode).children.map(c => serializeWithDepth(c, 1))
+      return (node as FrameNode).children.map((c) => serializeWithDepth(c, 1))
     }
 
     case 'find-by-name': {
-      const { name, type, exact, limit = 100 } = args as { name?: string; type?: string; exact?: boolean; limit?: number }
+      const {
+        name,
+        type,
+        exact,
+        limit = 100
+      } = args as { name?: string; type?: string; exact?: boolean; limit?: number }
       const results: object[] = []
       const nameLower = name?.toLowerCase()
-      
+
       const searchNode = (node: SceneNode): boolean => {
         if (results.length >= limit) return false
-        const nameMatch = !nameLower || (exact ? node.name === name : node.name.toLowerCase().includes(nameLower))
+        const nameMatch =
+          !nameLower || (exact ? node.name === name : node.name.toLowerCase().includes(nameLower))
         const typeMatch = !type || node.type === type
         if (nameMatch && typeMatch) results.push(serializeNode(node))
         if ('children' in node) {
@@ -902,7 +1117,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         }
         return results.length < limit
       }
-      
+
       for (const child of figma.currentPage.children) {
         if (!searchNode(child)) break
       }
@@ -911,7 +1126,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'select-nodes': {
       const { ids } = args as { ids: string[] }
-      const nodes = await Promise.all(ids.map(id => figma.getNodeByIdAsync(id)))
+      const nodes = await Promise.all(ids.map((id) => figma.getNodeByIdAsync(id)))
       const validNodes = nodes.filter((n): n is SceneNode => n !== null && 'id' in n)
       figma.currentPage.selection = validNodes
       return { selected: validNodes.length }
@@ -919,10 +1134,11 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-constraints': {
       const { id, horizontal, vertical } = args as {
-        id: string; horizontal?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE'
+        id: string
+        horizontal?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE'
         vertical?: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE'
       }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node || !('constraints' in node)) throw new Error('Node not found')
       node.constraints = {
         horizontal: horizontal || node.constraints.horizontal,
@@ -933,22 +1149,37 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-blend-mode': {
       const { id, mode } = args as { id: string; mode: BlendMode }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node || !('blendMode' in node)) throw new Error('Node not found')
       node.blendMode = mode
       return serializeNode(node)
     }
 
     case 'set-auto-layout': {
-      const { id, mode, wrap, itemSpacing, counterSpacing, padding, primaryAlign, counterAlign, sizingH, sizingV } = args as {
-        id: string; mode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE'; wrap?: boolean
-        itemSpacing?: number; counterSpacing?: number
+      const {
+        id,
+        mode,
+        wrap,
+        itemSpacing,
+        counterSpacing,
+        padding,
+        primaryAlign,
+        counterAlign,
+        sizingH,
+        sizingV
+      } = args as {
+        id: string
+        mode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE'
+        wrap?: boolean
+        itemSpacing?: number
+        counterSpacing?: number
         padding?: { top: number; right: number; bottom: number; left: number }
         primaryAlign?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'
         counterAlign?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'
-        sizingH?: 'FIXED' | 'HUG' | 'FILL'; sizingV?: 'FIXED' | 'HUG' | 'FILL'
+        sizingH?: 'FIXED' | 'HUG' | 'FILL'
+        sizingV?: 'FIXED' | 'HUG' | 'FILL'
       }
-      const node = await figma.getNodeByIdAsync(id) as FrameNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as FrameNode | null
       if (!node || !('layoutMode' in node)) throw new Error('Frame not found')
       if (mode) node.layoutMode = mode
       if (wrap !== undefined) node.layoutWrap = wrap ? 'WRAP' : 'NO_WRAP'
@@ -969,19 +1200,23 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-layout-child': {
       const { id, horizontalSizing, verticalSizing, positioning, x, y } = args as {
-        id: string; horizontalSizing?: 'FIXED' | 'FILL' | 'HUG'; verticalSizing?: 'FIXED' | 'FILL' | 'HUG'
-        positioning?: 'AUTO' | 'ABSOLUTE'; x?: number; y?: number
+        id: string
+        horizontalSizing?: 'FIXED' | 'FILL' | 'HUG'
+        verticalSizing?: 'FIXED' | 'FILL' | 'HUG'
+        positioning?: 'AUTO' | 'ABSOLUTE'
+        x?: number
+        y?: number
       }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       if (horizontalSizing && 'layoutSizingHorizontal' in node) {
-        (node as FrameNode).layoutSizingHorizontal = horizontalSizing
+        ;(node as FrameNode).layoutSizingHorizontal = horizontalSizing
       }
       if (verticalSizing && 'layoutSizingVertical' in node) {
-        (node as FrameNode).layoutSizingVertical = verticalSizing
+        ;(node as FrameNode).layoutSizingVertical = verticalSizing
       }
       if (positioning && 'layoutPositioning' in node) {
-        (node as FrameNode).layoutPositioning = positioning
+        ;(node as FrameNode).layoutPositioning = positioning
       }
       if (positioning === 'ABSOLUTE') {
         if (x !== undefined) node.x = x
@@ -991,23 +1226,36 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'set-text-properties': {
-      const { id, lineHeight, letterSpacing, textAlign, verticalAlign, autoResize, maxLines, paragraphSpacing, paragraphIndent } = args as {
-        id: string; lineHeight?: number | 'auto'; letterSpacing?: number
+      const {
+        id,
+        lineHeight,
+        letterSpacing,
+        textAlign,
+        verticalAlign,
+        autoResize,
+        maxLines,
+        paragraphSpacing,
+        paragraphIndent
+      } = args as {
+        id: string
+        lineHeight?: number | 'auto'
+        letterSpacing?: number
         textAlign?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED'
         verticalAlign?: 'TOP' | 'CENTER' | 'BOTTOM'
         autoResize?: 'NONE' | 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE'
-        maxLines?: number; paragraphSpacing?: number; paragraphIndent?: number
+        maxLines?: number
+        paragraphSpacing?: number
+        paragraphIndent?: number
       }
-      const node = await figma.getNodeByIdAsync(id) as TextNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as TextNode | null
       if (!node || node.type !== 'TEXT') throw new Error('Text node not found')
-      
+
       const fontName = node.fontName as FontName
       await loadFont(fontName.family, fontName.style)
-      
+
       if (lineHeight !== undefined) {
-        node.lineHeight = lineHeight === 'auto' 
-          ? { unit: 'AUTO' } 
-          : { unit: 'PIXELS', value: lineHeight }
+        node.lineHeight =
+          lineHeight === 'auto' ? { unit: 'AUTO' } : { unit: 'PIXELS', value: lineHeight }
       }
       if (letterSpacing !== undefined) {
         node.letterSpacing = { unit: 'PIXELS', value: letterSpacing }
@@ -1023,9 +1271,13 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-min-max': {
       const { id, minWidth, maxWidth, minHeight, maxHeight } = args as {
-        id: string; minWidth?: number; maxWidth?: number; minHeight?: number; maxHeight?: number
+        id: string
+        minWidth?: number
+        maxWidth?: number
+        minHeight?: number
+        maxHeight?: number
       }
-      const node = await figma.getNodeByIdAsync(id) as FrameNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as FrameNode | null
       if (!node) throw new Error('Node not found')
       if (minWidth !== undefined && 'minWidth' in node) node.minWidth = minWidth
       if (maxWidth !== undefined && 'maxWidth' in node) node.maxWidth = maxWidth
@@ -1036,7 +1288,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-rotation': {
       const { id, angle } = args as { id: string; angle: number }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       if ('rotation' in node) node.rotation = angle
       return serializeNode(node)
@@ -1044,7 +1296,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-stroke-align': {
       const { id, align } = args as { id: string; align: 'INSIDE' | 'OUTSIDE' | 'CENTER' }
-      const node = await figma.getNodeByIdAsync(id) as GeometryMixin | null
+      const node = (await figma.getNodeByIdAsync(id)) as GeometryMixin | null
       if (!node || !('strokeAlign' in node)) throw new Error('Node not found')
       node.strokeAlign = align
       return serializeNode(node as BaseNode)
@@ -1052,16 +1304,36 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== UPDATE STRUCTURE ====================
     case 'set-layout': {
-      const { id, mode, wrap, clip, itemSpacing, primaryAxisAlignItems, counterAxisAlignItems,
-        paddingLeft, paddingRight, paddingTop, paddingBottom, layoutSizingVertical, layoutSizingHorizontal
+      const {
+        id,
+        mode,
+        wrap,
+        clip,
+        itemSpacing,
+        primaryAxisAlignItems,
+        counterAxisAlignItems,
+        paddingLeft,
+        paddingRight,
+        paddingTop,
+        paddingBottom,
+        layoutSizingVertical,
+        layoutSizingHorizontal
       } = args as {
-        id: string; mode: 'NONE' | 'HORIZONTAL' | 'VERTICAL'; wrap?: boolean; clip?: boolean
-        itemSpacing?: number; primaryAxisAlignItems?: 'MIN' | 'MAX' | 'CENTER' | 'SPACE_BETWEEN'
+        id: string
+        mode: 'NONE' | 'HORIZONTAL' | 'VERTICAL'
+        wrap?: boolean
+        clip?: boolean
+        itemSpacing?: number
+        primaryAxisAlignItems?: 'MIN' | 'MAX' | 'CENTER' | 'SPACE_BETWEEN'
         counterAxisAlignItems?: 'MIN' | 'MAX' | 'CENTER' | 'BASELINE'
-        paddingLeft?: number; paddingRight?: number; paddingTop?: number; paddingBottom?: number
-        layoutSizingVertical?: 'FIXED' | 'HUG' | 'FILL'; layoutSizingHorizontal?: 'FIXED' | 'HUG' | 'FILL'
+        paddingLeft?: number
+        paddingRight?: number
+        paddingTop?: number
+        paddingBottom?: number
+        layoutSizingVertical?: 'FIXED' | 'HUG' | 'FILL'
+        layoutSizingHorizontal?: 'FIXED' | 'HUG' | 'FILL'
       }
-      const node = await figma.getNodeByIdAsync(id) as FrameNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as FrameNode | null
       if (!node || !('layoutMode' in node)) throw new Error('Node not found')
       node.layoutMode = mode
       if (wrap !== undefined) node.layoutWrap = wrap ? 'WRAP' : 'NO_WRAP'
@@ -1080,8 +1352,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'set-parent-id': {
       const { id, parentId } = args as { id: string; parentId: string }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
-      const parent = await figma.getNodeByIdAsync(parentId) as (FrameNode & ChildrenMixin) | null
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
+      const parent = (await figma.getNodeByIdAsync(parentId)) as (FrameNode & ChildrenMixin) | null
       if (!node || !parent) throw new Error('Node or parent not found')
       parent.appendChild(node)
       return serializeNode(node)
@@ -1089,7 +1361,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'group-nodes': {
       const { ids, name } = args as { ids: string[]; name?: string }
-      const nodes = await Promise.all(ids.map(id => figma.getNodeByIdAsync(id)))
+      const nodes = await Promise.all(ids.map((id) => figma.getNodeByIdAsync(id)))
       const validNodes = nodes.filter((n): n is SceneNode => n !== null && 'parent' in n)
       if (validNodes.length === 0) throw new Error('No valid nodes found')
       const parent = validNodes[0].parent
@@ -1101,7 +1373,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'ungroup-node': {
       const { id } = args as { id: string }
-      const node = await figma.getNodeByIdAsync(id) as GroupNode | null
+      const node = (await figma.getNodeByIdAsync(id)) as GroupNode | null
       if (!node || node.type !== 'GROUP') throw new Error('Not a group node')
       const children = figma.ungroup(node)
       return children.map(serializeNode)
@@ -1109,7 +1381,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'flatten-nodes': {
       const { ids } = args as { ids: string[] }
-      const nodes = await Promise.all(ids.map(id => figma.getNodeByIdAsync(id)))
+      const nodes = await Promise.all(ids.map((id) => figma.getNodeByIdAsync(id)))
       const validNodes = nodes.filter((n): n is SceneNode => n !== null && 'parent' in n)
       if (validNodes.length === 0) throw new Error('No valid nodes found')
       const vector = figma.flatten(validNodes)
@@ -1118,34 +1390,51 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== BOOLEAN OPERATIONS ====================
     case 'boolean-operation': {
-      const { ids, operation } = args as { ids: string[]; operation: 'UNION' | 'SUBTRACT' | 'INTERSECT' | 'EXCLUDE' }
-      const nodes = await Promise.all(ids.map(id => figma.getNodeByIdAsync(id)))
+      const { ids, operation } = args as {
+        ids: string[]
+        operation: 'UNION' | 'SUBTRACT' | 'INTERSECT' | 'EXCLUDE'
+      }
+      const nodes = await Promise.all(ids.map((id) => figma.getNodeByIdAsync(id)))
       const validNodes = nodes.filter((n): n is SceneNode => n !== null && 'parent' in n)
       if (validNodes.length < 2) throw new Error('Need at least 2 nodes')
       const parent = validNodes[0].parent
       if (!parent || !('children' in parent)) throw new Error('Invalid parent')
       let result: BooleanOperationNode
       switch (operation) {
-        case 'UNION': result = figma.union(validNodes, parent); break
-        case 'SUBTRACT': result = figma.subtract(validNodes, parent); break
-        case 'INTERSECT': result = figma.intersect(validNodes, parent); break
-        case 'EXCLUDE': result = figma.exclude(validNodes, parent); break
+        case 'UNION':
+          result = figma.union(validNodes, parent)
+          break
+        case 'SUBTRACT':
+          result = figma.subtract(validNodes, parent)
+          break
+        case 'INTERSECT':
+          result = figma.intersect(validNodes, parent)
+          break
+        case 'EXCLUDE':
+          result = figma.exclude(validNodes, parent)
+          break
       }
       return serializeNode(result)
     }
 
     // ==================== INSTANCE/COMPONENT ====================
     case 'set-instance-properties': {
-      const { instanceId, properties } = args as { instanceId: string; properties: Record<string, unknown> }
-      const instance = await figma.getNodeByIdAsync(instanceId) as InstanceNode | null
+      const { instanceId, properties } = args as {
+        instanceId: string
+        properties: Record<string, unknown>
+      }
+      const instance = (await figma.getNodeByIdAsync(instanceId)) as InstanceNode | null
       if (!instance || instance.type !== 'INSTANCE') throw new Error('Instance not found')
       instance.setProperties(properties as { [key: string]: string | boolean })
       return serializeNode(instance)
     }
 
     case 'set-node-component-property-references': {
-      const { id, componentPropertyReferences } = args as { id: string; componentPropertyReferences: Record<string, string> }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const { id, componentPropertyReferences } = args as {
+        id: string
+        componentPropertyReferences: Record<string, string>
+      }
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node || !('componentPropertyReferences' in node)) throw new Error('Node not found')
       for (const [key, value] of Object.entries(componentPropertyReferences)) {
         node.componentPropertyReferences = { ...node.componentPropertyReferences, [key]: value }
@@ -1155,10 +1444,15 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'add-component-property': {
       const { componentId, name, type, defaultValue } = args as {
-        componentId: string; name: string; type: 'BOOLEAN' | 'TEXT' | 'INSTANCE_SWAP' | 'VARIANT'
+        componentId: string
+        name: string
+        type: 'BOOLEAN' | 'TEXT' | 'INSTANCE_SWAP' | 'VARIANT'
         defaultValue: string | boolean
       }
-      const component = await figma.getNodeByIdAsync(componentId) as ComponentNode | ComponentSetNode | null
+      const component = (await figma.getNodeByIdAsync(componentId)) as
+        | ComponentNode
+        | ComponentSetNode
+        | null
       if (!component || (component.type !== 'COMPONENT' && component.type !== 'COMPONENT_SET')) {
         throw new Error('Component not found')
       }
@@ -1170,9 +1464,15 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'edit-component-property': {
       const { componentId, name, defaultValue, preferredValues } = args as {
-        componentId: string; name: string; defaultValue: string | boolean; preferredValues?: string[]
+        componentId: string
+        name: string
+        defaultValue: string | boolean
+        preferredValues?: string[]
       }
-      const component = await figma.getNodeByIdAsync(componentId) as ComponentNode | ComponentSetNode | null
+      const component = (await figma.getNodeByIdAsync(componentId)) as
+        | ComponentNode
+        | ComponentSetNode
+        | null
       if (!component || (component.type !== 'COMPONENT' && component.type !== 'COMPONENT_SET')) {
         throw new Error('Component not found')
       }
@@ -1181,7 +1481,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       if (!propKey) throw new Error('Property not found')
       const propDef = props[propKey]
       let parsedDefault: string | boolean = defaultValue
-      if (propDef.type === 'BOOLEAN') parsedDefault = defaultValue === 'true' || defaultValue === true
+      if (propDef.type === 'BOOLEAN')
+        parsedDefault = defaultValue === 'true' || defaultValue === true
       component.editComponentProperty(propKey, {
         name,
         defaultValue: parsedDefault,
@@ -1192,7 +1493,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     case 'delete-component-property': {
       const { componentId, name } = args as { componentId: string; name: string }
-      const component = await figma.getNodeByIdAsync(componentId) as ComponentNode | ComponentSetNode | null
+      const component = (await figma.getNodeByIdAsync(componentId)) as
+        | ComponentNode
+        | ComponentSetNode
+        | null
       if (!component || (component.type !== 'COMPONENT' && component.type !== 'COMPONENT_SET')) {
         throw new Error('Component not found')
       }
@@ -1219,7 +1523,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const { ids } = args as { ids?: string[] }
       let nodes: SceneNode[]
       if (ids && ids.length > 0) {
-        const fetched = await Promise.all(ids.map(id => figma.getNodeByIdAsync(id)))
+        const fetched = await Promise.all(ids.map((id) => figma.getNodeByIdAsync(id)))
         nodes = fetched.filter((n): n is SceneNode => n !== null && 'absoluteBoundingBox' in n)
       } else {
         nodes = figma.currentPage.selection as SceneNode[]
@@ -1232,8 +1536,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== EXPORT ====================
     case 'export-node': {
-      const { id, format, scale } = args as { id: string; format: 'PNG' | 'JPG' | 'SVG' | 'PDF'; scale?: number }
-      const node = await figma.getNodeByIdAsync(id) as SceneNode | null
+      const { id, format, scale } = args as {
+        id: string
+        format: 'PNG' | 'JPG' | 'SVG' | 'PDF'
+        scale?: number
+      }
+      const node = (await figma.getNodeByIdAsync(id)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       const bytes = await node.exportAsync({
         format: format,
@@ -1262,8 +1570,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         if (!node.visible) continue
         if ('absoluteBoundingBox' in node && node.absoluteBoundingBox) {
           const nb = node.absoluteBoundingBox
-          if (nb.x + nb.width > bounds.x && nb.x < bounds.x + bounds.width &&
-              nb.y + nb.height > bounds.y && nb.y < bounds.y + bounds.height) {
+          if (
+            nb.x + nb.width > bounds.x &&
+            nb.x < bounds.x + bounds.width &&
+            nb.y + nb.height > bounds.y &&
+            nb.y < bounds.y + bounds.height
+          ) {
             const clone = node.clone()
             clone.x = node.x - bounds.x
             clone.y = node.y - bounds.y
@@ -1272,13 +1584,20 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         }
       }
 
-      const bytes = await frame.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: scale || 1 } })
+      const bytes = await frame.exportAsync({
+        format: 'PNG',
+        constraint: { type: 'SCALE', value: scale || 1 }
+      })
       frame.remove()
       return { data: figma.base64Encode(bytes) }
     }
 
     case 'export-selection': {
-      const { format, scale, padding } = args as { format?: 'PNG' | 'JPG' | 'SVG' | 'PDF'; scale?: number; padding?: number }
+      const { format, scale, padding } = args as {
+        format?: 'PNG' | 'JPG' | 'SVG' | 'PDF'
+        scale?: number
+        padding?: number
+      }
       const selection = figma.currentPage.selection
       if (selection.length === 0) throw new Error('No selection')
 
@@ -1292,7 +1611,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       }
 
       // Multiple nodes or padding: create temp frame
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity
       for (const node of selection) {
         if ('absoluteBoundingBox' in node && node.absoluteBoundingBox) {
           const b = node.absoluteBoundingBox
@@ -1363,7 +1685,11 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'path-set': {
-      const { id, path, windingRule = 'NONZERO' } = args as { id: string; path: string; windingRule?: string }
+      const {
+        id,
+        path,
+        windingRule = 'NONZERO'
+      } = args as { id: string; path: string; windingRule?: string }
       const node = await figma.getNodeByIdAsync(id)
       if (!node || node.type !== 'VECTOR') throw new Error('Vector node not found')
       node.vectorPaths = [{ windingRule: windingRule as WindingRule, data: path }]
@@ -1374,8 +1700,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const { id, dx = 0, dy = 0 } = args as { id: string; dx?: number; dy?: number }
       const node = await figma.getNodeByIdAsync(id)
       if (!node || node.type !== 'VECTOR') throw new Error('Vector node not found')
-      
-      const newPaths = node.vectorPaths.map(p => ({
+
+      const newPaths = node.vectorPaths.map((p) => ({
         windingRule: p.windingRule,
         data: svgPathToString(svgpath(p.data).translate(dx, dy).round(2))
       }))
@@ -1387,8 +1713,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const { id, factor } = args as { id: string; factor: number }
       const node = await figma.getNodeByIdAsync(id)
       if (!node || node.type !== 'VECTOR') throw new Error('Vector node not found')
-      
-      const newPaths = node.vectorPaths.map(p => ({
+
+      const newPaths = node.vectorPaths.map((p) => ({
         windingRule: p.windingRule,
         data: svgPathToString(svgpath(p.data).scale(factor).round(2))
       }))
@@ -1400,13 +1726,14 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const { id, axis } = args as { id: string; axis: 'x' | 'y' }
       const node = await figma.getNodeByIdAsync(id)
       if (!node || node.type !== 'VECTOR') throw new Error('Vector node not found')
-      
+
       // Flip using scale with negative value
-      const newPaths = node.vectorPaths.map(p => ({
+      const newPaths = node.vectorPaths.map((p) => ({
         windingRule: p.windingRule,
-        data: axis === 'x' 
-          ? svgPathToString(svgpath(p.data).scale(-1, 1).round(2))
-          : svgPathToString(svgpath(p.data).scale(1, -1).round(2))
+        data:
+          axis === 'x'
+            ? svgPathToString(svgpath(p.data).scale(-1, 1).round(2))
+            : svgPathToString(svgpath(p.data).scale(1, -1).round(2))
       }))
       node.vectorPaths = newPaths
       return { updated: true, paths: newPaths }
@@ -1415,15 +1742,15 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     // ==================== EVAL ====================
     case 'eval': {
       const { code } = args as { code: string }
-      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
       // Wrap code to support top-level await
-      const wrappedCode = code.trim().startsWith('return') 
-        ? code 
+      const wrappedCode = code.trim().startsWith('return')
+        ? code
         : `return (async () => { ${code} })()`
       const fn = new AsyncFunction('figma', wrappedCode)
       return await fn(figma)
     }
-    
+
     // ==================== LAYOUT ====================
     case 'trigger-layout': {
       // Fix TEXT nodes and trigger auto-layout recalculation
@@ -1436,7 +1763,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         x: number
         y: number
       }
-      const { nodeId, pendingComponentSetInstances } = args as { 
+      const { nodeId, pendingComponentSetInstances } = args as {
         nodeId: string
         pendingComponentSetInstances?: PendingInstance[]
       }
@@ -1445,10 +1772,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       for (let i = 0; i < 10; i++) {
         root = await figma.getNodeByIdAsync(nodeId)
         if (root) break
-        await new Promise(r => setTimeout(r, 100 * (i + 1)))
+        await new Promise((r) => setTimeout(r, 100 * (i + 1)))
       }
       if (!root) return null
-      
+
       // Create ComponentSet instances via Plugin API (multiplayer can't link them correctly)
       if (pendingComponentSetInstances && pendingComponentSetInstances.length > 0) {
         for (const pending of pendingComponentSetInstances) {
@@ -1465,30 +1792,30 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
             }
             return null
           }
-          
+
           const componentSet = findComponentSet(root as SceneNode)
           if (!componentSet) continue
-          
+
           // Find the variant component by name
           const variantComp = componentSet.children.find(
-            c => c.type === 'COMPONENT' && c.name === pending.variantName
+            (c) => c.type === 'COMPONENT' && c.name === pending.variantName
           ) as ComponentNode | undefined
           if (!variantComp) continue
-          
+
           // Create instance
           const instance = variantComp.createInstance()
           instance.x = pending.x
           instance.y = pending.y
-          
+
           // Find parent node
           const parentId = `${pending.parentGUID.sessionID}:${pending.parentGUID.localID}`
           const parent = await figma.getNodeByIdAsync(parentId)
           if (parent && 'appendChild' in parent) {
-            (parent as FrameNode).appendChild(instance)
+            ;(parent as FrameNode).appendChild(instance)
           }
         }
       }
-      
+
       // First pass: fix children (bottom-up for correct sizing)
       const fixRecursive = async (node: SceneNode) => {
         // Process children first (bottom-up)
@@ -1497,7 +1824,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
             await fixRecursive(child)
           }
         }
-        
+
         // Fix TEXT nodes: reload characters to trigger auto-resize
         if (node.type === 'TEXT' && node.textAutoResize !== 'NONE') {
           try {
@@ -1509,7 +1836,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
             // Font not available, skip
           }
         }
-        
+
         // Fix auto-layout frames
         if ('layoutMode' in node && node.layoutMode !== 'NONE') {
           const frame = node as FrameNode
@@ -1529,7 +1856,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           }
         }
       }
-      
+
       await fixRecursive(root as SceneNode)
       return { triggered: true }
     }
@@ -1537,12 +1864,14 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     // ==================== VARIABLES ====================
     case 'get-variables': {
       const { type, simple } = args as { type?: string; simple?: boolean }
-      const variables = await figma.variables.getLocalVariablesAsync(type as VariableResolvedDataType | undefined)
+      const variables = await figma.variables.getLocalVariablesAsync(
+        type as VariableResolvedDataType | undefined
+      )
       // Simple mode returns only id and name (for variable registry)
       if (simple) {
-        return variables.map(v => ({ id: v.id, name: v.name }))
+        return variables.map((v) => ({ id: v.id, name: v.name }))
       }
-      return variables.map(v => serializeVariable(v))
+      return variables.map((v) => serializeVariable(v))
     }
 
     case 'get-variable': {
@@ -1553,10 +1882,19 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'create-variable': {
-      const { name, collectionId, type, value } = args as { name: string; collectionId: string; type: string; value?: string }
+      const { name, collectionId, type, value } = args as {
+        name: string
+        collectionId: string
+        type: string
+        value?: string
+      }
       const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId)
       if (!collection) throw new Error('Collection not found')
-      const variable = figma.variables.createVariable(name, collection, type as VariableResolvedDataType)
+      const variable = figma.variables.createVariable(
+        name,
+        collection,
+        type as VariableResolvedDataType
+      )
       if (value !== undefined && collection.modes.length > 0) {
         const modeId = collection.modes[0].modeId
         variable.setValueForMode(modeId, parseVariableValue(value, type))
@@ -1581,13 +1919,17 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'bind-variable': {
-      const { nodeId, field, variableId } = args as { nodeId: string; field: string; variableId: string }
-      const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null
+      const { nodeId, field, variableId } = args as {
+        nodeId: string
+        field: string
+        variableId: string
+      }
+      const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       const variable = await figma.variables.getVariableByIdAsync(variableId)
       if (!variable) throw new Error('Variable not found')
       if ('setBoundVariable' in node) {
-        (node as any).setBoundVariable(field, variable)
+        ;(node as any).setBoundVariable(field, variable)
       } else {
         throw new Error('Node does not support variable binding')
       }
@@ -1595,8 +1937,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'bind-fill-variable': {
-      const { nodeId, variableId, paintIndex = 0 } = args as { nodeId: string; variableId: string; paintIndex?: number }
-      const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null
+      const {
+        nodeId,
+        variableId,
+        paintIndex = 0
+      } = args as { nodeId: string; variableId: string; paintIndex?: number }
+      const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       if (!('fills' in node)) throw new Error('Node does not have fills')
       const variable = await figma.variables.getVariableByIdAsync(variableId)
@@ -1604,28 +1950,44 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const fills = (node as GeometryMixin).fills as Paint[]
       if (!fills[paintIndex]) throw new Error('Paint not found at index ' + paintIndex)
       const newFill = figma.variables.setBoundVariableForPaint(fills[paintIndex], 'color', variable)
-      ;(node as GeometryMixin).fills = [...fills.slice(0, paintIndex), newFill, ...fills.slice(paintIndex + 1)]
+      ;(node as GeometryMixin).fills = [
+        ...fills.slice(0, paintIndex),
+        newFill,
+        ...fills.slice(paintIndex + 1)
+      ]
       return serializeNode(node)
     }
 
     case 'bind-stroke-variable': {
-      const { nodeId, variableId, paintIndex = 0 } = args as { nodeId: string; variableId: string; paintIndex?: number }
-      const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null
+      const {
+        nodeId,
+        variableId,
+        paintIndex = 0
+      } = args as { nodeId: string; variableId: string; paintIndex?: number }
+      const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode | null
       if (!node) throw new Error('Node not found')
       if (!('strokes' in node)) throw new Error('Node does not have strokes')
       const variable = await figma.variables.getVariableByIdAsync(variableId)
       if (!variable) throw new Error('Variable not found')
       const strokes = (node as GeometryMixin).strokes as Paint[]
       if (!strokes[paintIndex]) throw new Error('Paint not found at index ' + paintIndex)
-      const newStroke = figma.variables.setBoundVariableForPaint(strokes[paintIndex], 'color', variable)
-      ;(node as GeometryMixin).strokes = [...strokes.slice(0, paintIndex), newStroke, ...strokes.slice(paintIndex + 1)]
+      const newStroke = figma.variables.setBoundVariableForPaint(
+        strokes[paintIndex],
+        'color',
+        variable
+      )
+      ;(node as GeometryMixin).strokes = [
+        ...strokes.slice(0, paintIndex),
+        newStroke,
+        ...strokes.slice(paintIndex + 1)
+      ]
       return serializeNode(node)
     }
 
     // ==================== VARIABLE COLLECTIONS ====================
     case 'get-variable-collections': {
       const collections = await figma.variables.getLocalVariableCollectionsAsync()
-      return collections.map(c => serializeCollection(c))
+      return collections.map((c) => serializeCollection(c))
     }
 
     case 'get-variable-collection': {
@@ -1656,7 +2018,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
 async function appendToParent(node: SceneNode, parentId?: string) {
   if (parentId) {
-    const parent = await figma.getNodeByIdAsync(parentId) as (FrameNode & ChildrenMixin) | null
+    const parent = (await figma.getNodeByIdAsync(parentId)) as (FrameNode & ChildrenMixin) | null
     if (parent && 'appendChild' in parent) {
       parent.appendChild(node)
       return
@@ -1713,8 +2075,16 @@ function serializeNode(node: BaseNode): object {
   if ('layoutMode' in node && node.layoutMode !== 'NONE') {
     base.layoutMode = node.layoutMode
     if ('itemSpacing' in node) base.itemSpacing = node.itemSpacing
-    if ('paddingLeft' in node && (node.paddingLeft || node.paddingRight || node.paddingTop || node.paddingBottom)) {
-      base.padding = { left: node.paddingLeft, right: node.paddingRight, top: node.paddingTop, bottom: node.paddingBottom }
+    if (
+      'paddingLeft' in node &&
+      (node.paddingLeft || node.paddingRight || node.paddingTop || node.paddingBottom)
+    ) {
+      base.padding = {
+        left: node.paddingLeft,
+        right: node.paddingRight,
+        top: node.paddingTop,
+        bottom: node.paddingBottom
+      }
     }
   }
 
@@ -1749,19 +2119,30 @@ function serializePaint(paint: Paint): object {
   if (paint.type === 'IMAGE') {
     return { type: 'IMAGE', imageHash: paint.imageHash, scaleMode: paint.scaleMode }
   }
-  if (paint.type === 'GRADIENT_LINEAR' || paint.type === 'GRADIENT_RADIAL' || paint.type === 'GRADIENT_ANGULAR' || paint.type === 'GRADIENT_DIAMOND') {
+  if (
+    paint.type === 'GRADIENT_LINEAR' ||
+    paint.type === 'GRADIENT_RADIAL' ||
+    paint.type === 'GRADIENT_ANGULAR' ||
+    paint.type === 'GRADIENT_DIAMOND'
+  ) {
     return {
       type: paint.type,
-      stops: paint.gradientStops.map(s => ({ color: rgbToHex(s.color), position: s.position }))
+      stops: paint.gradientStops.map((s) => ({ color: rgbToHex(s.color), position: s.position }))
     }
   }
   return { type: paint.type }
 }
 
 function rgbToHex(color: RGB): string {
-  const r = Math.round(color.r * 255).toString(16).padStart(2, '0')
-  const g = Math.round(color.g * 255).toString(16).padStart(2, '0')
-  const b = Math.round(color.b * 255).toString(16).padStart(2, '0')
+  const r = Math.round(color.r * 255)
+    .toString(16)
+    .padStart(2, '0')
+  const g = Math.round(color.g * 255)
+    .toString(16)
+    .padStart(2, '0')
+  const b = Math.round(color.b * 255)
+    .toString(16)
+    .padStart(2, '0')
   return `#${r}${g}${b}`.toUpperCase()
 }
 
@@ -1805,7 +2186,7 @@ function serializeVariable(v: Variable): object {
     description: v.description || undefined,
     valuesByMode: Object.fromEntries(
       Object.entries(v.valuesByMode).map(([modeId, value]) => [
-        modeId, 
+        modeId,
         serializeVariableValue(value, v.resolvedType)
       ])
     )
@@ -1816,7 +2197,7 @@ function serializeCollection(c: VariableCollection): object {
   return {
     id: c.id,
     name: c.name,
-    modes: c.modes.map(m => ({ modeId: m.modeId, name: m.name })),
+    modes: c.modes.map((m) => ({ modeId: m.modeId, name: m.name })),
     variableIds: c.variableIds
   }
 }

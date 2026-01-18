@@ -12,13 +12,15 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-font', { 
-        id: args.id, 
+      const result = await sendCommand('set-font', {
+        id: args.id,
         fontFamily: args.family,
         fontStyle: args.style,
         fontSize: args.size ? Number(args.size) : undefined
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

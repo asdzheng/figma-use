@@ -14,12 +14,14 @@ export default defineCommand({
     try {
       const buffer = readFileSync(args.file)
       const base64 = buffer.toString('base64')
-      const result = await sendCommand('set-image-fill', { 
-        id: args.id, 
+      const result = await sendCommand('set-image-fill', {
+        id: args.id,
         imageData: base64,
         scaleMode: args.mode
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

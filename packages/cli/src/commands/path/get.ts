@@ -9,7 +9,9 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('path-get', { id: args.id }) as { paths: Array<{ windingRule: string; data: string }> }
+      const result = (await sendCommand('path-get', { id: args.id })) as {
+        paths: Array<{ windingRule: string; data: string }>
+      }
       if (args.json) {
         printResult(result, true)
       } else {
@@ -17,6 +19,8 @@ export default defineCommand({
           console.log(p.data)
         }
       }
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

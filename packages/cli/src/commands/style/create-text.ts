@@ -12,13 +12,15 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('create-text-style', { 
-        name: args.name, 
+      const result = await sendCommand('create-text-style', {
+        name: args.name,
         fontFamily: args.family,
         fontStyle: args.style,
         fontSize: Number(args.size)
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

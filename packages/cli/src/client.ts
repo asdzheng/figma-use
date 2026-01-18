@@ -10,8 +10,8 @@ interface CommandResponse<T> {
 }
 
 export async function sendCommand<T = unknown>(
-  command: string, 
-  args?: unknown, 
+  command: string,
+  args?: unknown,
   options?: { timeout?: number }
 ): Promise<T> {
   const response = await fetch(`${PROXY_URL}/command`, {
@@ -43,8 +43,8 @@ export function handleError(error: unknown): never {
 export async function getFileKey(): Promise<string> {
   try {
     const response = await fetch('http://localhost:9222/json')
-    const targets = await response.json() as ChromeDevToolsTarget[]
-    
+    const targets = (await response.json()) as ChromeDevToolsTarget[]
+
     for (const target of targets) {
       const match = target.url.match(/figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/)
       if (match?.[1]) return match[1]
@@ -52,7 +52,7 @@ export async function getFileKey(): Promise<string> {
   } catch {
     // DevTools not available
   }
-  
+
   throw new Error('No Figma file found. Start Figma with: figma --remote-debugging-port=9222')
 }
 
@@ -60,8 +60,8 @@ export async function getFileKey(): Promise<string> {
  * Get current page GUID for multiplayer
  */
 export async function getParentGUID(): Promise<{ sessionID: number; localID: number }> {
-  const result = await sendCommand<{ id: string }>('eval', { 
-    code: 'return { id: figma.currentPage.id }' 
+  const result = await sendCommand<{ id: string }>('eval', {
+    code: 'return { id: figma.currentPage.id }'
   })
   const parts = result.id.split(':').map(Number)
   return { sessionID: parts[0] ?? 0, localID: parts[1] ?? 0 }

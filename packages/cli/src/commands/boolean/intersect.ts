@@ -12,6 +12,8 @@ export default defineCommand({
       const ids = (args.ids as string).split(/[\s,]+/)
       const result = await sendCommand('boolean-operation', { ids, operation: 'INTERSECT' })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

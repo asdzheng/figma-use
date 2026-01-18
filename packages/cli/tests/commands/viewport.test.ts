@@ -6,7 +6,9 @@ describe('viewport', () => {
 
   beforeAll(async () => {
     await setupTestPage('viewport')
-    const rect = await run('create rect --x 0 --y 0 --width 100 --height 100 --fill "#00FF00" --json') as any
+    const rect = (await run(
+      'create rect --x 0 --y 0 --width 100 --height 100 --fill "#00FF00" --json'
+    )) as any
     nodeId = rect.id
     trackNode(nodeId)
   })
@@ -16,13 +18,13 @@ describe('viewport', () => {
   })
 
   test('get returns viewport info', async () => {
-    const result = await run('viewport get --json') as any
+    const result = (await run('viewport get --json')) as any
     expect(result).toHaveProperty('center')
     expect(result).toHaveProperty('zoom')
   })
 
   test('zoom-to-fit zooms to nodes', async () => {
-    const result = await run(`viewport zoom-to-fit "${nodeId}" --json`) as any
+    const result = (await run(`viewport zoom-to-fit "${nodeId}" --json`)) as any
     expect(result).toHaveProperty('center')
     expect(result).toHaveProperty('zoom')
   })

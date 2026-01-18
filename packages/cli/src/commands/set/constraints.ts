@@ -11,12 +11,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-constraints', { 
-        id: args.id, 
+      const result = await sendCommand('set-constraints', {
+        id: args.id,
         horizontal: args.horizontal,
         vertical: args.vertical
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

@@ -10,7 +10,7 @@ import {
   skipFigWireHeader,
   isKiwiMessage,
   getKiwiMessageType,
-  parseVarint,
+  parseVarint
 } from '../src/multiplayer/protocol.ts'
 import {
   initCodec,
@@ -21,7 +21,7 @@ import {
   createNodeChange,
   createNodeChangesMessage,
   encodePaintWithVariableBinding,
-  type Paint,
+  type Paint
 } from '../src/multiplayer/codec.ts'
 import { parseFileKey } from '../src/multiplayer/client.ts'
 
@@ -51,7 +51,7 @@ describe('multiplayer/protocol', () => {
   test('isZstdCompressed detects zstd magic bytes', () => {
     const zstd = new Uint8Array([0x28, 0xb5, 0x2f, 0xfd, 0x00])
     const notZstd = new Uint8Array([0x00, 0x01, 0x02, 0x03])
-    
+
     expect(isZstdCompressed(zstd)).toBe(true)
     expect(isZstdCompressed(notZstd)).toBe(false)
     expect(isZstdCompressed(new Uint8Array([]))).toBe(false)
@@ -59,23 +59,35 @@ describe('multiplayer/protocol', () => {
 
   test('hasFigWireHeader detects fig-wire prefix', () => {
     const withHeader = new Uint8Array([
-      0x66, 0x69, 0x67, 0x2d, 0x77, 0x69, 0x72, 0x65, // "fig-wire"
-      0x01, 0x00, 0x00, 0x00, // version
-      0x28, 0xb5, 0x2f, 0xfd, // zstd data
+      0x66,
+      0x69,
+      0x67,
+      0x2d,
+      0x77,
+      0x69,
+      0x72,
+      0x65, // "fig-wire"
+      0x01,
+      0x00,
+      0x00,
+      0x00, // version
+      0x28,
+      0xb5,
+      0x2f,
+      0xfd // zstd data
     ])
     const withoutHeader = new Uint8Array([0x28, 0xb5, 0x2f, 0xfd])
-    
+
     expect(hasFigWireHeader(withHeader)).toBe(true)
     expect(hasFigWireHeader(withoutHeader)).toBe(false)
   })
 
   test('skipFigWireHeader removes 12-byte header', () => {
     const withHeader = new Uint8Array([
-      0x66, 0x69, 0x67, 0x2d, 0x77, 0x69, 0x72, 0x65,
-      0x01, 0x00, 0x00, 0x00,
-      0x28, 0xb5, 0x2f, 0xfd, 0xAA, 0xBB,
+      0x66, 0x69, 0x67, 0x2d, 0x77, 0x69, 0x72, 0x65, 0x01, 0x00, 0x00, 0x00, 0x28, 0xb5, 0x2f,
+      0xfd, 0xaa, 0xbb
     ])
-    
+
     const result = skipFigWireHeader(withHeader)
     expect(result[0]).toBe(0x28)
     expect(result[1]).toBe(0xb5)
@@ -86,7 +98,7 @@ describe('multiplayer/protocol', () => {
     expect(KIWI.MESSAGE_MARKER).toBe(1)
     expect(KIWI.SESSION_ID_FIELD).toBe(2)
     expect(KIWI.VARINT_CONTINUE_BIT).toBe(0x80)
-    expect(KIWI.VARINT_VALUE_MASK).toBe(0x7F)
+    expect(KIWI.VARINT_VALUE_MASK).toBe(0x7f)
   })
 
   test('SESSION_ID range is defined', () => {
@@ -122,13 +134,13 @@ describe('multiplayer/protocol', () => {
     // Value 128 = 0x80 0x01
     expect(parseVarint(new Uint8Array([0x80, 0x01]), 0)).toEqual([128, 2])
     // Value 300 = 0xAC 0x02
-    expect(parseVarint(new Uint8Array([0xAC, 0x02]), 0)).toEqual([300, 2])
+    expect(parseVarint(new Uint8Array([0xac, 0x02]), 0)).toEqual([300, 2])
     // Value 16384 = 0x80 0x80 0x01
     expect(parseVarint(new Uint8Array([0x80, 0x80, 0x01]), 0)).toEqual([16384, 3])
   })
 
   test('parseVarint respects offset', () => {
-    const data = new Uint8Array([0xFF, 0xFF, 0x80, 0x01])
+    const data = new Uint8Array([0xff, 0xff, 0x80, 0x01])
     expect(parseVarint(data, 2)).toEqual([128, 4])
   })
 })
@@ -141,21 +153,21 @@ describe('multiplayer/codec', () => {
 
   test('compress/decompress roundtrip', async () => {
     await initCodec()
-    
+
     const original = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     const compressed = compress(original)
     const decompressed = decompress(compressed)
-    
+
     expect(isZstdCompressed(compressed)).toBe(true)
     expect(Array.from(decompressed)).toEqual(Array.from(original))
   })
 
   test('decompress returns input if not zstd', async () => {
     await initCodec()
-    
+
     const notZstd = new Uint8Array([1, 2, 3, 4])
     const result = decompress(notZstd)
-    
+
     expect(Array.from(result)).toEqual(Array.from(notZstd))
   })
 
@@ -171,7 +183,7 @@ describe('multiplayer/codec', () => {
       y: 20,
       width: 100,
       height: 50,
-      fill: '#FF0000',
+      fill: '#FF0000'
     })
 
     expect(change.guid).toEqual({ sessionID: 12345, localID: 100 })
@@ -182,8 +194,12 @@ describe('multiplayer/codec', () => {
     expect(change.name).toBe('Test Rect')
     expect(change.size).toEqual({ x: 100, y: 50 })
     expect(change.transform).toEqual({
-      m00: 1, m01: 0, m02: 10,
-      m10: 0, m11: 1, m12: 20,
+      m00: 1,
+      m01: 0,
+      m02: 10,
+      m10: 0,
+      m11: 1,
+      m12: 20
     })
     expect(change.fillPaints).toHaveLength(1)
     expect(change.fillPaints?.[0]?.type).toBe('SOLID')
@@ -202,7 +218,7 @@ describe('multiplayer/codec', () => {
       y: 0,
       width: 50,
       height: 50,
-      fill: { r: 0.5, g: 0.25, b: 0.75, a: 0.8 },
+      fill: { r: 0.5, g: 0.25, b: 0.75, a: 0.8 }
     })
 
     expect(change.fillPaints?.[0]?.color).toEqual({ r: 0.5, g: 0.25, b: 0.75, a: 0.8 })
@@ -221,7 +237,7 @@ describe('multiplayer/codec', () => {
       width: 100,
       height: 100,
       stroke: '#0000FF',
-      strokeWeight: 2,
+      strokeWeight: 2
     })
 
     expect(change.strokePaints).toHaveLength(1)
@@ -241,7 +257,7 @@ describe('multiplayer/codec', () => {
       y: 0,
       width: 100,
       height: 100,
-      cornerRadius: 8,
+      cornerRadius: 8
     })
 
     expect(change.cornerRadius).toBe(8)
@@ -259,7 +275,7 @@ describe('multiplayer/codec', () => {
       x: 0,
       y: 0,
       width: 10,
-      height: 10,
+      height: 10
     })
 
     expect(change.parentIndex?.position).toBe('#')
@@ -274,8 +290,11 @@ describe('multiplayer/codec', () => {
         parentLocalID: 112873,
         type: 'RECTANGLE',
         name: 'R1',
-        x: 0, y: 0, width: 10, height: 10,
-      }),
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10
+      })
     ]
 
     const message = createNodeChangesMessage(12345, 4500, nodeChanges, 1)
@@ -298,8 +317,11 @@ describe('multiplayer/codec', () => {
         parentLocalID: 112873,
         type: 'RECTANGLE',
         name: 'Test',
-        x: 0, y: 0, width: 100, height: 100,
-      }),
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100
+      })
     ])
 
     const encoded = encodeMessage(message)
@@ -326,25 +348,25 @@ describe('multiplayer/client', () => {
 describe('variable binding encoding', () => {
   test('encodePaintWithVariableBinding produces correct format', async () => {
     await initCodec()
-    
+
     const paint: Paint = {
       type: 'SOLID',
-      color: { r: 0.972, g: 0.980, b: 0.988, a: 1 },
+      color: { r: 0.972, g: 0.98, b: 0.988, a: 1 },
       opacity: 1,
       visible: true,
-      blendMode: 'NORMAL',
+      blendMode: 'NORMAL'
     }
-    
+
     const encoded = encodePaintWithVariableBinding(paint, 38448, 122296)
     const hex = Buffer.from(encoded).toString('hex')
-    
+
     // Should contain variable binding pattern
     expect(hex).toContain('15010401b0ac02b8bb07')
   })
-  
+
   test('encodeMessage includes variable binding when present', async () => {
     await initCodec()
-    
+
     const nodeChange = createNodeChange({
       sessionID: 1,
       localID: 1,
@@ -352,19 +374,22 @@ describe('variable binding encoding', () => {
       parentLocalID: 1,
       type: 'RECTANGLE',
       name: 'Test',
-      x: 0, y: 0, width: 100, height: 100,
-      fill: { r: 0.972, g: 0.980, b: 0.988, a: 1 }
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      fill: { r: 0.972, g: 0.98, b: 0.988, a: 1 }
     })
-    
+
     nodeChange.fillPaints![0].colorVariableBinding = {
       variableID: { sessionID: 38448, localID: 122296 }
     }
-    
+
     const message = createNodeChangesMessage(1, 0, [nodeChange])
     const encoded = encodeMessage(message)
     const decompressed = decompress(encoded)
     const hex = Buffer.from(decompressed).toString('hex')
-    
+
     expect(hex).toContain('15010401b0ac02b8bb07')
   })
 })

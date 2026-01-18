@@ -16,18 +16,18 @@ export default defineCommand({
   async run({ args }) {
     try {
       const fonts = await sendCommand<Font[]>('list-fonts')
-      
+
       let filtered = fonts
       if (args.family) {
         const search = args.family.toLowerCase()
-        filtered = fonts.filter(f => f.family.toLowerCase().includes(search))
+        filtered = fonts.filter((f) => f.family.toLowerCase().includes(search))
       }
-      
+
       if (args.json) {
         console.log(JSON.stringify(filtered, null, 2))
         return
       }
-      
+
       // Group by family
       const families = new Map<string, string[]>()
       for (const font of filtered) {
@@ -35,12 +35,14 @@ export default defineCommand({
         styles.push(font.style)
         families.set(font.family, styles)
       }
-      
+
       for (const [family, styles] of families) {
         console.log(`${family} ${dim(`(${styles.join(', ')})`)}`)
       }
-      
+
       console.log(`\n${families.size} families, ${filtered.length} fonts`)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

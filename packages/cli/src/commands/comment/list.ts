@@ -22,25 +22,27 @@ export default defineCommand({
   async run({ args }) {
     try {
       let comments = await getComments(args.file)
-      
+
       if (args.node) {
-        comments = comments.filter(c => c.client_meta?.node_id === args.node)
+        comments = comments.filter((c) => c.client_meta?.node_id === args.node)
       }
       if (args.unresolved) {
-        comments = comments.filter(c => !c.resolved_at)
+        comments = comments.filter((c) => !c.resolved_at)
       }
-      
+
       if (args.json) {
         console.log(JSON.stringify(comments, null, 2))
         return
       }
-      
+
       if (comments.length === 0) {
         console.log('No comments found')
         return
       }
-      
+
       console.log(comments.map(formatComment).join('\n\n'))
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

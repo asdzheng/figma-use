@@ -16,6 +16,8 @@ export default defineCommand({
       }
       const result = await sendCommand('set-stroke-align', { id: args.id, align })
       printResult(result, args.json, 'update')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

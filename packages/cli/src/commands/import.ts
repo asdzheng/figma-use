@@ -19,6 +19,8 @@ export default defineCommand({
         parentId: args.parent
       })
       printResult(result, args.json, 'create')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

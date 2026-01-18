@@ -18,6 +18,8 @@ export default defineCommand({
         dy: Number(args.dy)
       })
       printResult(result, args.json, 'path')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

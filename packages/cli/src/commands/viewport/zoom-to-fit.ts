@@ -12,6 +12,8 @@ export default defineCommand({
       const ids = args.ids ? (args.ids as string).split(/[\s,]+/) : undefined
       const result = await sendCommand('zoom-to-fit', { ids })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

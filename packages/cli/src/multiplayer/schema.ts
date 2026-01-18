@@ -1,4 +1,4 @@
-import { parseSchema } from "kiwi-schema";
+import { parseSchema } from 'kiwi-schema'
 
 const schemaText = `
 package Fig;
@@ -2155,6 +2155,6 @@ enum ARIARole {
   ALERTDIALOG = 80;
   DIALOG = 81;
 }
-`;
+`
 
-export default parseSchema(schemaText);
+export default parseSchema(schemaText)

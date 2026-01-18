@@ -24,6 +24,8 @@ export default defineCommand({
         replyTo: args.reply
       })
       printResult(comment, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

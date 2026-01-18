@@ -1,32 +1,32 @@
 /**
  * React Reconciler that outputs Figma NodeChanges directly
- * 
+ *
  * Renders React components directly to NodeChanges array
  * ready for multiplayer WebSocket transmission.
- * 
+ *
  * ## Key implementation notes (discovered via protocol sniffing)
- * 
+ *
  * ### TEXT nodes require specific fields
  * - fontName: { family, style, postscript } - ALWAYS required, even without explicit font
  * - textAlignVertical: 'TOP' - required for height calculation
  * - lineHeight: { value: 100, units: 'PERCENT' } - CRITICAL! Without this, height=0
  * - textData: { characters: '...' } - text content wrapper
- * 
+ *
  * ### Auto-layout field names differ from Plugin API
  * - justifyContent → stackPrimaryAlignItems (not stackJustify)
  * - alignItems → stackCounterAlignItems (not stackCounterAlign)
  * - Valid values: 'MIN', 'CENTER', 'MAX', 'SPACE_BETWEEN', 'SPACE_EVENLY'
- * 
+ *
  * ### Sizing modes for auto-layout
  * - stackPrimarySizing/stackCounterSizing = 'FIXED' when explicit size given
  * - stackPrimarySizing/stackCounterSizing = 'RESIZE_TO_FIT' for hug contents
  * - Setting RESIZE_TO_FIT via multiplayer doesn't work; use Plugin API trigger-layout
- * 
+ *
  * ### Component types
  * - SYMBOL (15) = Component in Figma (historical name)
  * - INSTANCE (16) = Component instance
  * - ComponentSet = FRAME with isStateGroup=true (field 225)
- * 
+ *
  * See also: component-set.tsx for ComponentSet/Instance linking issues
  */
 
@@ -36,11 +36,11 @@ import type { NodeChange, Paint } from '../multiplayer/codec.ts'
 import { parseColor } from '../color.ts'
 import { isVariable, resolveVariable, type FigmaVariable } from './vars.ts'
 import { getComponentRegistry } from './components.tsx'
-import { 
-  getComponentSetRegistry, 
-  generateVariantCombinations, 
-  buildVariantName, 
-  buildStateGroupPropertyValueOrders 
+import {
+  getComponentSetRegistry,
+  generateVariantCombinations,
+  buildVariantName,
+  buildStateGroupPropertyValueOrders
 } from './component-set.tsx'
 
 // Track rendered components: symbol -> GUID
@@ -49,7 +49,10 @@ const renderedComponents = new Map<symbol, { sessionID: number; localID: number 
 // Track rendered ComponentSets: symbol -> ComponentSet GUID
 const renderedComponentSets = new Map<symbol, { sessionID: number; localID: number }>()
 // Track variant component IDs within each ComponentSet
-const renderedComponentSetVariants = new Map<symbol, Map<string, { sessionID: number; localID: number }>>()
+const renderedComponentSetVariants = new Map<
+  symbol,
+  Map<string, { sessionID: number; localID: number }>
+>()
 
 // Pending ComponentSet instances to create via Plugin API
 export interface PendingComponentSetInstance {
@@ -95,8 +98,6 @@ interface Container {
   children: Instance[]
 }
 
-
-
 function styleToNodeChange(
   type: string,
   props: Record<string, unknown>,
@@ -108,7 +109,7 @@ function styleToNodeChange(
 ): NodeChange {
   const style = (props.style || {}) as Record<string, unknown>
   const name = (props.name as string) || type
-  
+
   const nodeChange: NodeChange = {
     guid: { sessionID, localID },
     phase: 'CREATED',
@@ -116,9 +117,9 @@ function styleToNodeChange(
     type: mapType(type),
     name,
     visible: true,
-    opacity: typeof style.opacity === 'number' ? style.opacity : 1,
+    opacity: typeof style.opacity === 'number' ? style.opacity : 1
   }
-  
+
   // Size
   const width = style.width ?? props.width
   const height = style.height ?? props.height
@@ -132,15 +133,19 @@ function styleToNodeChange(
     // Minimal size for auto-layout to expand from
     nodeChange.size = { x: 1, y: 1 }
   }
-  
+
   // Position (transform)
   const x = Number(style.x ?? props.x ?? 0)
   const y = Number(style.y ?? props.y ?? 0)
   nodeChange.transform = {
-    m00: 1, m01: 0, m02: x,
-    m10: 0, m11: 1, m12: y,
+    m00: 1,
+    m01: 0,
+    m02: x,
+    m10: 0,
+    m11: 1,
+    m12: y
   }
-  
+
   // Background color → fill (supports Figma variables)
   if (style.backgroundColor) {
     const bgColor = style.backgroundColor
@@ -148,53 +153,63 @@ function styleToNodeChange(
       const resolved = resolveVariable(bgColor)
       // Use explicit value as fallback, or black
       const fallback = bgColor.value ? parseColor(bgColor.value) : { r: 0, g: 0, b: 0, a: 1 }
-      nodeChange.fillPaints = [{
-        type: 'SOLID',
-        color: { r: fallback.r, g: fallback.g, b: fallback.b, a: fallback.a },
-        opacity: 1,
-        visible: true,
-        colorVariableBinding: {
-          variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
-        }
-      } as Paint]
+      nodeChange.fillPaints = [
+        {
+          type: 'SOLID',
+          color: { r: fallback.r, g: fallback.g, b: fallback.b, a: fallback.a },
+          opacity: 1,
+          visible: true,
+          colorVariableBinding: {
+            variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
+          }
+        } as Paint
+      ]
     } else {
       const color = parseColor(bgColor as string)
-      nodeChange.fillPaints = [{
-        type: 'SOLID',
-        color: { r: color.r, g: color.g, b: color.b, a: color.a },
-        opacity: color.a,
-        visible: true,
-      }]
+      nodeChange.fillPaints = [
+        {
+          type: 'SOLID',
+          color: { r: color.r, g: color.g, b: color.b, a: color.a },
+          opacity: color.a,
+          visible: true
+        }
+      ]
     }
   }
-  
+
   // Border → stroke (supports Figma variables)
   if (style.borderColor) {
     const borderColor = style.borderColor
     if (isVariable(borderColor)) {
       const resolved = resolveVariable(borderColor)
-      const fallback = borderColor.value ? parseColor(borderColor.value) : { r: 0, g: 0, b: 0, a: 1 }
-      nodeChange.strokePaints = [{
-        type: 'SOLID',
-        color: { r: fallback.r, g: fallback.g, b: fallback.b, a: fallback.a },
-        opacity: 1,
-        visible: true,
-        colorVariableBinding: {
-          variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
-        }
-      } as Paint]
+      const fallback = borderColor.value
+        ? parseColor(borderColor.value)
+        : { r: 0, g: 0, b: 0, a: 1 }
+      nodeChange.strokePaints = [
+        {
+          type: 'SOLID',
+          color: { r: fallback.r, g: fallback.g, b: fallback.b, a: fallback.a },
+          opacity: 1,
+          visible: true,
+          colorVariableBinding: {
+            variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
+          }
+        } as Paint
+      ]
     } else {
       const color = parseColor(borderColor as string)
-      nodeChange.strokePaints = [{
-        type: 'SOLID',
-        color: { r: color.r, g: color.g, b: color.b, a: color.a },
-        opacity: color.a,
-        visible: true,
-      }]
+      nodeChange.strokePaints = [
+        {
+          type: 'SOLID',
+          color: { r: color.r, g: color.g, b: color.b, a: color.a },
+          opacity: color.a,
+          visible: true
+        }
+      ]
     }
     nodeChange.strokeWeight = Number(style.borderWidth ?? 1)
   }
-  
+
   // Corner radius
   if (style.borderRadius !== undefined) {
     nodeChange.cornerRadius = Number(style.borderRadius)
@@ -215,7 +230,7 @@ function styleToNodeChange(
     nodeChange.rectangleBottomRightCornerRadius = Number(style.borderBottomRightRadius)
     nodeChange.rectangleCornerRadiiIndependent = true
   }
-  
+
   // Auto-layout
   if (style.flexDirection) {
     nodeChange.stackMode = style.flexDirection === 'row' ? 'HORIZONTAL' : 'VERTICAL'
@@ -232,24 +247,29 @@ function styleToNodeChange(
   if (style.gap !== undefined) {
     nodeChange.stackSpacing = Number(style.gap)
   }
-  
+
   // Padding
   const pt = style.paddingTop ?? style.padding
   const pr = style.paddingRight ?? style.padding
   const pb = style.paddingBottom ?? style.padding
   const pl = style.paddingLeft ?? style.padding
-  
-  if (pt !== undefined) (nodeChange as unknown as Record<string, unknown>).stackVerticalPadding = Number(pt)
-  if (pl !== undefined) (nodeChange as unknown as Record<string, unknown>).stackHorizontalPadding = Number(pl)
+
+  if (pt !== undefined)
+    (nodeChange as unknown as Record<string, unknown>).stackVerticalPadding = Number(pt)
+  if (pl !== undefined)
+    (nodeChange as unknown as Record<string, unknown>).stackHorizontalPadding = Number(pl)
   if (pr !== undefined) nodeChange.stackPaddingRight = Number(pr)
   if (pb !== undefined) nodeChange.stackPaddingBottom = Number(pb)
-  
+
   // Alignment - NOTE: field names differ from Plugin API!
   // Plugin API uses primaryAxisAlignItems/counterAxisAlignItems
   // Multiplayer uses stackPrimaryAlignItems/stackCounterAlignItems
   if (style.justifyContent) {
     const validValues: Record<string, string> = {
-      'flex-start': 'MIN', 'center': 'CENTER', 'flex-end': 'MAX', 'space-between': 'SPACE_BETWEEN'
+      'flex-start': 'MIN',
+      center: 'CENTER',
+      'flex-end': 'MAX',
+      'space-between': 'SPACE_BETWEEN'
     }
     const mapped = validValues[style.justifyContent as string]
     if (mapped) {
@@ -261,7 +281,10 @@ function styleToNodeChange(
   }
   if (style.alignItems) {
     const validValues: Record<string, string> = {
-      'flex-start': 'MIN', 'center': 'CENTER', 'flex-end': 'MAX', 'stretch': 'STRETCH'
+      'flex-start': 'MIN',
+      center: 'CENTER',
+      'flex-end': 'MAX',
+      stretch: 'STRETCH'
     }
     const mapped = validValues[style.alignItems as string]
     if (mapped) {
@@ -271,15 +294,15 @@ function styleToNodeChange(
       nodeChange.stackCounterAlignItems = 'MIN'
     }
   }
-  
+
   // Text-specific
   if (type.toLowerCase() === 'text' && textContent) {
     // Text content via textData.characters
     const nc = nodeChange as unknown as Record<string, unknown>
     nc.textData = { characters: textContent }
     nc.textAutoResize = 'WIDTH_AND_HEIGHT'
-    nc.textAlignVertical = 'TOP'  // Required for text height calculation
-    
+    nc.textAlignVertical = 'TOP' // Required for text height calculation
+
     if (style.fontSize) nc.fontSize = Number(style.fontSize)
     // CRITICAL: lineHeight MUST be { value: 100, units: 'PERCENT' } for text to have height
     // Without this, TEXT nodes render with height=0 and are invisible
@@ -291,10 +314,10 @@ function styleToNodeChange(
     nc.fontName = {
       family,
       style: fontStyle,
-      postscript: `${family}-${fontStyle}`.replace(/\s+/g, ''),
+      postscript: `${family}-${fontStyle}`.replace(/\s+/g, '')
     }
     if (style.textAlign) {
-      const map: Record<string, string> = { 'left': 'LEFT', 'center': 'CENTER', 'right': 'RIGHT' }
+      const map: Record<string, string> = { left: 'LEFT', center: 'CENTER', right: 'RIGHT' }
       nc.textAlignHorizontal = map[style.textAlign as string] || 'LEFT'
     }
     if (style.color) {
@@ -302,27 +325,31 @@ function styleToNodeChange(
       if (isVariable(textColor)) {
         const resolved = resolveVariable(textColor)
         const fallback = textColor.value ? parseColor(textColor.value) : { r: 0, g: 0, b: 0, a: 1 }
-        nodeChange.fillPaints = [{
-          type: 'SOLID',
-          color: { r: fallback.r, g: fallback.g, b: fallback.b, a: fallback.a },
-          opacity: 1,
-          visible: true,
-          colorVariableBinding: {
-            variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
-          }
-        } as Paint]
+        nodeChange.fillPaints = [
+          {
+            type: 'SOLID',
+            color: { r: fallback.r, g: fallback.g, b: fallback.b, a: fallback.a },
+            opacity: 1,
+            visible: true,
+            colorVariableBinding: {
+              variableID: { sessionID: resolved.sessionID, localID: resolved.localID }
+            }
+          } as Paint
+        ]
       } else {
         const color = parseColor(textColor as string)
-        nodeChange.fillPaints = [{
-          type: 'SOLID',
-          color: { r: color.r, g: color.g, b: color.b, a: color.a },
-          opacity: color.a,
-          visible: true,
-        }]
+        nodeChange.fillPaints = [
+          {
+            type: 'SOLID',
+            color: { r: color.r, g: color.g, b: color.b, a: color.a },
+            opacity: color.a,
+            visible: true
+          }
+        ]
       }
     }
   }
-  
+
   // Instance - link to component
   if (type.toLowerCase() === 'instance' && props.componentId) {
     const match = String(props.componentId).match(/(\d+):(\d+)/)
@@ -331,12 +358,12 @@ function styleToNodeChange(
       nc.symbolData = {
         symbolID: {
           sessionID: parseInt(match[1], 10),
-          localID: parseInt(match[2], 10),
+          localID: parseInt(match[2], 10)
         }
       }
     }
   }
-  
+
   return nodeChange
 }
 
@@ -350,10 +377,10 @@ function mapType(type: string): string {
     star: 'STAR',
     polygon: 'REGULAR_POLYGON',
     vector: 'VECTOR',
-    component: 'SYMBOL',      // Figma internally calls components "symbols"
+    component: 'SYMBOL', // Figma internally calls components "symbols"
     instance: 'INSTANCE',
     group: 'GROUP',
-    page: 'CANVAS',
+    page: 'CANVAS'
   }
   return map[type.toLowerCase()] || 'FRAME'
 }
@@ -361,8 +388,8 @@ function mapType(type: string): string {
 function mapFontWeight(weight?: string): string {
   if (!weight) return 'Regular'
   const map: Record<string, string> = {
-    'normal': 'Regular',
-    'bold': 'Bold',
+    normal: 'Regular',
+    bold: 'Bold',
     '100': 'Thin',
     '200': 'Extra Light',
     '300': 'Light',
@@ -371,7 +398,7 @@ function mapFontWeight(weight?: string): string {
     '600': 'Semi Bold',
     '700': 'Bold',
     '800': 'Extra Bold',
-    '900': 'Black',
+    '900': 'Black'
   }
   return map[weight] || 'Regular'
 }
@@ -390,51 +417,53 @@ function collectNodeChanges(
     const name = instance.props.__componentName as string
     const registry = getComponentRegistry()
     const def = registry.get(sym)
-    
+
     if (!def) {
       consola.error(`Component "${name}" not found in registry`)
       return
     }
-    
+
     // Check if component already rendered
     let componentGUID = renderedComponents.get(sym)
-    
+
     if (!componentGUID) {
       // First instance: render as Component
       const componentLocalID = container.localIDCounter++
       componentGUID = { sessionID, localID: componentLocalID }
       renderedComponents.set(sym, componentGUID)
-      
+
       // Render the component's element tree
       const componentResult = renderToNodeChanges(def.element, {
         sessionID,
         parentGUID, // Will be fixed below
-        startLocalID: container.localIDCounter,
+        startLocalID: container.localIDCounter
       })
-      
+
       // Update counter
       container.localIDCounter = componentResult.nextLocalID
-      
+
       // Change first node to be SYMBOL type and add to results
       if (componentResult.nodeChanges.length > 0) {
         const rootChange = componentResult.nodeChanges[0]
         const originalRootGUID = { ...rootChange.guid }
-        
+
         // Replace root node's guid with componentGUID
         rootChange.guid = componentGUID
         rootChange.type = 'SYMBOL'
         rootChange.name = name
         rootChange.parentIndex = { guid: parentGUID, position }
-        
+
         // Fix children's parentIndex to point to componentGUID instead of original root
         for (let i = 1; i < componentResult.nodeChanges.length; i++) {
           const child = componentResult.nodeChanges[i]
-          if (child.parentIndex?.guid.localID === originalRootGUID.localID &&
-              child.parentIndex?.guid.sessionID === originalRootGUID.sessionID) {
+          if (
+            child.parentIndex?.guid.localID === originalRootGUID.localID &&
+            child.parentIndex?.guid.sessionID === originalRootGUID.sessionID
+          ) {
             child.parentIndex.guid = componentGUID
           }
         }
-        
+
         // Merge style props from instance onto component
         const style = (instance.props.style || {}) as Record<string, unknown>
         if (style.x !== undefined || style.y !== undefined) {
@@ -442,7 +471,7 @@ function collectNodeChanges(
           const y = Number(style.y ?? 0)
           rootChange.transform = { m00: 1, m01: 0, m02: x, m10: 0, m11: 1, m12: y }
         }
-        
+
         result.push(...componentResult.nodeChanges)
       }
     } else {
@@ -451,7 +480,7 @@ function collectNodeChanges(
       const style = (instance.props.style || {}) as Record<string, unknown>
       const x = Number(style.x ?? 0)
       const y = Number(style.y ?? 0)
-      
+
       const instanceChange: NodeChange = {
         guid: { sessionID, localID: instanceLocalID },
         phase: 'CREATED',
@@ -460,18 +489,18 @@ function collectNodeChanges(
         name,
         visible: true,
         opacity: 1,
-        transform: { m00: 1, m01: 0, m02: x, m10: 0, m11: 1, m12: y },
+        transform: { m00: 1, m01: 0, m02: x, m10: 0, m11: 1, m12: y }
       }
-      
+
       // Link to component
       const nc = instanceChange as unknown as Record<string, unknown>
       nc.symbolData = { symbolID: componentGUID }
-      
+
       result.push(instanceChange)
     }
     return
   }
-  
+
   // Handle defineComponentSet instances
   if (instance.type === '__component_set_instance__') {
     const sym = instance.props.__componentSetSymbol as symbol
@@ -479,25 +508,25 @@ function collectNodeChanges(
     const variantProps = (instance.props.__variantProps || {}) as Record<string, string>
     const csRegistry = getComponentSetRegistry()
     const csDef = csRegistry.get(sym)
-    
+
     if (!csDef) {
       consola.error(`ComponentSet "${name}" not found in registry`)
       return
     }
-    
+
     // Check if ComponentSet already rendered
     let componentSetGUID = renderedComponentSets.get(sym)
-    
+
     if (!componentSetGUID) {
       // First instance: create ComponentSet with all variant components
       const componentSetLocalID = container.localIDCounter++
       componentSetGUID = { sessionID, localID: componentSetLocalID }
       renderedComponentSets.set(sym, componentSetGUID)
-      
+
       const variants = csDef.variants
       const combinations = generateVariantCombinations(variants)
       const variantComponentIds = new Map<string, { sessionID: number; localID: number }>()
-      
+
       // Create ComponentSet node (FRAME with isStateGroup)
       const setChange: NodeChange = {
         guid: componentSetGUID,
@@ -507,7 +536,7 @@ function collectNodeChanges(
         name,
         visible: true,
         opacity: 1,
-        size: { x: 1, y: 1 }, // Will be auto-sized
+        size: { x: 1, y: 1 } // Will be auto-sized
       }
       const setNc = setChange as unknown as Record<string, unknown>
       setNc.isStateGroup = true
@@ -516,29 +545,29 @@ function collectNodeChanges(
       setNc.stackSpacing = 20
       setNc.stackPrimarySizing = 'RESIZE_TO_FIT'
       setNc.stackCounterSizing = 'RESIZE_TO_FIT'
-      
+
       result.push(setChange)
-      
+
       // Create Component for each variant combination
       combinations.forEach((combo, i) => {
         const variantName = buildVariantName(combo)
         const variantLocalID = container.localIDCounter++
         const variantGUID = { sessionID, localID: variantLocalID }
         variantComponentIds.set(variantName, variantGUID)
-        
+
         // Render the variant's element
         const variantElement = csDef.render(combo)
         const variantResult = renderToNodeChanges(variantElement, {
           sessionID,
           parentGUID: componentSetGUID!,
-          startLocalID: container.localIDCounter,
+          startLocalID: container.localIDCounter
         })
         container.localIDCounter = variantResult.nextLocalID
-        
+
         if (variantResult.nodeChanges.length > 0) {
           const rootChange = variantResult.nodeChanges[0]
           const originalRootGUID = { ...rootChange.guid }
-          
+
           rootChange.guid = variantGUID
           rootChange.type = 'SYMBOL'
           rootChange.name = variantName
@@ -546,23 +575,25 @@ function collectNodeChanges(
             guid: componentSetGUID!,
             position: String.fromCharCode(33 + i)
           }
-          
+
           // Fix children's parentIndex
           for (let j = 1; j < variantResult.nodeChanges.length; j++) {
             const child = variantResult.nodeChanges[j]
-            if (child.parentIndex?.guid.localID === originalRootGUID.localID &&
-                child.parentIndex?.guid.sessionID === originalRootGUID.sessionID) {
+            if (
+              child.parentIndex?.guid.localID === originalRootGUID.localID &&
+              child.parentIndex?.guid.sessionID === originalRootGUID.sessionID
+            ) {
               child.parentIndex.guid = variantGUID
             }
           }
-          
+
           result.push(...variantResult.nodeChanges)
         }
       })
-      
+
       // Store variant IDs for creating instances
       renderedComponentSetVariants.set(sym, variantComponentIds)
-      
+
       // Store pending instances to create via Plugin API (multiplayer symbolData doesn't work for ComponentSet)
       const requestedVariantName = buildVariantName({
         ...getDefaultVariants(variants),
@@ -575,7 +606,7 @@ function collectNodeChanges(
         parentGUID,
         position: String.fromCharCode(34 + combinations.length),
         x: Number(style.x ?? 0),
-        y: Number(style.y ?? 0),
+        y: Number(style.y ?? 0)
       })
     } else {
       // Subsequent instance: store for Plugin API creation
@@ -590,12 +621,12 @@ function collectNodeChanges(
         parentGUID,
         position,
         x: Number(style.x ?? 0),
-        y: Number(style.y ?? 0),
+        y: Number(style.y ?? 0)
       })
     }
     return
   }
-  
+
   const nodeChange = styleToNodeChange(
     instance.type,
     instance.props,
@@ -606,7 +637,7 @@ function collectNodeChanges(
     instance.textContent
   )
   result.push(nodeChange)
-  
+
   const thisGUID = { sessionID, localID: instance.localID }
   instance.children.forEach((child, i) => {
     const childPosition = String.fromCharCode(33 + (i % 90))
@@ -620,50 +651,48 @@ const hostConfig: any = {
   supportsPersistence: false,
   supportsHydration: false,
   isPrimaryRenderer: true,
-  
+
   now: Date.now,
   scheduleTimeout: setTimeout,
   cancelTimeout: clearTimeout,
   noTimeout: -1 as const,
-  
+
   getRootHostContext() {
     return {}
   },
-  
+
   getChildHostContext() {
     return {}
   },
-  
+
   shouldSetTextContent() {
     return false
   },
-  
+
   createInstance(
     type: string,
     props: Record<string, unknown>,
-    _rootContainer: Container,
+    _rootContainer: Container
   ): Instance {
     const { children: _, ...rest } = props
     return {
       type,
       props: rest,
       localID: _rootContainer.localIDCounter++,
-      children: [],
+      children: []
     }
   },
-  
-  createTextInstance(
-    text: string,
-  ): Instance {
+
+  createTextInstance(text: string): Instance {
     return {
       type: '__text__',
       props: {},
       localID: -1,
       children: [],
-      textContent: text,
+      textContent: text
     }
   },
-  
+
   appendInitialChild(parent: Instance, child: Instance): void {
     if (child.type === '__text__') {
       parent.textContent = (parent.textContent || '') + (child.textContent || '')
@@ -671,7 +700,7 @@ const hostConfig: any = {
       parent.children.push(child)
     }
   },
-  
+
   appendChild(parent: Instance, child: Instance): void {
     if (child.type === '__text__') {
       parent.textContent = (parent.textContent || '') + (child.textContent || '')
@@ -679,23 +708,23 @@ const hostConfig: any = {
       parent.children.push(child)
     }
   },
-  
+
   appendChildToContainer(container: Container, child: Instance): void {
     if (child.type !== '__text__') {
       container.children.push(child)
     }
   },
-  
+
   removeChild(parent: Instance, child: Instance): void {
     const index = parent.children.indexOf(child)
     if (index !== -1) parent.children.splice(index, 1)
   },
-  
+
   removeChildFromContainer(container: Container, child: Instance): void {
     const index = container.children.indexOf(child)
     if (index !== -1) container.children.splice(index, 1)
   },
-  
+
   insertBefore(parent: Instance, child: Instance, beforeChild: Instance): void {
     if (child.type === '__text__') return
     const index = parent.children.indexOf(beforeChild)
@@ -705,7 +734,7 @@ const hostConfig: any = {
       parent.children.push(child)
     }
   },
-  
+
   insertInContainerBefore(container: Container, child: Instance, beforeChild: Instance): void {
     if (child.type === '__text__') return
     const index = container.children.indexOf(beforeChild)
@@ -715,25 +744,25 @@ const hostConfig: any = {
       container.children.push(child)
     }
   },
-  
+
   prepareForCommit(): Record<string, unknown> | null {
     return null
   },
-  
+
   resetAfterCommit(): void {},
-  
+
   clearContainer(container: Container): void {
     container.children = []
   },
-  
+
   finalizeInitialChildren() {
     return false
   },
-  
+
   prepareUpdate() {
     return true
   },
-  
+
   commitUpdate(
     instance: Instance,
     _updatePayload: unknown,
@@ -744,40 +773,36 @@ const hostConfig: any = {
     const { children: _, ...rest } = nextProps
     instance.props = rest
   },
-  
-  commitTextUpdate(
-    textInstance: Instance,
-    _oldText: string,
-    newText: string
-  ): void {
+
+  commitTextUpdate(textInstance: Instance, _oldText: string, newText: string): void {
     textInstance.textContent = newText
   },
-  
+
   getPublicInstance(instance: Instance): Instance {
     return instance
   },
-  
+
   preparePortalMount() {},
-  
+
   getCurrentEventPriority() {
     return 16 // DefaultEventPriority
   },
-  
+
   getInstanceFromNode() {
     return null
   },
-  
+
   beforeActiveInstanceBlur() {},
-  
+
   afterActiveInstanceBlur() {},
-  
+
   prepareScopeUpdate() {},
-  
+
   getInstanceFromScope() {
     return null
   },
-  
-  detachDeletedInstance() {},
+
+  detachDeletedInstance() {}
 }
 
 /**
@@ -790,37 +815,44 @@ export function renderToNodeChanges(
   const container: Container = {
     options,
     localIDCounter: options.startLocalID ?? 1,
-    children: [],
+    children: []
   }
-  
+
   const reconciler = Reconciler(hostConfig)
-  
+
   const root = reconciler.createContainer(
     container,
-    0,          // tag: LegacyRoot
-    null,       // hydrationCallbacks
-    false,      // isStrictMode
-    null,       // concurrentUpdatesByDefaultOverride
-    '',         // identifierPrefix
-    () => {},   // onUncaughtError
-    () => {},   // onCaughtError
-    () => {},   // onRecoverableError
-    () => {},   // onDefaultTransitionIndicator
-    null        // transitionCallbacks
+    0, // tag: LegacyRoot
+    null, // hydrationCallbacks
+    false, // isStrictMode
+    null, // concurrentUpdatesByDefaultOverride
+    '', // identifierPrefix
+    () => {}, // onUncaughtError
+    () => {}, // onCaughtError
+    () => {}, // onRecoverableError
+    () => {}, // onDefaultTransitionIndicator
+    null // transitionCallbacks
   )
-  
+
   reconciler.updateContainer(element, root, null, () => {})
   reconciler.flushSync(() => {})
-  
+
   const nodeChanges: NodeChange[] = []
   container.children.forEach((child, i) => {
     const position = String.fromCharCode(33 + (i % 90))
-    collectNodeChanges(child, options.sessionID, options.parentGUID, position, nodeChanges, container)
+    collectNodeChanges(
+      child,
+      options.sessionID,
+      options.parentGUID,
+      position,
+      nodeChanges,
+      container
+    )
   })
-  
+
   return {
     nodeChanges,
-    nextLocalID: container.localIDCounter,
+    nextLocalID: container.localIDCounter
   }
 }
 

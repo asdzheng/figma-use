@@ -13,17 +13,17 @@ export default defineCommand({
   async run({ args }) {
     try {
       const versions = await getVersions(args.file, Number(args.limit))
-      
+
       if (args.json) {
         console.log(JSON.stringify(versions, null, 2))
         return
       }
-      
+
       if (versions.length === 0) {
         console.log('No versions found')
         return
       }
-      
+
       for (const v of versions) {
         const date = new Date(v.created_at).toLocaleString()
         const label = v.label ? accent(v.label) : dim('(auto-save)')
@@ -31,6 +31,8 @@ export default defineCommand({
         if (v.description) console.log(`  ${v.description}`)
         console.log(`  ${dim(`id: ${v.id}`)}\n`)
       }
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

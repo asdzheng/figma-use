@@ -12,6 +12,6 @@ export default defineCommand({
     set,
     move,
     scale,
-    flip,
+    flip
   }
 })

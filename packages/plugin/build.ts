@@ -17,10 +17,7 @@ const [, uiBuild] = await Promise.all([
 
 const uiJs = uiBuild.outputFiles![0].text
 const uiHtml = await Bun.file('src/ui.html').text()
-const inlinedHtml = uiHtml.replace(
-  '<script src="ui.js"></script>',
-  `<script>${uiJs}</script>`
-)
+const inlinedHtml = uiHtml.replace('<script src="ui.js"></script>', `<script>${uiJs}</script>`)
 await Bun.write('dist/ui.html', inlinedHtml)
 
 // Copy and update manifest

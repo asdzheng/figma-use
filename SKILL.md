@@ -34,57 +34,74 @@ figma-use plugin install
 
 ---
 
-## ⚠️ Incremental Updates (CRITICAL)
+## ⚠️ Incremental Updates via Diff (Experimental)
 
 **After initial render, NEVER re-render the full JSX tree.**
 
-When modifying an existing design:
-1. Save node IDs from the initial render (`--json` output)
-2. Use targeted CLI commands to modify individual nodes
-3. Only re-render if the structure fundamentally changes (>50% new elements)
+Use unified diff patches to apply targeted changes with validation:
 
-### Modify properties by ID
+> ⚠️ **Experimental:** `diff` commands are new and may change.
+
+### Compare two frames and generate patch
 ```bash
-figma-use set fill <id> "#FF0000"           # Change color
-figma-use set opacity <id> 0.5              # Change opacity  
-figma-use set radius <id> 12                # Change corner radius
+# Compare original vs modified version
+figma-use diff create --from 123:456 --to 789:012
+```
+
+Output (unified diff format):
+```diff
+--- /Card/Header #123:457
++++ /Card/Header #789:013
+@@ -1,5 +1,5 @@
+ type: FRAME
+ size: 200 50
+ pos: 0 0
+-fill: #FFFFFF
++fill: #F0F0F0
+-opacity: 0.8
++opacity: 1
+```
+
+### Apply patch (validates old values!)
+```bash
+# Dry run — preview changes
+figma-use diff apply patch.diff --dry-run
+
+# Apply changes (fails if old values don't match)
+figma-use diff apply patch.diff
+
+# Force apply (skip validation)
+figma-use diff apply patch.diff --force
+
+# From stdin
+cat patch.diff | figma-use diff apply --stdin
+```
+
+### Workflow: Iterative design with critique
+
+1. **Render initial design:**
+   ```bash
+   cat design.jsx | figma-use render --stdin --json > nodes.json
+   ```
+
+2. **Get critique, then generate patch:**
+   ```bash
+   # Clone and modify (or compare to another frame)
+   figma-use diff create --from <original> --to <modified>
+   ```
+
+3. **Apply patch to original:**
+   ```bash
+   figma-use diff apply --stdin < changes.diff
+   ```
+
+### Direct commands (for simple changes)
+```bash
+figma-use set fill <id> "#FF0000"
+figma-use set opacity <id> 0.5
 figma-use node resize <id> --width 300 --height 200
 figma-use node move <id> --x 100 --y 200
-figma-use node rename <id> "New Name"
-```
-
-### Add new elements to existing parent
-```bash
-figma-use create rect --parent <parent-id> --width 50 --height 50 --fill "#00F"
-figma-use create text --parent <parent-id> --text "Label" --fontSize 14
-```
-
-### Delete elements
-```bash
 figma-use node delete <id>
-```
-
-### Example: Fixing transparency issues
-```bash
-# BAD: Re-rendering 60 elements to fix one opacity
-cat <<'EOF' | figma-use render --stdin
-<Frame>... 60 elements ...</Frame>
-EOF
-
-# GOOD: Fix the specific node
-figma-use set opacity 123:456 1.0
-```
-
-### Example: Adjusting colors after critique
-```bash
-# Change shadow color from black to warm orange
-figma-use set fill 123:789 "#D97706"
-
-# Move misaligned element
-figma-use node move 123:790 --x 240 --y 100
-
-# Resize tail to better proportions  
-figma-use node resize 123:791 --width 120 --height 30
 ```
 
 ---

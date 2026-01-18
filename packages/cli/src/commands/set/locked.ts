@@ -12,6 +12,8 @@ export default defineCommand({
     try {
       const result = await sendCommand('set-locked', { id: args.id, locked: args.value === 'true' })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

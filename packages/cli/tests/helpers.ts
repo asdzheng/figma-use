@@ -26,17 +26,17 @@ let originalPageId: string | null = null
 
 export async function setupTestPage(suiteName: string): Promise<string> {
   // Save original page
-  const currentPage = await run('eval "return {id: figma.currentPage.id}"') as { id: string }
+  const currentPage = (await run('eval "return {id: figma.currentPage.id}"')) as { id: string }
   originalPageId = currentPage.id
 
   // Create unique test page for this suite
   const pageName = `__test_${suiteName}_${Date.now()}__`
-  const page = await run(`create page "${pageName}" --json`) as { id: string }
+  const page = (await run(`create page "${pageName}" --json`)) as { id: string }
   testPageId = page.id
-  
+
   // Switch to test page
   await run(`page set "${testPageId}" --json`)
-  
+
   return testPageId
 }
 

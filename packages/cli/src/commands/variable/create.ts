@@ -12,13 +12,15 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('create-variable', { 
+      const result = await sendCommand('create-variable', {
         name: args.name,
         collectionId: args.collection,
         type: args.type,
         value: args.value
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

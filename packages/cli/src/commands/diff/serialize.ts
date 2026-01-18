@@ -1,6 +1,6 @@
 /**
  * Serialize/deserialize Figma nodes to/from text format for unified diff.
- * 
+ *
  * Format:
  *   type: RECTANGLE
  *   size: 100 50
@@ -29,41 +29,41 @@ export interface NodeProps {
 
 export function serializeNode(node: Record<string, unknown>): string {
   const lines: string[] = []
-  
+
   lines.push(`type: ${node.type}`)
-  
+
   if (node.width !== undefined && node.height !== undefined) {
     lines.push(`size: ${node.width} ${node.height}`)
   }
-  
+
   if (node.x !== undefined && node.y !== undefined) {
     lines.push(`pos: ${node.x} ${node.y}`)
   }
-  
+
   // Fill color (first solid fill)
   const fills = node.fills as Array<{ type: string; color?: string }> | undefined
   if (fills?.length && fills[0]?.type === 'SOLID' && fills[0].color) {
     lines.push(`fill: ${fills[0].color}`)
   }
-  
+
   // Stroke color (first solid stroke)
   const strokes = node.strokes as Array<{ type: string; color?: string }> | undefined
   if (strokes?.length && strokes[0]?.type === 'SOLID' && strokes[0].color) {
     lines.push(`stroke: ${strokes[0].color}`)
   }
-  
+
   if (node.strokeWeight !== undefined && node.strokeWeight !== 0) {
     lines.push(`strokeWeight: ${node.strokeWeight}`)
   }
-  
+
   if (node.opacity !== undefined && node.opacity !== 1) {
     lines.push(`opacity: ${roundTo(node.opacity as number, 2)}`)
   }
-  
+
   if (node.cornerRadius !== undefined && node.cornerRadius !== 0) {
     lines.push(`radius: ${node.cornerRadius}`)
   }
-  
+
   // Text-specific
   if (node.type === 'TEXT') {
     if (node.characters !== undefined) {
@@ -79,28 +79,28 @@ export function serializeNode(node: Record<string, unknown>): string {
       }
     }
   }
-  
+
   if (node.visible === false) {
     lines.push(`visible: false`)
   }
-  
+
   if (node.locked === true) {
     lines.push(`locked: true`)
   }
-  
+
   return lines.join('\n')
 }
 
 export function deserializeNode(text: string): NodeProps {
   const props: NodeProps = { type: 'UNKNOWN' }
-  
+
   for (const line of text.split('\n')) {
     const colonIdx = line.indexOf(':')
     if (colonIdx === -1) continue
-    
+
     const key = line.slice(0, colonIdx).trim()
     const value = line.slice(colonIdx + 1).trim()
-    
+
     switch (key) {
       case 'type':
         props.type = value
@@ -109,13 +109,13 @@ export function deserializeNode(text: string): NodeProps {
         props.name = value
         break
       case 'size': {
-        const [w, h] = value.split(' ').map(Number)
-        props.size = [w, h]
+        const parts = value.split(' ').map(Number)
+        props.size = [parts[0] ?? 0, parts[1] ?? 0]
         break
       }
       case 'pos': {
-        const [x, y] = value.split(' ').map(Number)
-        props.pos = [x, y]
+        const parts = value.split(' ').map(Number)
+        props.pos = [parts[0] ?? 0, parts[1] ?? 0]
         break
       }
       case 'fill':
@@ -153,7 +153,7 @@ export function deserializeNode(text: string): NodeProps {
         break
     }
   }
-  
+
   return props
 }
 
@@ -163,20 +163,20 @@ export function deserializeNode(text: string): NodeProps {
  */
 export function diffProps(oldProps: NodeProps, newProps: NodeProps): Partial<NodeProps> {
   const changes: Partial<NodeProps> = {}
-  
+
   for (const key of Object.keys(newProps) as Array<keyof NodeProps>) {
     const oldVal = oldProps[key]
     const newVal = newProps[key]
-    
+
     if (Array.isArray(oldVal) && Array.isArray(newVal)) {
       if (oldVal.join(',') !== newVal.join(',')) {
-        (changes as Record<string, unknown>)[key] = newVal
+        ;(changes as Record<string, unknown>)[key] = newVal
       }
     } else if (oldVal !== newVal) {
-      (changes as Record<string, unknown>)[key] = newVal
+      ;(changes as Record<string, unknown>)[key] = newVal
     }
   }
-  
+
   return changes
 }
 

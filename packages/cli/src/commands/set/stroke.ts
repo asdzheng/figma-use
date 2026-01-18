@@ -12,13 +12,15 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-stroke-color', { 
-        id: args.id, 
+      const result = await sendCommand('set-stroke-color', {
+        id: args.id,
         color: args.color,
         weight: args.weight ? Number(args.weight) : undefined,
         align: args.align
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

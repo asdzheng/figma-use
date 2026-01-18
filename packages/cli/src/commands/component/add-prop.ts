@@ -6,7 +6,11 @@ export default defineCommand({
   args: {
     id: { type: 'positional', description: 'Component ID', required: true },
     name: { type: 'string', description: 'Property name', required: true },
-    type: { type: 'string', description: 'BOOLEAN | TEXT | INSTANCE_SWAP | VARIANT', required: true },
+    type: {
+      type: 'string',
+      description: 'BOOLEAN | TEXT | INSTANCE_SWAP | VARIANT',
+      required: true
+    },
     default: { type: 'string', description: 'Default value', required: true },
     json: { type: 'boolean', description: 'Output as JSON' }
   },
@@ -23,6 +27,8 @@ export default defineCommand({
         defaultValue: args.default
       })
       printResult(result, args.json, 'update')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

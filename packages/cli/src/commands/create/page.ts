@@ -11,6 +11,8 @@ export default defineCommand({
     try {
       const result = await sendCommand('create-page', { name: args.name })
       printResult(result, args.json, 'create')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

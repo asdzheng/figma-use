@@ -19,6 +19,8 @@ export default defineCommand({
         newDefaultValue: args.default
       })
       printResult(result, args.json, 'update')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

@@ -304,6 +304,24 @@ figma-use me                                 # Current user info
 figma-use file info                          # File key and name
 ```
 
+### Diff (Experimental)
+
+Compare two frames and generate a unified diff patch:
+
+```bash
+# Compare original vs modified version
+figma-use diff create --from 123:456 --to 789:012
+```
+
+Apply patch with validation (fails if current state doesn't match expected):
+
+```bash
+figma-use diff apply patch.diff           # Apply from file
+figma-use diff apply --stdin < patch.diff # Apply from stdin
+figma-use diff apply patch.diff --dry-run # Preview changes
+figma-use diff apply patch.diff --force   # Skip validation
+```
+
 ### Escape Hatch
 
 ```bash

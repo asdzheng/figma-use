@@ -17,6 +17,8 @@ export default defineCommand({
         limit: Number(args.limit)
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

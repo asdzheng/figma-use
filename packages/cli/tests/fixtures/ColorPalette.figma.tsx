@@ -16,7 +16,7 @@ const colors = defineVars({
   gray600: { name: 'Colors/Gray/600', value: '#475569' },
   gray700: { name: 'Colors/Gray/700', value: '#334155' },
   gray800: { name: 'Colors/Gray/800', value: '#1E293B' },
-  gray900: { name: 'Colors/Gray/900', value: '#0F172A' },
+  gray900: { name: 'Colors/Gray/900', value: '#0F172A' }
 })
 
 const ColorSwatch = ({ color, label }: { color: any; label: string }) => (
@@ -26,7 +26,7 @@ const ColorSwatch = ({ color, label }: { color: any; label: string }) => (
       width: 80,
       height: 80,
       backgroundColor: color,
-      borderRadius: 8,
+      borderRadius: 8
     }}
   />
 )
@@ -41,13 +41,11 @@ export default function ColorPalette() {
         padding: 24,
         backgroundColor: '#FFFFFF',
         width: 600,
-        height: 400,
+        height: 400
       }}
     >
-      <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>
-        Gray Scale
-      </Text>
-      
+      <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>Gray Scale</Text>
+
       <Frame style={{ flexDirection: 'row', gap: 8, width: 500, height: 100 }}>
         <ColorSwatch color={colors.gray50} label="50" />
         <ColorSwatch color={colors.gray100} label="100" />
@@ -55,7 +53,7 @@ export default function ColorPalette() {
         <ColorSwatch color={colors.gray300} label="300" />
         <ColorSwatch color={colors.gray400} label="400" />
       </Frame>
-      
+
       <Frame style={{ flexDirection: 'row', gap: 8, width: 500, height: 100 }}>
         <ColorSwatch color={colors.gray500} label="500" />
         <ColorSwatch color={colors.gray600} label="600" />

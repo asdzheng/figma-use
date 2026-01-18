@@ -1,19 +1,19 @@
 /**
  * Figma-like React components
- * 
+ *
  * API inspired by react-figma but outputs JSON instead of Figma nodes
  */
 
 import * as React from 'react'
 
 // Re-export defineVars for use in .figma.tsx files
-export { 
-  defineVars, 
-  figmaVar, 
-  isVariable, 
+export {
+  defineVars,
+  figmaVar,
+  isVariable,
   loadVariablesIntoRegistry,
   isRegistryLoaded,
-  type FigmaVariable 
+  type FigmaVariable
 } from './vars.ts'
 
 // Component registry - tracks defined components and their instances
@@ -35,14 +35,14 @@ export function getComponentRegistry() {
 
 /**
  * Define a reusable Figma component
- * 
+ *
  * @example
  * const Button = defineComponent('Button',
  *   <Frame style={{ padding: 12, backgroundColor: "#3B82F6" }}>
  *     <Text style={{ color: "#FFF" }}>Click</Text>
  *   </Frame>
  * )
- * 
+ *
  * export default () => (
  *   <Frame>
  *     <Button />
@@ -56,17 +56,17 @@ export function defineComponent<P extends BaseProps = BaseProps>(
 ): React.FC<P> {
   const sym = Symbol(name)
   componentRegistry.set(sym, { name, element })
-  
+
   // Return a component that renders as a special marker
   const ComponentInstance: React.FC<P> = (props) => {
     return React.createElement('__component_instance__', {
       __componentSymbol: sym,
       __componentName: name,
-      ...props,
+      ...props
     })
   }
   ComponentInstance.displayName = name
-  
+
   return ComponentInstance
 }
 
@@ -99,7 +99,18 @@ interface Style {
 interface TextStyle extends Style {
   fontSize?: number
   fontFamily?: string
-  fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900'
+  fontWeight?:
+    | 'normal'
+    | 'bold'
+    | '100'
+    | '200'
+    | '300'
+    | '400'
+    | '500'
+    | '600'
+    | '700'
+    | '800'
+    | '900'
   fontStyle?: 'normal' | 'italic'
   color?: string
   textAlign?: 'left' | 'center' | 'right'
@@ -130,8 +141,10 @@ interface InstanceProps extends BaseProps {
 }
 
 // Component factory - creates intrinsic element wrapper
-const c = <T extends BaseProps>(type: string): React.FC<T> => 
-  (props) => React.createElement(type, props)
+const c =
+  <T extends BaseProps>(type: string): React.FC<T> =>
+  (props) =>
+    React.createElement(type, props)
 
 // Components
 export const Frame = c<BaseProps>('frame')
@@ -150,6 +163,17 @@ export const View = Frame
 
 // All component names for JSX transform
 export const INTRINSIC_ELEMENTS = [
-  'Frame', 'Rectangle', 'Ellipse', 'Text', 'Line', 'Star', 
-  'Polygon', 'Vector', 'Component', 'Instance', 'Group', 'Page', 'View'
+  'Frame',
+  'Rectangle',
+  'Ellipse',
+  'Text',
+  'Line',
+  'Star',
+  'Polygon',
+  'Vector',
+  'Component',
+  'Instance',
+  'Group',
+  'Page',
+  'View'
 ] as const

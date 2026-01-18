@@ -12,6 +12,8 @@ export default defineCommand({
     try {
       const result = await sendCommand('set-fill-color', { id: args.id, color: args.color })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

@@ -5,7 +5,7 @@ import { resolve, dirname } from 'path'
 function getPackageRoot(): string {
   const currentFile = import.meta.path || import.meta.url.replace('file://', '')
   let dir = dirname(currentFile)
-  
+
   for (let i = 0; i < 10; i++) {
     try {
       const pkg = require(resolve(dir, 'package.json'))
@@ -15,7 +15,7 @@ function getPackageRoot(): string {
     } catch {}
     dir = dirname(dir)
   }
-  
+
   return dirname(dirname(dirname(currentFile)))
 }
 

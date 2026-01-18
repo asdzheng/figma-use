@@ -7,7 +7,11 @@ import type { ChromeDevToolsTarget } from '../types.ts'
 export default defineCommand({
   meta: { description: 'Profile any figma-use command via Chrome DevTools Protocol' },
   args: {
-    command: { type: 'positional', description: 'Command to profile (e.g., "get components --limit 10")', required: true },
+    command: {
+      type: 'positional',
+      description: 'Command to profile (e.g., "get components --limit 10")',
+      required: true
+    },
     port: { type: 'string', description: 'Chrome DevTools port', default: '9222' },
     top: { type: 'string', description: 'Number of top functions to show', default: '20' }
   },
@@ -17,15 +21,19 @@ export default defineCommand({
 
     // Find Figma tab
     const targets = await fetch(`http://localhost:${port}/json`)
-      .then(r => r.json() as Promise<ChromeDevToolsTarget[]>)
+      .then((r) => r.json() as Promise<ChromeDevToolsTarget[]>)
       .catch(() => null)
     if (!targets) {
       console.error(fail(`Cannot connect to DevTools on port ${port}`))
-      console.error(`Start Figma with: /Applications/Figma.app/Contents/MacOS/Figma --remote-debugging-port=${port}`)
+      console.error(
+        `Start Figma with: /Applications/Figma.app/Contents/MacOS/Figma --remote-debugging-port=${port}`
+      )
       process.exit(1)
     }
 
-    const figmaTab = targets.find((t) => t.title?.includes('Figma') && t.type === 'page' && t.url?.includes('figma.com/design'))
+    const figmaTab = targets.find(
+      (t) => t.title?.includes('Figma') && t.type === 'page' && t.url?.includes('figma.com/design')
+    )
     if (!figmaTab) {
       console.error(fail('No Figma design tab found. Open a Figma file first.'))
       process.exit(1)
@@ -54,13 +62,15 @@ export default defineCommand({
 
     const send = (method: string, params: any = {}): Promise<any> => {
       const id = msgId++
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         pending.set(id, resolve)
         ws.send(JSON.stringify({ id, method, params }))
       })
     }
 
-    await new Promise<void>(r => { ws.onopen = () => r() })
+    await new Promise<void>((r) => {
+      ws.onopen = () => r()
+    })
 
     // Enable and start profiler
     await send('Profiler.enable')
@@ -70,18 +80,20 @@ export default defineCommand({
 
     // Run the actual CLI command using the same binary
     // Use shell to preserve quoting
-    const cmdResult = await new Promise<{ stdout: string; stderr: string; code: number }>((resolve) => {
-      const fullCmd = `${process.argv[0]} ${process.argv[1]} ${args.command} --json`
-      const proc = spawn('sh', ['-c', fullCmd], {
-        stdio: ['ignore', 'pipe', 'pipe']
-      })
-      
-      let stdout = ''
-      let stderr = ''
-      proc.stdout.on('data', (d) => stdout += d)
-      proc.stderr.on('data', (d) => stderr += d)
-      proc.on('close', (code) => resolve({ stdout, stderr, code: code || 0 }))
-    })
+    const cmdResult = await new Promise<{ stdout: string; stderr: string; code: number }>(
+      (resolve) => {
+        const fullCmd = `${process.argv[0]} ${process.argv[1]} ${args.command} --json`
+        const proc = spawn('sh', ['-c', fullCmd], {
+          stdio: ['ignore', 'pipe', 'pipe']
+        })
+
+        let stdout = ''
+        let stderr = ''
+        proc.stdout.on('data', (d) => (stdout += d))
+        proc.stderr.on('data', (d) => (stderr += d))
+        proc.on('close', (code) => resolve({ stdout, stderr, code: code || 0 }))
+      }
+    )
 
     const duration = Date.now() - startTime
 
@@ -118,7 +130,10 @@ export default defineCommand({
     })
 
     // Categorize time
-    let wasmTime = 0, gcTime = 0, idleTime = 0, jsTime = 0
+    let wasmTime = 0,
+      gcTime = 0,
+      idleTime = 0,
+      jsTime = 0
     for (const [nodeId, time] of Object.entries(counts)) {
       const node = nodes.find((n: any) => n.id === parseInt(nodeId))
       const name = node?.callFrame?.functionName || ''
@@ -132,10 +147,16 @@ export default defineCommand({
     const total = wasmTime + gcTime + jsTime
     if (total > 0) {
       console.log('Time breakdown:')
-      console.log(`  Figma WASM:  ${(wasmTime/1000).toFixed(0).padStart(5)}ms  (${(wasmTime/total*100).toFixed(0)}%)`)
-      console.log(`  GC:          ${(gcTime/1000).toFixed(0).padStart(5)}ms  (${(gcTime/total*100).toFixed(0)}%)`)
-      console.log(`  JS:          ${(jsTime/1000).toFixed(0).padStart(5)}ms  (${(jsTime/total*100).toFixed(0)}%)`)
-      console.log(`  Idle:        ${(idleTime/1000).toFixed(0).padStart(5)}ms`)
+      console.log(
+        `  Figma WASM:  ${(wasmTime / 1000).toFixed(0).padStart(5)}ms  (${((wasmTime / total) * 100).toFixed(0)}%)`
+      )
+      console.log(
+        `  GC:          ${(gcTime / 1000).toFixed(0).padStart(5)}ms  (${((gcTime / total) * 100).toFixed(0)}%)`
+      )
+      console.log(
+        `  JS:          ${(jsTime / 1000).toFixed(0).padStart(5)}ms  (${((jsTime / total) * 100).toFixed(0)}%)`
+      )
+      console.log(`  Idle:        ${(idleTime / 1000).toFixed(0).padStart(5)}ms`)
       console.log()
     }
 
@@ -151,7 +172,7 @@ export default defineCommand({
           time: time as number
         }
       })
-      .filter(f => f.time > 500 && f.name !== '(idle)')
+      .filter((f) => f.time > 500 && f.name !== '(idle)')
       .sort((a, b) => b.time - a.time)
       .slice(0, topN)
 
@@ -161,7 +182,9 @@ export default defineCommand({
       for (const f of funcs) {
         const shortUrl = f.url.split('/').pop()?.slice(0, 25) || ''
         const loc = shortUrl ? `${shortUrl}:${f.line}` : ''
-        console.log(`${(f.time/1000).toFixed(1).padStart(7)}ms  ${f.name.slice(0, 40).padEnd(40)}  ${loc}`)
+        console.log(
+          `${(f.time / 1000).toFixed(1).padStart(7)}ms  ${f.name.slice(0, 40).padEnd(40)}  ${loc}`
+        )
       }
       console.log()
     }

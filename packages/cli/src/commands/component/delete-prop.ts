@@ -15,6 +15,8 @@ export default defineCommand({
         propertyName: args.name
       })
       printResult(result, args.json, 'update')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

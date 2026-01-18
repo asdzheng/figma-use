@@ -29,7 +29,12 @@ function connect() {
 }
 
 window.onmessage = (event) => {
-  const msg = event.data.pluginMessage as { type: string; id: string; result?: unknown; error?: string }
+  const msg = event.data.pluginMessage as {
+    type: string
+    id: string
+    result?: unknown
+    error?: string
+  }
   if (msg.type !== 'result' || !ws) return
   ws.send(JSON.stringify({ id: msg.id, result: msg.result, error: msg.error }))
 }

@@ -11,12 +11,14 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('resize-node', { 
-        id: args.id, 
-        width: Number(args.width), 
-        height: Number(args.height) 
+      const result = await sendCommand('resize-node', {
+        id: args.id,
+        width: Number(args.width),
+        height: Number(args.height)
       })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

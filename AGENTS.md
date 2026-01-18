@@ -64,10 +64,29 @@ Plugin uses esbuild (not Bun) because Figma requires ES2015. Build outputs to `p
 
 ## Release
 
-```bash
-# Bump version in package.json
-git add -A && git commit -m "v0.1.x"
-git tag v0.1.x
-git push && git push --tags
-npm publish --access public
-```
+⚠️ **NEVER commit and release in one step!**
+
+1. **Review staged changes** before committing:
+   ```bash
+   git status
+   git diff --cached
+   ```
+
+2. **Ensure CHANGELOG.md is updated** with all new features
+
+3. **Commit and release separately**:
+   ```bash
+   # First: commit with changelog
+   git add -A
+   git diff --cached --name-only  # Review what's being committed!
+   git commit -m "feat: description"
+   
+   # Then: bump version and release
+   # Edit package.json version
+   git add -A && git commit -m "v0.1.x"
+   git tag v0.1.x
+   git push && git push --tags
+   npm publish --access public
+   ```
+
+4. **Never auto-commit unreviewed changes** — especially new commands/features

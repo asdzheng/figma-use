@@ -12,6 +12,8 @@ export default defineCommand({
     try {
       const result = await sendCommand('set-text', { id: args.id, text: args.text })
       printResult(result, args.json)
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

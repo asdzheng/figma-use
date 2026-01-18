@@ -7,7 +7,7 @@ import { getFigmaSettingsPath, isFigmaRunning } from './utils.ts'
 function getPackageRoot(): string {
   const currentFile = import.meta.path || import.meta.url.replace('file://', '')
   let dir = dirname(currentFile)
-  
+
   for (let i = 0; i < 10; i++) {
     try {
       const pkg = require(resolve(dir, 'package.json'))
@@ -17,44 +17,45 @@ function getPackageRoot(): string {
     } catch {}
     dir = dirname(dir)
   }
-  
+
   return dirname(dirname(dirname(currentFile)))
 }
 
 function getNextId(extensions: Array<{ id: number }>): number {
   if (!extensions || extensions.length === 0) return 1
-  return Math.max(...extensions.map(e => e.id)) + 1
+  return Math.max(...extensions.map((e) => e.id)) + 1
 }
 
 function installPlugin(manifestPath: string, force = false): { success: boolean; message: string } {
   const settingsPath = getFigmaSettingsPath()
-  
+
   if (!settingsPath || !existsSync(settingsPath)) {
-    return { 
-      success: false, 
-      message: 'Figma settings not found. Please install Figma Desktop first.' 
+    return {
+      success: false,
+      message: 'Figma settings not found. Please install Figma Desktop first.'
     }
   }
-  
+
   if (!force && isFigmaRunning()) {
     return {
       success: false,
       message: 'Figma is running. Quit Figma first or use --force'
     }
   }
-  
+
   try {
     const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
     const extensions = settings.localFileExtensions || []
-    
+
     // Check if already installed (by plugin id, not path - path may differ)
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
     const pluginId = manifest.id || 'figma-use-plugin'
-    
-    const existing = extensions.find((e: { lastKnownPluginId?: string; fileMetadata?: { type: string } }) => 
-      e.lastKnownPluginId === pluginId && e.fileMetadata?.type === 'manifest'
+
+    const existing = extensions.find(
+      (e: { lastKnownPluginId?: string; fileMetadata?: { type: string } }) =>
+        e.lastKnownPluginId === pluginId && e.fileMetadata?.type === 'manifest'
     )
-    
+
     if (existing) {
       // Update path if changed
       if (existing.manifestPath !== manifestPath) {
@@ -76,13 +77,13 @@ function installPlugin(manifestPath: string, force = false): { success: boolean;
       }
       return { success: true, message: 'Plugin already installed' }
     }
-    
+
     const pluginDir = dirname(manifestPath)
-    
+
     const manifestId = getNextId(extensions)
     const codeId = manifestId + 1
     const uiId = manifestId + 2
-    
+
     // Add manifest entry
     extensions.push({
       id: manifestId,
@@ -96,7 +97,7 @@ function installPlugin(manifestPath: string, force = false): { success: boolean;
       },
       cachedContainsWidget: false
     })
-    
+
     // Add code entry
     extensions.push({
       id: codeId,
@@ -106,7 +107,7 @@ function installPlugin(manifestPath: string, force = false): { success: boolean;
         manifestFileId: manifestId
       }
     })
-    
+
     // Add UI entry
     extensions.push({
       id: uiId,
@@ -116,60 +117,65 @@ function installPlugin(manifestPath: string, force = false): { success: boolean;
         manifestFileId: manifestId
       }
     })
-    
+
     settings.localFileExtensions = extensions
     writeFileSync(settingsPath, JSON.stringify(settings))
-    
+
     return { success: true, message: 'Plugin installed successfully' }
   } catch (error) {
-    return { 
-      success: false, 
-      message: `Failed to install: ${error instanceof Error ? error.message : error}` 
+    return {
+      success: false,
+      message: `Failed to install: ${error instanceof Error ? error.message : error}`
     }
   }
 }
 
-function uninstallPlugin(manifestPath: string, force = false): { success: boolean; message: string } {
+function uninstallPlugin(
+  manifestPath: string,
+  force = false
+): { success: boolean; message: string } {
   const settingsPath = getFigmaSettingsPath()
-  
+
   if (!settingsPath || !existsSync(settingsPath)) {
     return { success: false, message: 'Figma settings not found' }
   }
-  
+
   if (!force && isFigmaRunning()) {
     return {
       success: false,
       message: 'Figma is running. Quit Figma first or use --force'
     }
   }
-  
+
   try {
     const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
     const extensions = settings.localFileExtensions || []
-    
+
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
     const pluginId = manifest.id || 'figma-use-plugin'
-    
-    const manifestEntry = extensions.find((e: { lastKnownPluginId?: string; fileMetadata?: { type: string } }) => 
-      e.lastKnownPluginId === pluginId && e.fileMetadata?.type === 'manifest'
+
+    const manifestEntry = extensions.find(
+      (e: { lastKnownPluginId?: string; fileMetadata?: { type: string } }) =>
+        e.lastKnownPluginId === pluginId && e.fileMetadata?.type === 'manifest'
     )
-    
+
     if (!manifestEntry) {
       return { success: true, message: 'Plugin not installed' }
     }
-    
+
     const manifestId = manifestEntry.id
-    settings.localFileExtensions = extensions.filter((e: { id: number; fileMetadata?: { manifestFileId?: number } }) => 
-      e.id !== manifestId && e.fileMetadata?.manifestFileId !== manifestId
+    settings.localFileExtensions = extensions.filter(
+      (e: { id: number; fileMetadata?: { manifestFileId?: number } }) =>
+        e.id !== manifestId && e.fileMetadata?.manifestFileId !== manifestId
     )
-    
+
     writeFileSync(settingsPath, JSON.stringify(settings))
-    
+
     return { success: true, message: 'Plugin uninstalled successfully' }
   } catch (error) {
-    return { 
-      success: false, 
-      message: `Failed to uninstall: ${error instanceof Error ? error.message : error}` 
+    return {
+      success: false,
+      message: `Failed to uninstall: ${error instanceof Error ? error.message : error}`
     }
   }
 }
@@ -179,17 +185,20 @@ export default defineCommand({
   args: {
     uninstall: { type: 'boolean', description: 'Uninstall the plugin' },
     path: { type: 'boolean', description: 'Show plugin path only' },
-    force: { type: 'boolean', description: 'Force install even if Figma is running (not recommended)' }
+    force: {
+      type: 'boolean',
+      description: 'Force install even if Figma is running (not recommended)'
+    }
   },
   async run({ args }) {
     const root = getPackageRoot()
     const pluginPath = resolve(root, 'packages', 'plugin', 'dist', 'manifest.json')
-    
+
     if (args.path) {
       console.log(pluginPath)
       return
     }
-    
+
     if (args.uninstall) {
       const result = uninstallPlugin(pluginPath, args.force)
       if (result.success) {
@@ -199,9 +208,9 @@ export default defineCommand({
       }
       return
     }
-    
+
     const result = installPlugin(pluginPath, args.force)
-    
+
     if (result.success) {
       consola.success(result.message)
       if (result.message !== 'Plugin already installed') {

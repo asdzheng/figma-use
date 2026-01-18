@@ -16,6 +16,8 @@ export default defineCommand({
         factor: Number(args.factor)
       })
       printResult(result, args.json, 'path')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

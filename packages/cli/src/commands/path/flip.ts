@@ -20,6 +20,8 @@ export default defineCommand({
         axis: args.axis
       })
       printResult(result, args.json, 'path')
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })

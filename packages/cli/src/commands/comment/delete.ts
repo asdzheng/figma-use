@@ -13,6 +13,8 @@ export default defineCommand({
     try {
       await deleteComment(args.id, args.file)
       console.log(success('Comment deleted'))
-    } catch (e) { handleError(e) }
+    } catch (e) {
+      handleError(e)
+    }
   }
 })
