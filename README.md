@@ -10,6 +10,8 @@ echo '<Frame style={{padding: 24, backgroundColor: "#3B82F6", borderRadius: 12}}
 
 No JSON schemas, no MCP protocol overhead — just JSX that any LLM can write.
 
+📄 **Includes [SKILL.md](./SKILL.md)** — drop-in reference for Claude Code and other AI agents.
+
 ## Why CLI over MCP?
 
 MCP servers exchange verbose JSON. CLIs are **token-efficient**:
@@ -281,13 +283,19 @@ figma-use node get <id> --json
 
 ## For AI Agents
 
-Copy the skill file to your agent's skills directory:
+**Includes ready-to-use [SKILL.md](./SKILL.md)** — a comprehensive reference that teaches AI agents all commands and patterns. Works with Claude Code, Cursor, and any agent that supports skill files.
 
 ```bash
+# Claude Code / pi
+mkdir -p ~/.claude/skills/figma-use
 cp node_modules/@dannote/figma-use/SKILL.md ~/.claude/skills/figma-use/
+
+# Or download directly  
+curl -o ~/.claude/skills/figma-use/SKILL.md \
+  https://raw.githubusercontent.com/anthropics/figma-use/main/SKILL.md
 ```
 
-Or add to your project's `AGENTS.md`:
+For simpler setups, add to your project's `AGENTS.md`:
 
 ```markdown
 ## Figma
