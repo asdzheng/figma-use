@@ -11,7 +11,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('set-parent', { 
+      const result = await sendCommand('set-parent-id', { 
         id: args.id, 
         parentId: args.parent,
         index: args.index ? Number(args.index) : undefined
