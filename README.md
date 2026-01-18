@@ -12,11 +12,22 @@ No JSON schemas, no MCP protocol overhead — just JSX that any LLM can write.
 
 📄 **Includes [SKILL.md](./SKILL.md)** — drop-in reference for Claude Code and other AI agents.
 
+<table>
+<tr>
+<td width="50%">
 <a href="https://youtu.be/9eSYVZRle7o">
-  <img src="https://img.youtube.com/vi/9eSYVZRle7o/maxresdefault.jpg" alt="Watch demo on YouTube" width="100%">
+<img src="https://img.youtube.com/vi/9eSYVZRle7o/maxresdefault.jpg" alt="Button components demo" width="100%">
 </a>
-
-**▶️ [Watch the demo](https://youtu.be/9eSYVZRle7o)** — AI builds a button component set in Figma in seconds.
+<p align="center"><b>▶️ Button components</b></p>
+</td>
+<td width="50%">
+<a href="https://youtu.be/efJWp2Drzb4">
+<img src="https://img.youtube.com/vi/efJWp2Drzb4/maxresdefault.jpg" alt="Calendar demo" width="100%">
+</a>
+<p align="center"><b>▶️ Tailwind UI calendar</b></p>
+</td>
+</tr>
+</table>
 
 ## Why CLI over MCP?
 
