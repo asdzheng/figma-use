@@ -25,8 +25,9 @@ function formatNode(node: Record<string, unknown>, indent = ''): string {
   }
 
   if (node.fontSize) {
-    const weight = node.fontWeight || ''
-    details.push(`font: ${node.fontSize}px ${weight}`.trim())
+    const family = node.fontFamily || ''
+    const style = node.fontStyle || ''
+    details.push(`font: ${node.fontSize}px ${family} ${style}`.trim())
   }
 
   if (node.characters && !name) {

@@ -1627,6 +1627,10 @@ function serializeNode(node: BaseNode): object {
     const textNode = node as TextNode
     base.characters = textNode.characters
     if (typeof textNode.fontSize === 'number') base.fontSize = textNode.fontSize
+    if (typeof textNode.fontName === 'object') {
+      base.fontFamily = textNode.fontName.family
+      base.fontStyle = textNode.fontName.style
+    }
   }
 
   // Children count for containers
