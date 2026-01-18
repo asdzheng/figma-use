@@ -50,14 +50,76 @@ export function decompress(data: Uint8Array): Uint8Array {
 
 /**
  * Encode a message for sending to Figma
+ * Handles variable bindings in fillPaints which require custom encoding
  */
 export function encodeMessage(message: FigmaMessage): Uint8Array {
   if (!compiledSchema) {
     throw new Error('Codec not initialized. Call initCodec() first.')
   }
   
-  const encoded = compiledSchema.encodeMessage(message)
-  return compress(encoded)
+  // Check if any nodeChange has variable bindings
+  const hasVariables = message.nodeChanges?.some(nc => 
+    nc.fillPaints?.some(p => p.colorVariableBinding)
+  )
+  
+  if (!hasVariables) {
+    // Standard encoding
+    const encoded = compiledSchema.encodeMessage(message)
+    return compress(encoded)
+  }
+  
+  // Need custom encoding for variable bindings
+  // Strategy: encode each nodeChange separately, then combine
+  const messageWithoutNodes = { ...message, nodeChanges: [] }
+  const baseEncoded = compiledSchema.encodeMessage(messageWithoutNodes)
+  const baseHex = Buffer.from(baseEncoded).toString('hex')
+  
+  // Encode nodeChanges with variable support
+  const nodeChangeBytes: Uint8Array[] = []
+  for (const nc of message.nodeChanges || []) {
+    const encoded = encodeNodeChangeWithVariables(nc)
+    nodeChangeBytes.push(encoded)
+  }
+  
+  // Combine: base message + nodeChanges
+  // Message structure: type, sessionID, ackID, reconnectSeqNum, nodeChanges[]
+  // nodeChanges is field 5
+  
+  // Message structure in kiwi:
+  // - Field 1 (type): enum MessageType
+  // - Field 2 (sessionID): uint
+  // - Field 3 (ackID): uint  
+  // - Field 4 (nodeChanges): NodeChange[] - this is what we need to replace
+  // - Field 25 (reconnectSequenceNumber): uint
+  //
+  // Empty array: "04 00" (field 4, length 0)
+  // We need to replace "04 00" with "04 <count> <nodes>"
+  
+  const emptyArrayPattern = '0400' // field 4, length 0
+  const emptyArrayIdx = baseHex.indexOf(emptyArrayPattern)
+  
+  if (emptyArrayIdx === -1) {
+    // Fallback
+    const encoded = compiledSchema.encodeMessage(message)
+    return compress(encoded)
+  }
+  
+  // Build nodeChanges array with our encoded nodes
+  const ncBytes: number[] = [0x04] // field 4
+  ncBytes.push(...encodeVarint(nodeChangeBytes.length)) // array length
+  for (const ncArr of nodeChangeBytes) {
+    ncBytes.push(...Array.from(ncArr))
+  }
+  
+  // Replace "0400" with our nodeChanges
+  const beforeArray = baseHex.slice(0, emptyArrayIdx)
+  const afterArray = baseHex.slice(emptyArrayIdx + 4) // skip "0400"
+  
+  const ncHex = Buffer.from(ncBytes).toString('hex')
+  const finalHex = beforeArray + ncHex + afterArray
+  
+  const finalBytes = new Uint8Array(finalHex.match(/.{2}/g)!.map(b => parseInt(b, 16)))
+  return compress(finalBytes)
 }
 
 /**
@@ -117,12 +179,17 @@ export interface ParentIndex {
   position: string
 }
 
+export interface VariableBinding {
+  variableID: GUID
+}
+
 export interface Paint {
   type: 'SOLID' | 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL' | 'IMAGE'
   color?: Color
   opacity?: number
   visible?: boolean
   blendMode?: string
+  colorVariableBinding?: VariableBinding // Binds color to a Figma variable
 }
 
 export interface Effect {
@@ -272,6 +339,153 @@ export function createNodeChange(opts: {
   }
 
   return change
+}
+
+/**
+ * Encode a varint (variable-length integer)
+ */
+function encodeVarint(value: number): number[] {
+  const bytes: number[] = []
+  while (value > 0x7f) {
+    bytes.push((value & 0x7f) | 0x80)
+    value >>>= 7
+  }
+  bytes.push(value)
+  return bytes
+}
+
+/**
+ * Encode a Paint with optional variable binding
+ * 
+ * Figma's variable binding format (discovered via WS traffic analysis):
+ * - Field 21 = 1 (binding type)
+ * - Field 4 = 1 (flag)
+ * - Raw sessionID varint (no field number)
+ * - Raw localID varint (no field number)
+ * - Terminators: 00 00 02 03 03 04 00 00
+ */
+export function encodePaintWithVariableBinding(
+  paint: Paint,
+  variableSessionID: number,
+  variableLocalID: number
+): Uint8Array {
+  if (!compiledSchema) {
+    throw new Error('Codec not initialized. Call initCodec() first.')
+  }
+  
+  // Encode base paint without variable binding
+  const basePaint = { ...paint }
+  delete (basePaint as any).colorVariableBinding
+  
+  const baseBytes = (compiledSchema as any).encodePaint(basePaint)
+  const baseArray = Array.from(baseBytes) as number[]
+  
+  // Remove trailing 00
+  if (baseArray[baseArray.length - 1] === 0) {
+    baseArray.pop()
+  }
+  
+  // Add variable binding in Figma's exact format:
+  // Field 21 (0x15) = 1 (binding type)
+  baseArray.push(0x15, 0x01)
+  // Field 4 = 1 (flag)  
+  baseArray.push(0x04, 0x01)
+  // Raw varints: sessionID, localID (no field numbers!)
+  baseArray.push(...encodeVarint(variableSessionID))
+  baseArray.push(...encodeVarint(variableLocalID))
+  // Terminators observed in Figma traffic
+  baseArray.push(0x00, 0x00, 0x02, 0x03, 0x03, 0x04)
+  // Final terminators
+  baseArray.push(0x00, 0x00)
+  
+  return new Uint8Array(baseArray)
+}
+
+/**
+ * Parse a variable ID string (e.g., "VariableID:38448:122296")
+ * Returns sessionID and localID
+ */
+export function parseVariableId(variableId: string): { sessionID: number; localID: number } | null {
+  const match = variableId.match(/VariableID:(\d+):(\d+)/)
+  if (!match) return null
+  return {
+    sessionID: parseInt(match[1], 10),
+    localID: parseInt(match[2], 10)
+  }
+}
+
+/**
+ * Encode a NodeChange with variable bindings in fillPaints
+ * This is needed because kiwi-schema cannot produce Figma's exact variable binding format
+ */
+export function encodeNodeChangeWithVariables(nodeChange: NodeChange): Uint8Array {
+  if (!compiledSchema) {
+    throw new Error('Codec not initialized. Call initCodec() first.')
+  }
+  
+  // Check if any fillPaints have variable bindings
+  const hasVariableBinding = nodeChange.fillPaints?.some(p => p.colorVariableBinding)
+  
+  if (!hasVariableBinding) {
+    // No variable bindings, use standard encoding
+    return (compiledSchema as any).encodeNodeChange(nodeChange)
+  }
+  
+  // Create a copy without variable bindings for base encoding
+  const cleanNodeChange = { ...nodeChange }
+  if (cleanNodeChange.fillPaints) {
+    cleanNodeChange.fillPaints = cleanNodeChange.fillPaints.map(p => {
+      const clean = { ...p }
+      delete (clean as any).colorVariableBinding
+      return clean
+    })
+  }
+  
+  // Encode clean version
+  const baseBytes = (compiledSchema as any).encodeNodeChange(cleanNodeChange)
+  const baseHex = Buffer.from(baseBytes).toString('hex')
+  
+  // Find fillPaints in the encoded bytes (field 38 = 0x26)
+  // Pattern: 2601 (field 38, array length 1) followed by paint
+  const fillPaintsMarker = '2601' // field 38, length 1
+  const markerIdx = baseHex.indexOf(fillPaintsMarker)
+  
+  if (markerIdx === -1 || !nodeChange.fillPaints?.[0]?.colorVariableBinding) {
+    return baseBytes
+  }
+  
+  // Find end of fillPaints (look for next field or double-00)
+  // fillPaints ends with: ...0401050100 (visible=true, blendMode=NORMAL, terminator)
+  const paintEndPattern = '0401050100'
+  const paintEndIdx = baseHex.indexOf(paintEndPattern, markerIdx)
+  
+  if (paintEndIdx === -1) {
+    return baseBytes
+  }
+  
+  // Extract paint without terminator
+  const paintStartIdx = markerIdx + 4 // skip "2601"
+  const paintHex = baseHex.slice(paintStartIdx, paintEndIdx + paintEndPattern.length - 2) // exclude final 00
+  
+  // Build variable binding suffix
+  const binding = nodeChange.fillPaints[0].colorVariableBinding!
+  const varBytes = [
+    0x15, 0x01, // Field 21 = 1
+    0x04, 0x01, // Field 4 = 1
+    ...encodeVarint(binding.variableID.sessionID),
+    ...encodeVarint(binding.variableID.localID),
+    0x00, 0x00, 0x02, 0x03, 0x03, 0x04, // Observed terminators
+    0x00, 0x00 // Final terminators
+  ]
+  const varHex = Buffer.from(varBytes).toString('hex')
+  
+  // Reconstruct: before fillPaints + fillPaints header + paint + var binding + after fillPaints
+  const beforeFillPaints = baseHex.slice(0, markerIdx)
+  const afterFillPaints = baseHex.slice(paintEndIdx + paintEndPattern.length)
+  
+  const newHex = beforeFillPaints + fillPaintsMarker + paintHex + varHex + afterFillPaints
+  
+  return new Uint8Array(newHex.match(/.{2}/g)!.map(b => parseInt(b, 16)))
 }
 
 

@@ -785,6 +785,21 @@ message PaintFilterMessage {
   float brightness = 10 [deprecated];
 }
 
+// Variable binding embedded in Paint - discovered via WS sniffing 2026-01
+// Figma wire format: 15 01 04 01 {sessionID varint} {localID varint}
+// - 15 = field 21 in Paint
+// - 01 = always 1 (binding type for color)
+// - 04 = field 4
+// - 01 = always 1 (flag)
+// - then GUID as raw sessionID + localID varints (no field numbers)
+// NOTE: kiwi-schema cannot produce this exact format, handled manually in codec
+message PaintVariableBinding {
+  uint bindingType = 1;  // Always 1 for color
+  uint flag = 2;         // Placeholder  
+  uint flag2 = 3;        // Placeholder
+  GUID variableID = 4;   // Variable GUID
+}
+
 message Paint {
   PaintType type = 1;
   Color color = 2;
@@ -806,6 +821,7 @@ message Paint {
   Video video = 18;
   uint originalImageWidth = 19;
   uint originalImageHeight = 20;
+  PaintVariableBinding variableBinding = 21; // Not in fig-kiwi. Discovered via WS sniffing 2026-01
 }
 
 message FontMetaData {
@@ -1927,6 +1943,8 @@ message Message {
   uint reconnectSequenceNumber = 25;
   string pasteBranchSourceFileKey = 26;
   EditorType pasteEditorType = 27;
+  // Field 38 (timestamp) exists but kiwi-schema limits field IDs to 28
+  // Discovered via WS sniffing 2026-01, skipped during manual pre-processing
 }
 
 message DiffChunk {

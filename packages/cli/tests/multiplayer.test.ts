@@ -20,6 +20,8 @@ import {
   encodeMessage,
   createNodeChange,
   createNodeChangesMessage,
+  encodePaintWithVariableBinding,
+  type Paint,
 } from '../src/multiplayer/codec.ts'
 import { parseFileKey } from '../src/multiplayer/client.ts'
 
@@ -318,5 +320,51 @@ describe('multiplayer/client', () => {
 
   test('parseFileKey throws on invalid URL', () => {
     expect(() => parseFileKey('https://example.com/test')).toThrow('Invalid Figma URL')
+  })
+})
+
+describe('variable binding encoding', () => {
+  test('encodePaintWithVariableBinding produces correct format', async () => {
+    await initCodec()
+    
+    const paint: Paint = {
+      type: 'SOLID',
+      color: { r: 0.972, g: 0.980, b: 0.988, a: 1 },
+      opacity: 1,
+      visible: true,
+      blendMode: 'NORMAL',
+    }
+    
+    const encoded = encodePaintWithVariableBinding(paint, 38448, 122296)
+    const hex = Buffer.from(encoded).toString('hex')
+    
+    // Should contain variable binding pattern
+    expect(hex).toContain('15010401b0ac02b8bb07')
+  })
+  
+  test('encodeMessage includes variable binding when present', async () => {
+    await initCodec()
+    
+    const nodeChange = createNodeChange({
+      sessionID: 1,
+      localID: 1,
+      parentSessionID: 1,
+      parentLocalID: 1,
+      type: 'RECTANGLE',
+      name: 'Test',
+      x: 0, y: 0, width: 100, height: 100,
+      fill: { r: 0.972, g: 0.980, b: 0.988, a: 1 }
+    })
+    
+    nodeChange.fillPaints![0].colorVariableBinding = {
+      variableID: { sessionID: 38448, localID: 122296 }
+    }
+    
+    const message = createNodeChangesMessage(1, 0, [nodeChange])
+    const encoded = encodeMessage(message)
+    const decompressed = decompress(encoded)
+    const hex = Buffer.from(decompressed).toString('hex')
+    
+    expect(hex).toContain('15010401b0ac02b8bb07')
   })
 })

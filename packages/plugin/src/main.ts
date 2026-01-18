@@ -1361,6 +1361,34 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       return serializeNode(node)
     }
 
+    case 'bind-fill-variable': {
+      const { nodeId, variableId, paintIndex = 0 } = args as { nodeId: string; variableId: string; paintIndex?: number }
+      const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null
+      if (!node) throw new Error('Node not found')
+      if (!('fills' in node)) throw new Error('Node does not have fills')
+      const variable = await figma.variables.getVariableByIdAsync(variableId)
+      if (!variable) throw new Error('Variable not found')
+      const fills = (node as GeometryMixin).fills as Paint[]
+      if (!fills[paintIndex]) throw new Error('Paint not found at index ' + paintIndex)
+      const newFill = figma.variables.setBoundVariableForPaint(fills[paintIndex], 'color', variable)
+      ;(node as GeometryMixin).fills = [...fills.slice(0, paintIndex), newFill, ...fills.slice(paintIndex + 1)]
+      return serializeNode(node)
+    }
+
+    case 'bind-stroke-variable': {
+      const { nodeId, variableId, paintIndex = 0 } = args as { nodeId: string; variableId: string; paintIndex?: number }
+      const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null
+      if (!node) throw new Error('Node not found')
+      if (!('strokes' in node)) throw new Error('Node does not have strokes')
+      const variable = await figma.variables.getVariableByIdAsync(variableId)
+      if (!variable) throw new Error('Variable not found')
+      const strokes = (node as GeometryMixin).strokes as Paint[]
+      if (!strokes[paintIndex]) throw new Error('Paint not found at index ' + paintIndex)
+      const newStroke = figma.variables.setBoundVariableForPaint(strokes[paintIndex], 'color', variable)
+      ;(node as GeometryMixin).strokes = [...strokes.slice(0, paintIndex), newStroke, ...strokes.slice(paintIndex + 1)]
+      return serializeNode(node)
+    }
+
     // ==================== VARIABLE COLLECTIONS ====================
     case 'get-variable-collections': {
       const collections = await figma.variables.getLocalVariableCollectionsAsync()

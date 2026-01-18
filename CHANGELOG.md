@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-01-18
+
+### Added
+
+- **Variable binding via multiplayer protocol** — bind fill colors to Figma variables without plugin API
+  - `encodePaintWithVariableBinding()` — encode Paint with color variable binding
+  - `encodeNodeChangeWithVariables()` — encode NodeChange with variable-bound paints  
+  - `parseVariableId()` — parse "VariableID:sessionID:localID" strings
+- New exports: `VariableBinding`, `encodePaintWithVariableBinding`, `encodeNodeChangeWithVariables`, `parseVariableId`
+- `bind-fill-variable` plugin command — bind fill color to variable
+- `bind-stroke-variable` plugin command — bind stroke color to variable
+
+### Fixed
+
+- Message field mapping: nodeChanges is field 4, reconnectSequenceNumber is field 25
+- Paint variable binding format now matches Figma's exact wire format
+
+### Technical
+
+- Discovered Figma's variable binding wire format via WebSocket traffic analysis
+- Created capture/diff tools for binary protocol analysis (`scripts/capture.ts`, `scripts/diff-hex.ts`)
+- 142 tests passing
+
 ## [0.3.0] - 2025-01-17
 
 ### Added
