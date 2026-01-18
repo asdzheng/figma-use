@@ -206,7 +206,9 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         }
       }
 
-      for (const layout of deferredLayouts) {
+      // Apply layouts in reverse order (children first, then parents)
+      for (let i = deferredLayouts.length - 1; i >= 0; i--) {
+        const layout = deferredLayouts[i]
         layout.frame.layoutMode = layout.layoutMode
         layout.frame.primaryAxisSizingMode = 'AUTO'
         layout.frame.counterAxisSizingMode = 'AUTO'
@@ -217,11 +219,6 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           layout.frame.paddingBottom = layout.padding.bottom
           layout.frame.paddingLeft = layout.padding.left
         }
-        // Trigger layout recalculation for hug contents
-        const w = layout.frame.width
-        const h = layout.frame.height
-        layout.frame.resize(w + 0.01, h + 0.01)
-        layout.frame.resize(w || 1, h || 1)
       }
 
       for (const node of rootNodes) {
@@ -1365,7 +1362,13 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         nodeId: string
         pendingComponentSetInstances?: PendingInstance[]
       }
-      const root = await figma.getNodeByIdAsync(nodeId)
+      // Multiplayer nodes may not be immediately visible, retry with exponential backoff
+      let root: BaseNode | null = null
+      for (let i = 0; i < 10; i++) {
+        root = await figma.getNodeByIdAsync(nodeId)
+        if (root) break
+        await new Promise(r => setTimeout(r, 100 * (i + 1)))
+      }
       if (!root) return null
       
       // Create ComponentSet instances via Plugin API (multiplayer can't link them correctly)
@@ -1432,16 +1435,20 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         // Fix auto-layout frames
         if ('layoutMode' in node && node.layoutMode !== 'NONE') {
           const frame = node as FrameNode
-          // If size is minimal (1x1 or very small), enable auto-sizing
-          if (frame.width <= 1 && frame.height <= 1) {
-            frame.primaryAxisSizingMode = 'AUTO'
-            frame.counterAxisSizingMode = 'AUTO'
-            // Trigger layout recalculation only for auto-sized frames
-            frame.resize(1.01, 1.01)
-            frame.resize(1, 1)
+          const needsPrimaryRecalc = frame.primaryAxisSizingMode === 'AUTO'
+          const needsCounterRecalc = frame.counterAxisSizingMode === 'AUTO'
+          if (needsPrimaryRecalc || needsCounterRecalc) {
+            // Re-apply AUTO sizing to trigger recalculation
+            // Temporarily set to FIXED, then back to AUTO forces Figma to recalc
+            if (needsPrimaryRecalc) {
+              frame.primaryAxisSizingMode = 'FIXED'
+              frame.primaryAxisSizingMode = 'AUTO'
+            }
+            if (needsCounterRecalc) {
+              frame.counterAxisSizingMode = 'FIXED'
+              frame.counterAxisSizingMode = 'AUTO'
+            }
           }
-          // For explicitly sized frames, just trigger layout without changing size
-          // The resize trick forces Figma to recalculate child positions
         }
       }
       

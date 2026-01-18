@@ -277,6 +277,15 @@ export default defineCommand({
       // Send to Figma via proxy
       await sendNodeChanges(result.nodeChanges, pendingInstances)
       
+      // Trigger layout recalculation via Plugin API
+      // Multiplayer nodes aren't immediately visible to plugin, so we call separately
+      const rootId = `${result.nodeChanges[0].guid.sessionID}:${result.nodeChanges[0].guid.localID}`
+      try {
+        await sendCommand('trigger-layout', { nodeId: rootId, pendingComponentSetInstances: pendingInstances })
+      } catch {
+        // Plugin may not be connected, layout will be off but nodes created
+      }
+      
       // Output
       if (args.json) {
         const ids = result.nodeChanges.map(nc => ({

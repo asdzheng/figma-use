@@ -276,29 +276,8 @@ new Elysia()
         throw codecError
       }
       
-      if (sendToPlugin) {
-        const rootId = `${nodeChanges[0].guid.sessionID}:${nodeChanges[0].guid.localID}`
-        const layoutId = crypto.randomUUID()
-        try {
-          await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              pendingRequests.delete(layoutId)
-              reject(new Error('Layout trigger timeout'))
-            }, 5000)
-            pendingRequests.set(layoutId, { resolve: () => resolve(), reject, timeout })
-            sendToPlugin!(JSON.stringify({ 
-              id: layoutId, 
-              command: 'trigger-layout', 
-              args: { 
-                nodeId: rootId,
-                pendingComponentSetInstances: (body as any).pendingComponentSetInstances || []
-              } 
-            }))
-          })
-        } catch {
-          // Layout trigger failed, nodes will overlap but still work
-        }
-      }
+      // Note: trigger-layout is now called from CLI after render completes
+      // This ensures multiplayer nodes are visible to the plugin
       
       const ids = nodeChanges.map(nc => ({
         id: `${nc.guid.sessionID}:${nc.guid.localID}`,

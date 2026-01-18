@@ -15,7 +15,7 @@
  * ### Auto-layout field names differ from Plugin API
  * - justifyContent → stackPrimaryAlignItems (not stackJustify)
  * - alignItems → stackCounterAlignItems (not stackCounterAlign)
- * - Valid values: 'MIN', 'CENTER', 'MAX', 'SPACE_EVENLY' (not 'SPACE_BETWEEN')
+ * - Valid values: 'MIN', 'CENTER', 'MAX', 'SPACE_BETWEEN', 'SPACE_EVENLY'
  * 
  * ### Sizing modes for auto-layout
  * - stackPrimarySizing/stackCounterSizing = 'FIXED' when explicit size given

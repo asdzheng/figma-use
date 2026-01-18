@@ -51,6 +51,20 @@ echo '<Frame style={{padding: 24, gap: 16, flexDirection: "column", backgroundCo
 
 **Style props:** `width`, `height`, `x`, `y`, `padding`, `paddingTop/Right/Bottom/Left`, `gap`, `flexDirection` (row|column), `justifyContent`, `alignItems`, `backgroundColor`, `borderColor`, `borderWidth`, `borderRadius`, `opacity`, `fontSize`, `fontFamily`, `fontWeight`, `color`, `textAlign`
 
+### Auto-Layout (Hug Contents)
+
+Frames with `flexDirection` automatically calculate size from children:
+
+```bash
+# Height calculated as 50 + 10 (gap) + 30 = 90
+echo '<Frame style={{width: 200, flexDirection: "column", gap: 10}}>
+  <Frame style={{width: 200, height: 50, backgroundColor: "#00FF00"}} />
+  <Frame style={{width: 200, height: 30, backgroundColor: "#0000FF"}} />
+</Frame>' | figma-use render --stdin
+```
+
+**Limitation:** Row layout without explicit width collapses to 1×1 — always set `width` on row containers
+
 ### Buttons Example (3 sizes)
 
 Since stdin doesn't support variables, write out each variant explicitly:

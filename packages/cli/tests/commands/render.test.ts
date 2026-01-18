@@ -1,7 +1,7 @@
 /**
  * Render tests using proxy connection pooling
  */
-import { describe, test, expect, beforeAll } from 'bun:test'
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import * as React from 'react'
 import { run } from '../helpers.ts'
 import { renderToNodeChanges } from '../../src/render/index.ts'
@@ -109,6 +109,106 @@ describe('render', () => {
     const cardId = `${result.nodeChanges[0]!.guid.sessionID}:${result.nodeChanges[0]!.guid.localID}`
     const cardInfo = await run(`node get ${cardId} --json`) as { parentId?: string }
     expect(cardInfo.parentId).toBe(parent.id)
+  })
+})
+
+describe('render auto-layout (hug contents)', () => {
+  let alSessionID = 0
+  let alParentGUID = { sessionID: 0, localID: 0 }
+  
+  beforeAll(async () => {
+    if (!fileKey) fileKey = await getFileKey()
+    alParentGUID = await getParentGUID()
+    alSessionID = alParentGUID.sessionID || Date.now() % 1000000
+  }, 10000)
+  
+  // Helper to create React element and render via proxy + trigger-layout
+  async function renderFrameWithLayout(
+    name: string, 
+    style: Record<string, unknown>, 
+    children: Array<{ style: Record<string, unknown> }>
+  ): Promise<string> {
+    const { sendCommand } = await import('../../src/client.ts')
+    
+    const childElements = children.map((child, i) => 
+      React.createElement('frame', { key: i, style: child.style })
+    )
+    const element = React.createElement('frame', { name, style }, ...childElements)
+    
+    // Use unique localID for each render to avoid collisions
+    const uniqueLocalID = Math.floor(Math.random() * 900000) + 100000
+    
+    const result = renderToNodeChanges(element, {
+      sessionID: alSessionID,
+      parentGUID: alParentGUID,
+      startLocalID: uniqueLocalID,
+    })
+    
+    await sendToProxy(result.nodeChanges)
+    
+    const rootId = `${result.nodeChanges[0]!.guid.sessionID}:${result.nodeChanges[0]!.guid.localID}`
+    await sendCommand('trigger-layout', { nodeId: rootId })
+    
+    return rootId
+  }
+
+  test('column layout calculates height from children', async () => {
+    const rootId = await renderFrameWithLayout(
+      'AutoCol',
+      { width: 200, flexDirection: 'column', backgroundColor: '#FF0000' },
+      [
+        { style: { width: 200, height: 50, backgroundColor: '#00FF00' } },
+        { style: { width: 200, height: 30, backgroundColor: '#0000FF' } },
+      ]
+    )
+    
+    const node = await run(`node get ${rootId} --json`) as { width: number; height: number }
+    expect(node.width).toBe(200)
+    expect(node.height).toBe(80) // 50 + 30
+  })
+
+  test('column layout with gap calculates height correctly', async () => {
+    const rootId = await renderFrameWithLayout(
+      'AutoColGap',
+      { width: 200, flexDirection: 'column', gap: 10, backgroundColor: '#FF0000' },
+      [
+        { style: { width: 200, height: 50, backgroundColor: '#00FF00' } },
+        { style: { width: 200, height: 50, backgroundColor: '#0000FF' } },
+      ]
+    )
+    
+    const node = await run(`node get ${rootId} --json`) as { width: number; height: number }
+    expect(node.width).toBe(200)
+    expect(node.height).toBe(110) // 50 + 10 + 50
+  })
+
+  test('column layout with padding calculates height correctly', async () => {
+    const rootId = await renderFrameWithLayout(
+      'AutoColPad',
+      { width: 200, padding: 20, flexDirection: 'column', backgroundColor: '#FF0000' },
+      [
+        { style: { width: 160, height: 50, backgroundColor: '#00FF00' } },
+      ]
+    )
+    
+    const node = await run(`node get ${rootId} --json`) as { width: number; height: number }
+    expect(node.width).toBe(200)
+    expect(node.height).toBe(90) // 20 + 50 + 20
+  })
+
+  test('row layout with explicit width works', async () => {
+    const rootId = await renderFrameWithLayout(
+      'AutoRow',
+      { width: 300, flexDirection: 'row', gap: 20, backgroundColor: '#FF0000' },
+      [
+        { style: { width: 100, height: 80, backgroundColor: '#00FF00' } },
+        { style: { width: 100, height: 60, backgroundColor: '#0000FF' } },
+      ]
+    )
+    
+    const node = await run(`node get ${rootId} --json`) as { width: number; height: number }
+    expect(node.width).toBe(300)
+    expect(node.height).toBe(80) // Max child height
   })
 })
 

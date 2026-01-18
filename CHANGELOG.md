@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-01-18
+
+### Added
+
+- `page create` command documented in SKILL.md
+- Auto-layout (hug contents) tests for render
+
+### Fixed
+
+- **JSX render hug contents** — auto-layout frames now correctly calculate size from children
+  - `trigger-layout` moved from proxy to CLI (ensures multiplayer nodes are visible)
+  - Plugin retries node lookup with exponential backoff
+  - Switching sizingMode FIXED→AUTO forces Figma to recalculate
+
 ## [0.5.7] - 2026-01-18
 
 ### Fixed

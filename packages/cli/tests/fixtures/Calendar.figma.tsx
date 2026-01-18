@@ -113,8 +113,7 @@ export default function Calendar() {
         borderWidth: 1,
       }}
     >
-      {/* Header - manual positioning since space-between not supported */}
-      <Frame name="header" style={{ flexDirection: 'row', alignItems: 'center', width: 308, height: 40 }}>
+      <Frame name="header" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: 308, height: 40 }}>
         <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 18, color: colors.textMuted }}>‹</Text>
         </Frame>
