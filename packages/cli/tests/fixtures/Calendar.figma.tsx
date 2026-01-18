@@ -17,7 +17,7 @@ const MONTH_DAYS = [
 
 const colors = {
   bg: '#FFFFFF',
-  bgHover: '#F9FAFB',
+  bgHover: '#EFF6FF',  // Blue-50, subtle blue tint for today
   text: '#111827',
   textMuted: '#9CA3AF',
   border: '#E5E7EB',
@@ -111,16 +111,18 @@ export default function Calendar() {
         borderWidth: 1,
       }}
     >
-      {/* Header */}
-      <Frame style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', width: 308, height: 40 }}>
+      {/* Header - manual positioning since space-between not supported */}
+      <Frame name="header" style={{ flexDirection: 'row', alignItems: 'center', width: 308, height: 40 }}>
         <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ fontSize: 16, color: colors.textMuted }}>‹</Text>
+          <Text style={{ fontSize: 18, color: colors.textMuted }}>‹</Text>
         </Frame>
-        <Text style={{ fontSize: 16, fontWeight: 600, color: colors.text }}>
-          January 2026
-        </Text>
+        <Frame style={{ width: 244, height: 32, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 16, fontWeight: 600, color: colors.text }}>
+            January 2026
+          </Text>
+        </Frame>
         <Frame style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bgHover, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ fontSize: 16, color: colors.textMuted }}>›</Text>
+          <Text style={{ fontSize: 18, color: colors.textMuted }}>›</Text>
         </Frame>
       </Frame>
 
