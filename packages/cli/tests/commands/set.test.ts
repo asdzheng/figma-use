@@ -27,6 +27,41 @@ describe('set', () => {
       const result = (await run(`set fill ${rectId} "#FF0000" --json`)) as any
       expect(result.fills[0].color).toBe('#FF0000')
     })
+
+    test('binds fill to variable with var: syntax', async () => {
+      // Create a variable first
+      const collection = (await run('collection create "TestColors" --json')) as any
+      const variable = (await run(
+        `variable create "TestPrimary" --collection "${collection.id}" --type COLOR --value "#3B82F6" --json`
+      )) as any
+
+      const result = (await run(`set fill ${rectId} "var:TestPrimary" --json`)) as any
+      expect(result.fills[0].color).toBe('#3B82F6')
+
+      // Verify variable is bound
+      const info = (await run(
+        `eval "const n = await figma.getNodeByIdAsync('${rectId}'); return n.fills[0].boundVariables?.color?.id"`
+      )) as string
+      expect(info).toBe(variable.id)
+
+      // Cleanup
+      await run(`variable delete "${variable.id}" --json`)
+      await run(`collection delete "${collection.id}" --json`)
+    })
+
+    test('binds fill to variable with $ syntax', async () => {
+      const collection = (await run('collection create "TestColors2" --json')) as any
+      const variable = (await run(
+        `variable create "Accent" --collection "${collection.id}" --type COLOR --value "#E11D48" --json`
+      )) as any
+
+      const result = (await run(`set fill ${rectId} '$Accent' --json`)) as any
+      expect(result.fills[0].color).toBe('#E11D48')
+
+      // Cleanup
+      await run(`variable delete "${variable.id}" --json`)
+      await run(`collection delete "${collection.id}" --json`)
+    })
   })
 
   describe('stroke', () => {

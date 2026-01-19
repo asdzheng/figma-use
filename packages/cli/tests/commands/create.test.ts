@@ -36,6 +36,24 @@ describe('create', () => {
       expect(rect.fills[0].color).toBe('#FF0000')
     })
 
+    test('creates rectangle with variable fill', async () => {
+      // Create variable
+      const collection = (await run('collection create "RectTestColors" --json')) as any
+      const variable = (await run(
+        `variable create "Primary" --collection "${collection.id}" --type COLOR --value "#3B82F6" --json`
+      )) as any
+
+      const rect = (await run(
+        `create rect --x 560 --y 10 --width 50 --height 50 --fill "var:Primary" --parent "${testFrameId}" --json`
+      )) as any
+      trackNode(rect.id)
+      expect(rect.fills[0].color).toBe('#3B82F6')
+
+      // Cleanup
+      await run(`variable delete "${variable.id}" --json`)
+      await run(`collection delete "${collection.id}" --json`)
+    })
+
     test('creates rectangle with stroke', async () => {
       const rect = (await run(
         `create rect --x 230 --y 10 --width 100 --height 50 --fill "#FFFFFF" --stroke "#000000" --strokeWeight 2 --parent "${testFrameId}" --json`
@@ -178,6 +196,36 @@ describe('create', () => {
       const page = (await run('create page "Temp Page" --json')) as { id: string; name: string }
       expect(page.name).toBe('Temp Page')
       await run(`node delete ${page.id} --json`)
+    })
+  })
+
+  describe('icon', () => {
+    test('creates icon from Iconify', async () => {
+      const icon = (await run(
+        `create icon mdi:home --size 24 --parent "${testFrameId}" --json`
+      )) as any
+      trackNode(icon.id)
+      expect(icon.type).toBe('FRAME')
+      expect(icon.name).toBe('mdi/home')
+      expect(icon.width).toBe(24)
+      expect(icon.height).toBe(24)
+    })
+
+    test('creates icon with custom color', async () => {
+      const icon = (await run(
+        `create icon mdi:star --size 32 --color "#E11D48" --parent "${testFrameId}" --json`
+      )) as any
+      trackNode(icon.id)
+      expect(icon.width).toBe(32)
+    })
+
+    test('creates icon as component', async () => {
+      const icon = (await run(
+        `create icon lucide:heart --component --parent "${testFrameId}" --json`
+      )) as any
+      trackNode(icon.id)
+      expect(icon.type).toBe('COMPONENT')
+      expect(icon.name).toBe('lucide/heart')
     })
   })
 })
