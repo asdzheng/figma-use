@@ -39,31 +39,31 @@ interface PendingRequest {
 
 interface PluginConnection {
   send: (data: string) => void
-  fileKey: string
+  sessionId: string
   fileName: string
   ws: object // WebSocket reference for cleanup
 }
 
 const pendingRequests = new Map<string, PendingRequest>()
-const pluginConnections = new Map<string, PluginConnection>() // fileKey -> connection
+const pluginConnections = new Map<string, PluginConnection>() // sessionId -> connection
 const pendingConnections = new Map<object, (data: string) => void>() // ws -> send (before registration)
-let activeFileKey: string | null = null // Currently active file for CLI
+let activeSessionId: string | null = null // Currently active file for CLI
 
 function getActiveConnection(): PluginConnection | null {
-  if (activeFileKey && pluginConnections.has(activeFileKey)) {
-    return pluginConnections.get(activeFileKey)!
+  if (activeSessionId && pluginConnections.has(activeSessionId)) {
+    return pluginConnections.get(activeSessionId)!
   }
   // Return first available connection
   const first = pluginConnections.values().next()
   if (!first.done) {
-    activeFileKey = first.value.fileKey
+    activeSessionId = first.value.sessionId
     return first.value
   }
   return null
 }
 
-function getConnectionByFileKey(fileKey: string): PluginConnection | null {
-  return pluginConnections.get(fileKey) || null
+function getConnectionBySessionId(sessionId: string): PluginConnection | null {
+  return pluginConnections.get(sessionId) || null
 }
 
 async function renderJsx(args: Record<string, unknown>): Promise<unknown> {
@@ -178,9 +178,9 @@ async function executeCommand<T = unknown>(
   command: string,
   args?: unknown,
   timeoutMs?: number,
-  fileKey?: string
+  sessionId?: string
 ): Promise<T> {
-  const conn = fileKey ? getConnectionByFileKey(fileKey) : getActiveConnection()
+  const conn = sessionId ? getConnectionBySessionId(sessionId) : getActiveConnection()
   if (!conn) {
     throw new Error('Plugin not connected')
   }
@@ -335,14 +335,14 @@ new Elysia()
       pendingConnections.delete(ws)
       
       // Find and remove from registered connections by ws reference
-      for (const [fileKey, conn] of pluginConnections.entries()) {
+      for (const [sessionId, conn] of pluginConnections.entries()) {
         if (conn.ws === ws) {
-          pluginConnections.delete(fileKey)
-          consola.warn(`Plugin disconnected: ${conn.fileName} (${fileKey})`)
+          pluginConnections.delete(sessionId)
+          consola.warn(`Plugin disconnected: ${conn.fileName} (${sessionId})`)
           
-          // Clear activeFileKey if this was the active connection
-          if (activeFileKey === fileKey) {
-            activeFileKey = null
+          // Clear activeSessionId if this was the active connection
+          if (activeSessionId === sessionId) {
+            activeSessionId = null
           }
           return
         }
@@ -357,35 +357,35 @@ new Elysia()
         id?: string
         result?: unknown
         error?: string
-        fileKey?: string
+        sessionId?: string
         fileName?: string
       }
       
       // Handle registration
       if (data.type === 'register') {
-        const fileKey = data.fileKey || `unknown-${Date.now()}`
+        const sessionId = data.sessionId || `unknown-${Date.now()}`
         const fileName = data.fileName || 'Unknown'
         
         // Remove from pending
         pendingConnections.delete(ws)
         
-        // Check if this fileKey already has a connection (reconnect)
-        if (pluginConnections.has(fileKey)) {
-          consola.info(`Plugin reconnected: ${fileName} (${fileKey})`)
+        // Check if this sessionId already has a connection (reconnect)
+        if (pluginConnections.has(sessionId)) {
+          consola.info(`Plugin reconnected: ${fileName} (${sessionId})`)
         } else {
-          consola.success(`Plugin registered: ${fileName} (${fileKey})`)
+          consola.success(`Plugin registered: ${fileName} (${sessionId})`)
         }
         
-        pluginConnections.set(fileKey, {
+        pluginConnections.set(sessionId, {
           send: (d) => ws.send(d),
-          fileKey,
+          sessionId,
           fileName,
           ws
         })
         
         // Set as active if first connection
-        if (!activeFileKey) {
-          activeFileKey = fileKey
+        if (!activeSessionId) {
+          activeSessionId = sessionId
         }
         return
       }
@@ -407,16 +407,16 @@ new Elysia()
     }
   })
   .post('/command', async ({ body }) => {
-    const { command, args, timeout, fileKey } = body as { 
+    const { command, args, timeout, sessionId } = body as { 
       command: string
       args?: unknown
       timeout?: number
-      fileKey?: string 
+      sessionId?: string 
     }
     consola.info(`${command}`, args || '')
 
     try {
-      const result = await executeCommand(command, args, timeout, fileKey)
+      const result = await executeCommand(command, args, timeout, sessionId)
       return { result }
     } catch (e) {
       consola.error(`${command} failed:`, e instanceof Error ? e.message : e)
@@ -429,18 +429,18 @@ new Elysia()
       return { error: 'Plugin not connected' }
     }
 
-    const { commands, timeout: customTimeout, fileKey } = body as {
+    const { commands, timeout: customTimeout, sessionId } = body as {
       commands: Array<{ command: string; args?: unknown; parentRef?: string }>
       timeout?: number
-      fileKey?: string
+      sessionId?: string
     }
     const id = crypto.randomUUID()
 
     consola.info(`batch: ${commands.length} commands`)
 
-    const targetConn = fileKey ? getConnectionByFileKey(fileKey) : conn
+    const targetConn = sessionId ? getConnectionBySessionId(sessionId) : conn
     if (!targetConn) {
-      return { error: `File not connected: ${fileKey}` }
+      return { error: `File not connected: ${sessionId}` }
     }
 
     try {
@@ -463,33 +463,33 @@ new Elysia()
     }
   })
   .get('/status', () => {
-    const connections = Array.from(pluginConnections.entries()).map(([fileKey, conn]) => ({
-      fileKey,
+    const connections = Array.from(pluginConnections.entries()).map(([sessionId, conn]) => ({
+      sessionId,
       fileName: conn.fileName,
-      active: fileKey === activeFileKey
+      active: sessionId === activeSessionId
     }))
     return {
       pluginConnected: pluginConnections.size > 0,
-      activeFile: activeFileKey,
+      activeFile: activeSessionId,
       connections,
       multiplayer: getConnectionStatus()
     }
   })
   .get('/files', () => {
-    return Array.from(pluginConnections.entries()).map(([fileKey, conn]) => ({
-      fileKey,
+    return Array.from(pluginConnections.entries()).map(([sessionId, conn]) => ({
+      sessionId,
       fileName: conn.fileName,
-      active: fileKey === activeFileKey
+      active: sessionId === activeSessionId
     }))
   })
   .post('/select-file', ({ body }) => {
-    const { fileKey } = body as { fileKey: string }
-    if (!pluginConnections.has(fileKey)) {
-      return { error: `File not connected: ${fileKey}` }
+    const { sessionId } = body as { sessionId: string }
+    if (!pluginConnections.has(sessionId)) {
+      return { error: `File not connected: ${sessionId}` }
     }
-    activeFileKey = fileKey
-    const conn = pluginConnections.get(fileKey)!
-    consola.info(`Switched to: ${conn.fileName} (${fileKey})`)
+    activeSessionId = sessionId
+    const conn = pluginConnections.get(sessionId)!
+    consola.info(`Switched to: ${conn.fileName} (${sessionId})`)
     return { success: true, fileName: conn.fileName }
   })
   .post('/render', async ({ body }) => {

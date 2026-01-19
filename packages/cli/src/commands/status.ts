@@ -45,7 +45,7 @@ export default defineCommand({
       console.log(`✓ Plugin connected (${result.connections.length} file${result.connections.length > 1 ? 's' : ''})`)
       for (const conn of result.connections) {
         const marker = conn.active ? '→' : ' '
-        console.log(`  ${marker} ${conn.fileName} (${conn.fileKey})`)
+        console.log(`  ${marker} ${conn.fileName} (${conn.sessionId})`)
       }
     } else {
       console.log('✗ Plugin not connected (open plugin in Figma)')

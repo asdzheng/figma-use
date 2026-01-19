@@ -24,7 +24,7 @@ export default defineCommand({
 
     for (const [i, f] of files.entries()) {
       const marker = f.active ? '→' : ' '
-      console.log(`${marker} [${i}] ${f.fileName} (${f.fileKey})`)
+      console.log(`${marker} [${i}] ${f.fileName} (${f.sessionId})`)
     }
   }
 })

@@ -4,7 +4,7 @@ console.log('[Figma Bridge] UI loaded')
 
 let ws: WebSocket | null = null
 let statusEl: HTMLElement | null = null
-let currentFileKey: string | null = null
+let currentSessionId: string | null = null
 let currentFileName: string | null = null
 
 function connect() {
@@ -38,20 +38,20 @@ window.onmessage = (event) => {
     id?: string
     result?: unknown
     error?: string
-    fileKey?: string
+    sessionId?: string
     fileName?: string
   }
   
   if (msg.type === 'file-info' && ws) {
-    currentFileKey = msg.fileKey || null
+    currentSessionId = msg.sessionId || null
     currentFileName = msg.fileName || null
     // Register this plugin instance with proxy
     ws.send(JSON.stringify({ 
       type: 'register', 
-      fileKey: currentFileKey, 
+      sessionId: currentSessionId, 
       fileName: currentFileName 
     }))
-    console.log('[Figma Bridge] Registered file:', currentFileName, currentFileKey)
+    console.log('[Figma Bridge] Registered file:', currentFileName, currentSessionId)
     return
   }
   

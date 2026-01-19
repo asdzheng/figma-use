@@ -5,7 +5,7 @@ export { printResult, printError, formatResult } from './output.ts'
 const PROXY_URL = process.env.FIGMA_PROXY_URL || 'http://localhost:38451'
 
 export interface PluginConnection {
-  fileKey: string
+  sessionId: string
   fileName: string
   active: boolean
 }

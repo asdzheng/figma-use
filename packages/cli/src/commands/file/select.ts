@@ -21,8 +21,8 @@ export default defineCommand({
     // Find matching file
     const query = args.file.toLowerCase()
     const match = files.find(
-      (f) => f.fileKey === args.file || 
-             f.fileKey.toLowerCase().includes(query) ||
+      (f) => f.sessionId === args.file || 
+             f.sessionId.toLowerCase().includes(query) ||
              f.fileName.toLowerCase().includes(query)
     )
 
@@ -30,7 +30,7 @@ export default defineCommand({
       console.error(`File not found: ${args.file}`)
       console.error('Available files:')
       for (const f of files) {
-        console.error(`  ${f.fileName} (${f.fileKey})`)
+        console.error(`  ${f.fileName} (${f.sessionId})`)
       }
       process.exit(1)
     }
@@ -39,7 +39,7 @@ export default defineCommand({
     const res = await fetch(`${PROXY_URL}/select-file`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileKey: match.fileKey })
+      body: JSON.stringify({ sessionId: match.sessionId })
     })
 
     const result = (await res.json()) as { success?: boolean; error?: string; fileName?: string }

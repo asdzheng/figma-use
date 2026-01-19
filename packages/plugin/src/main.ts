@@ -199,11 +199,10 @@ let allPagesLoaded = false
 figma.ui.onmessage = async (msg: { type: string; id?: string; command?: string; args?: unknown }) => {
   // Handle file info request
   if (msg.type === 'get-file-info') {
-    // figma.fileKey is only available for private plugins
-    // Use file name as identifier (unique enough for local use)
-    const fileKey = (figma as any).fileKey || figma.root.name
+    // sessionID is unique per open file
+    const sessionId = figma.currentPage.id.split(':')[0]
     const fileName = figma.root.name
-    figma.ui.postMessage({ type: 'file-info', fileKey, fileName })
+    figma.ui.postMessage({ type: 'file-info', sessionId, fileName })
     return
   }
 
