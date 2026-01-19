@@ -41,6 +41,7 @@ interface PluginConnection {
   send: (data: string) => void
   fileKey: string
   fileName: string
+  ws: object // WebSocket reference for cleanup
 }
 
 const pendingRequests = new Map<string, PendingRequest>()
@@ -332,24 +333,22 @@ new Elysia()
     close(ws) {
       // Remove from pending
       pendingConnections.delete(ws)
-      // Find and remove from registered connections
+      
+      // Find and remove from registered connections by ws reference
       for (const [fileKey, conn] of pluginConnections.entries()) {
-        if (conn.send === ((data: string) => ws.send(data)).toString()) {
-          // Can't compare functions directly, need different approach
+        if (conn.ws === ws) {
+          pluginConnections.delete(fileKey)
+          consola.warn(`Plugin disconnected: ${conn.fileName} (${fileKey})`)
+          
+          // Clear activeFileKey if this was the active connection
+          if (activeFileKey === fileKey) {
+            activeFileKey = null
+          }
+          return
         }
       }
-      // Brute force: check all connections
-      const toRemove: string[] = []
-      for (const [fileKey, conn] of pluginConnections.entries()) {
-        try {
-          conn.send('{"ping":true}')
-        } catch {
-          toRemove.push(fileKey)
-        }
-      }
-      // Actually, Elysia doesn't give us a way to test connection
-      // Let's track by ws object instead
-      consola.warn('Plugin disconnected')
+      
+      consola.warn('Plugin disconnected (unregistered)')
     },
     message(ws, message) {
       const msgStr = typeof message === 'string' ? message : JSON.stringify(message)
@@ -380,7 +379,8 @@ new Elysia()
         pluginConnections.set(fileKey, {
           send: (d) => ws.send(d),
           fileKey,
-          fileName
+          fileName,
+          ws
         })
         
         // Set as active if first connection

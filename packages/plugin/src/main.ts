@@ -200,8 +200,8 @@ figma.ui.onmessage = async (msg: { type: string; id?: string; command?: string; 
   // Handle file info request
   if (msg.type === 'get-file-info') {
     // figma.fileKey is only available for private plugins
-    // Use figma.root.name as fallback identifier
-    const fileKey = (figma as any).fileKey || figma.root.name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 32)
+    // Use file name as identifier (unique enough for local use)
+    const fileKey = (figma as any).fileKey || figma.root.name
     const fileName = figma.root.name
     figma.ui.postMessage({ type: 'file-info', fileKey, fileName })
     return
