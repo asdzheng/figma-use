@@ -1,8 +1,14 @@
 import { describe, test, expect } from 'bun:test'
 import { run } from '../helpers.ts'
-import { setupTestPage, teardownTestPage } from '../helpers.ts'
 
 describe('page', () => {
+  test('current returns current page', async () => {
+    const page = (await run('page current --json')) as { id: string; name: string }
+    expect(page.id).toBeDefined()
+    expect(page.name).toBeDefined()
+    expect(page.id).toMatch(/^\d+:\d+$/)
+  })
+
   test('list returns pages', async () => {
     const pages = (await run('page list --json')) as { id: string; name: string }[]
     expect(Array.isArray(pages)).toBe(true)

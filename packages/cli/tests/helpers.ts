@@ -15,16 +15,19 @@ export async function run(cmd: string, parseJson: boolean = true): Promise<unkno
   }
 }
 
-export const createdNodes: string[] = []
+let trackedNodes: string[] = []
 
 export function trackNode(id: string) {
-  createdNodes.push(id)
+  trackedNodes.push(id)
 }
 
 let testPageId: string | null = null
 let originalPageId: string | null = null
 
 export async function setupTestPage(suiteName: string): Promise<string> {
+  // Reset tracked nodes for this suite
+  trackedNodes = []
+  
   // Save original page
   const currentPage = (await run('eval "return {id: figma.currentPage.id}"')) as { id: string }
   originalPageId = currentPage.id
@@ -41,18 +44,15 @@ export async function setupTestPage(suiteName: string): Promise<string> {
 }
 
 export async function teardownTestPage(): Promise<void> {
-  // Clean up created nodes
-  for (const id of createdNodes) {
-    await run(`node delete ${id} --json`).catch(() => {})
-  }
-  createdNodes.length = 0
+  trackedNodes = []
 
-  // Return to original page
+  // Return to original page first
   if (originalPageId) {
     await run(`page set "${originalPageId}" --json`).catch(() => {})
+    originalPageId = null
   }
 
-  // Delete test page
+  // Delete test page (all nodes inside will be deleted with it)
   if (testPageId) {
     await run(`node delete ${testPageId} --json`).catch(() => {})
     testPageId = null

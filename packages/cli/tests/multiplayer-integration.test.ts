@@ -14,40 +14,54 @@ import {
 } from '../src/multiplayer/index.ts'
 import { run } from './helpers.ts'
 
-const FILE_URL =
-  process.env.FIGMA_TEST_FILE || 'https://www.figma.com/design/s9XqYcmFHMlfqtHNTqxE58'
-const PAGE_SESSION_ID = 5291
-const PAGE_LOCAL_ID = 112873
-
 let client: FigmaMultiplayerClient | null = null
 let sessionID = 0
+let pageSessionID = 0
+let pageLocalID = 0
 let createdNodeIds: string[] = []
 
 async function createAndVerify(nodeChange: NodeChange): Promise<any> {
   if (!client) throw new Error('Client not connected')
 
-  // Send and wait for server ACK - guarantees sync
+  // Send and wait for server ACK
   await client.sendNodeChangesSync([nodeChange])
 
   const nodeId = `${nodeChange.guid.sessionID}:${nodeChange.guid.localID}`
   createdNodeIds.push(nodeId)
 
-  // Verify via plugin
-  return await run(`node get ${nodeId} --json`)
+  // Verify via plugin with retry (multiplayer sync may take time)
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try {
+      const node = await run(`node get ${nodeId} --json`)
+      if (node) return node
+    } catch {
+      // Node not found yet, retry
+    }
+    await new Promise(resolve => setTimeout(resolve, 150))
+  }
+  return null
 }
 
 describe('multiplayer integration', () => {
   beforeAll(async () => {
     try {
       await initCodec()
+      
+      // Get current page ID and file key
+      const pageInfo = await run('page current --json') as { id: string }
+      const [pSession, pLocal] = pageInfo.id.split(':').map(Number)
+      pageSessionID = pSession!
+      pageLocalID = pLocal!
+      
+      const fileInfo = await run('file info --json') as { key: string }
+      const fileKey = fileInfo.key
+      
       const cookies = await getCookiesFromDevTools()
-      const fileKey = parseFileKey(FILE_URL)
-
       client = new FigmaMultiplayerClient(fileKey, { connectionTimeout: 15000 })
       const session = await client.connect(cookies)
       sessionID = session.sessionID
     } catch (e) {
-      console.warn('Skipping multiplayer tests - Chrome DevTools not available')
+      console.warn('Skipping multiplayer tests:', e)
       client = null
     }
   }, 20000)
@@ -71,8 +85,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'RECTANGLE',
         name: 'WS-TEST-RECT-' + Date.now(),
         x: 5000,
@@ -99,8 +113,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'FRAME',
         name: 'WS-TEST-FRAME-' + Date.now(),
         x: 5300,
@@ -125,8 +139,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'ELLIPSE',
         name: 'WS-TEST-ELLIPSE-' + Date.now(),
         x: 5000,
@@ -151,8 +165,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'RECTANGLE',
         name: 'WS-TEST-STROKE-' + Date.now(),
         x: 5150,
@@ -176,8 +190,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'RECTANGLE',
         name: 'WS-TEST-OPACITY-' + Date.now(),
         x: 5300,
@@ -207,8 +221,8 @@ describe('multiplayer integration', () => {
         createNodeChange({
           sessionID,
           localID,
-          parentSessionID: PAGE_SESSION_ID,
-          parentLocalID: PAGE_LOCAL_ID,
+          parentSessionID: pageSessionID,
+          parentLocalID: pageLocalID,
           type: 'RECTANGLE',
           name: `WS-BATCH-${i}`,
           x: 5000 + i * 35,
@@ -248,8 +262,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'STAR',
         name: 'WS-TEST-STAR-' + Date.now(),
         x: 5400,
@@ -272,8 +286,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'REGULAR_POLYGON',
         name: 'WS-TEST-POLYGON-' + Date.now(),
         x: 5500,
@@ -296,8 +310,8 @@ describe('multiplayer integration', () => {
       createNodeChange({
         sessionID,
         localID,
-        parentSessionID: PAGE_SESSION_ID,
-        parentLocalID: PAGE_LOCAL_ID,
+        parentSessionID: pageSessionID,
+        parentLocalID: pageLocalID,
         type: 'LINE',
         name: 'WS-TEST-LINE-' + Date.now(),
         x: 5000,

@@ -315,8 +315,9 @@ figma-use export selection --output selection.png
 ### Navigate
 
 ```bash
-figma-use page list
-figma-use page set "Page Name"
+figma-use page current               # Show current page
+figma-use page list                  # List all pages
+figma-use page set "Page Name"       # Switch page
 figma-use viewport zoom-to-fit <ids...>
 ```
 

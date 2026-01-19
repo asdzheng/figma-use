@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`page current`** — show current page name and ID
+  ```bash
+  figma-use page current         # Page 1 (0:1)
+  figma-use page current --json  # {"id": "0:1", "name": "Page 1"}
+  ```
+
 - **`create icon`** — add icons from Iconify (150k+ icons from 100+ sets)
   ```bash
   figma-use create icon mdi:home
