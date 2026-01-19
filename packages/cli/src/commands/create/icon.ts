@@ -2,7 +2,13 @@ import { defineCommand } from 'citty'
 import { sendCommand, printResult, handleError } from '../../client.ts'
 import { loadIconSvg } from '../../render/icon.ts'
 import { fail } from '../../format.ts'
-import { parseColorArg } from '../../color-arg.ts'
+
+function parseColorArg(color: string | undefined): { hex?: string; variable?: string } | undefined {
+  if (!color) return undefined
+  const varMatch = color.match(/^(?:var:|[$])(.+)$/)
+  if (varMatch) return { variable: varMatch[1] }
+  return { hex: color }
+}
 
 export default defineCommand({
   meta: { description: 'Create an icon from Iconify' },

@@ -1,6 +1,5 @@
 import { defineCommand } from 'citty'
 import { sendCommand, printResult, handleError } from '../../client.ts'
-import { colorArgToPayload } from '../../color-arg.ts'
 
 export default defineCommand({
   meta: { description: 'Create a rectangle' },
@@ -27,8 +26,8 @@ export default defineCommand({
         height: Number(args.height),
         name: args.name,
         parentId: args.parent,
-        fill: colorArgToPayload(args.fill),
-        stroke: colorArgToPayload(args.stroke),
+        fill: args.fill,
+        stroke: args.stroke,
         strokeWeight: args["stroke-weight"] ? Number(args["stroke-weight"]) : undefined,
         radius: args.radius ? Number(args.radius) : undefined,
         opacity: args.opacity ? Number(args.opacity) : undefined

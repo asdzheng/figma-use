@@ -71,8 +71,8 @@ async function createNodeFast(
     height?: number
     name?: string
     parentId?: string
-    fill?: ColorArg
-    stroke?: ColorArg
+    fill?: string
+    stroke?: string
     strokeWeight?: number
     radius?: number
     opacity?: number
@@ -504,8 +504,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           height: number
           name?: string
           parentId?: string
-          fill?: ColorArg
-          stroke?: ColorArg
+          fill?: string
+          stroke?: string
           strokeWeight?: number
           radius?: number
           opacity?: number
@@ -532,8 +532,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         height: number
         name?: string
         parentId?: string
-        fill?: ColorArg
-        stroke?: ColorArg
+        fill?: string
+        stroke?: string
         strokeWeight?: number
         opacity?: number
       }
@@ -551,13 +551,15 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'create-line': {
-      const { x, y, length, rotation, name, parentId } = args as {
+      const { x, y, length, rotation, name, parentId, stroke, strokeWeight } = args as {
         x: number
         y: number
         length: number
         rotation?: number
         name?: string
         parentId?: string
+        stroke?: string
+        strokeWeight?: number
       }
       const line = figma.createLine()
       line.x = x
@@ -565,6 +567,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       line.resize(length, 0)
       if (rotation) line.rotation = rotation
       if (name) line.name = name
+      if (stroke) line.strokes = [await createSolidPaint(stroke)]
+      if (strokeWeight !== undefined) line.strokeWeight = strokeWeight
       await appendToParent(line, parentId)
       return serializeNode(line)
     }
@@ -649,8 +653,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         height: number
         name?: string
         parentId?: string
-        fill?: ColorArg
-        stroke?: ColorArg
+        fill?: string
+        stroke?: string
         strokeWeight?: number
         radius?: number
         opacity?: number
@@ -724,7 +728,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           fontSize?: number
           fontFamily?: string
           fontStyle?: string
-          fill?: ColorArg
+          fill?: string
           opacity?: number
           name?: string
           parentId?: string
@@ -764,9 +768,21 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'create-component': {
-      const { name, parentId } = args as { name: string; parentId?: string }
+      const { name, parentId, x, y, width, height, fill } = args as { 
+        name: string
+        parentId?: string
+        x?: number
+        y?: number
+        width?: number
+        height?: number
+        fill?: string
+      }
       const component = figma.createComponent()
       component.name = name
+      if (x !== undefined) component.x = x
+      if (y !== undefined) component.y = y
+      if (width && height) component.resize(width, height)
+      if (fill) component.fills = [await createSolidPaint(fill)]
       await appendToParent(component, parentId)
       return serializeNode(component)
     }
@@ -792,7 +808,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const { name, color } = args as { name: string; color: string }
       const style = figma.createPaintStyle()
       style.name = name
-      style.paints = [{ type: 'SOLID', color: hexToRgb(color) }]
+      style.paints = [await createSolidPaint(color)]
       return { id: style.id, name: style.name, key: style.key }
     }
 
@@ -877,7 +893,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       const { id, color } = args as { id: string; color: string }
       const node = (await figma.getNodeByIdAsync(id)) as GeometryMixin | null
       if (!node || !('fills' in node)) throw new Error('Node not found')
-      node.fills = [{ type: 'SOLID', color: hexToRgb(color) }]
+      node.fills = [await createSolidPaint(color)]
       return serializeNode(node as BaseNode)
     }
 
@@ -890,7 +906,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       }
       const node = (await figma.getNodeByIdAsync(id)) as GeometryMixin | null
       if (!node || !('strokes' in node)) throw new Error('Node not found')
-      node.strokes = [{ type: 'SOLID', color: hexToRgb(color) }]
+      node.strokes = [await createSolidPaint(color)]
       if (weight !== undefined && 'strokeWeight' in node) (node as any).strokeWeight = weight
       if (align && 'strokeAlign' in node)
         (node as any).strokeAlign = align as 'INSIDE' | 'OUTSIDE' | 'CENTER'
@@ -1113,8 +1129,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       }
 
       if (color) {
-        const rgb = hexToRgb(color)
-        node.setRangeFills(start, end, [{ type: 'SOLID', color: rgb }])
+        node.setRangeFills(start, end, [await createSolidPaint(color)])
       }
 
       return serializeNode(node)
@@ -2208,29 +2223,41 @@ function hexToRgb(hex: string): RGB {
   }
 }
 
-type ColorArg = string | { variable: string }
-
 /**
- * Get hex color from ColorArg (for sync operations, ignores variables)
+ * Parse color string - supports hex and variable references (var:Name or $Name)
  */
-function getHexColor(color: ColorArg): string {
-  return typeof color === 'string' ? color : '#000000'
+function parsestring(color: string): { hex?: string; variable?: string } {
+  const varMatch = color.match(/^(?:var:|[$])(.+)$/)
+  if (varMatch) {
+    return { variable: varMatch[1] }
+  }
+  return { hex: color }
 }
 
 /**
- * Create a solid paint from hex color or variable reference
+ * Get hex color from color string (for sync operations, ignores variables)
  */
-async function createSolidPaint(color: ColorArg): Promise<SolidPaint> {
-  if (typeof color === 'string') {
-    return { type: 'SOLID', color: hexToRgb(color) }
+function getHexColor(color: string): string {
+  const parsed = parsestring(color)
+  return parsed.hex || '#000000'
+}
+
+/**
+ * Create a solid paint from color string (hex or var:Name/$Name)
+ */
+async function createSolidPaint(color: string): Promise<SolidPaint> {
+  const parsed = parsestring(color)
+  
+  if (parsed.hex) {
+    return { type: 'SOLID', color: hexToRgb(parsed.hex) }
   }
   
   // Variable reference
   const variables = await figma.variables.getLocalVariablesAsync('COLOR')
-  const variable = variables.find(v => v.name === color.variable)
+  const variable = variables.find(v => v.name === parsed.variable)
   
   if (!variable) {
-    console.warn(`Variable "${color.variable}" not found, using black`)
+    console.warn(`Variable "${parsed.variable}" not found, using black`)
     return { type: 'SOLID', color: { r: 0, g: 0, b: 0 } }
   }
   

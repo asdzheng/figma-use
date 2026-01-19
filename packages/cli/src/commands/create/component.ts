@@ -10,7 +10,7 @@ export default defineCommand({
     height: { type: 'string', description: 'Height', required: true },
     name: { type: 'string', description: 'Name' },
     parent: { type: 'string', description: 'Parent node ID' },
-    fill: { type: 'string', description: 'Fill color (hex)' },
+    fill: { type: 'string', description: 'Fill color (hex or var:Name)' },
     json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {

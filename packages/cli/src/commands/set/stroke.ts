@@ -5,7 +5,7 @@ export default defineCommand({
   meta: { description: 'Set stroke color and weight' },
   args: {
     id: { type: 'positional', description: 'Node ID', required: true },
-    color: { type: 'positional', description: 'Color (hex)', required: true },
+    color: { type: 'positional', description: 'Color (hex or var:Name)', required: true },
     weight: { type: 'string', description: 'Stroke weight' },
     align: { type: 'string', description: 'Stroke align: INSIDE, CENTER, OUTSIDE' },
     json: { type: 'boolean', description: 'Output as JSON' }

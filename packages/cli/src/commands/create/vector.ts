@@ -1,5 +1,4 @@
 import { defineCommand } from 'citty'
-import { colorArgToPayload } from '../../color-arg.ts'
 import { sendCommand, printResult, handleError } from '../../client.ts'
 
 export default defineCommand({
@@ -23,8 +22,8 @@ export default defineCommand({
         path: args.path,
         name: args.name,
         parentId: args.parent,
-        fill: colorArgToPayload(args.fill),
-        stroke: colorArgToPayload(args.stroke),
+        fill: args.fill,
+        stroke: args.stroke,
         strokeWeight: args["stroke-weight"] ? Number(args["stroke-weight"]) : undefined
       })
       printResult(result, args.json, 'create')

@@ -9,7 +9,7 @@ export default defineCommand({
     length: { type: 'string', description: 'Length', required: true },
     name: { type: 'string', description: 'Name' },
     parent: { type: 'string', description: 'Parent node ID' },
-    stroke: { type: 'string', description: 'Stroke color (hex)' },
+    stroke: { type: 'string', description: 'Stroke color (hex or var:Name)' },
     'stroke-weight': { type: 'string', description: 'Stroke weight' },
     json: { type: 'boolean', description: 'Output as JSON' }
   },

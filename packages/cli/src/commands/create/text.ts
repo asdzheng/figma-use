@@ -1,5 +1,4 @@
 import { defineCommand } from 'citty'
-import { colorArgToPayload } from '../../color-arg.ts'
 import { sendCommand, printResult, handleError } from '../../client.ts'
 
 export default defineCommand({
@@ -26,7 +25,7 @@ export default defineCommand({
         fontSize: args["font-size"] ? Number(args["font-size"]) : undefined,
         fontFamily: args["font-family"],
         fontStyle: args["font-style"],
-        fill: colorArgToPayload(args.fill),
+        fill: args.fill,
         opacity: args.opacity ? Number(args.opacity) : undefined,
         name: args.name,
         parentId: args.parent

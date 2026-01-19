@@ -11,7 +11,7 @@ export default defineCommand({
     family: { type: 'string', description: 'Font family' },
     style: { type: 'string', description: 'Font style (Regular, Bold, Italic, etc)' },
     size: { type: 'string', description: 'Font size' },
-    color: { type: 'string', description: 'Text color (hex)' },
+    color: { type: 'string', description: 'Text color (hex or var:Name)' },
     json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {
