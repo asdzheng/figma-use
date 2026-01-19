@@ -275,6 +275,108 @@ describe('render auto-layout (hug contents)', () => {
   )
 })
 
+describe('render with icons', () => {
+  test('preloadIcons loads icon data', async () => {
+    const { preloadIcons, getIconData } = await import('../../src/render/index.ts')
+
+    await preloadIcons([{ name: 'mdi:home', size: 24 }])
+
+    const iconData = getIconData('mdi:home', 24)
+    expect(iconData).not.toBeNull()
+    expect(iconData?.width).toBe(24)
+    expect(iconData?.height).toBe(24)
+    expect(iconData?.svg).toContain('<svg')
+    expect(iconData?.svg).toContain('</svg>')
+  })
+
+  test('collectIcons finds icon primitives in element tree', async () => {
+    const React = (await import('react')).default
+
+    // Create element tree with icons
+    const element = React.createElement(
+      'frame',
+      { name: 'Test' },
+      React.createElement('icon', { icon: 'mdi:home', size: 24 }),
+      React.createElement('icon', { icon: 'lucide:star', size: 32 }),
+      React.createElement('frame', null, React.createElement('icon', { icon: 'heroicons:heart-solid' }))
+    )
+
+    // Import collectIcons logic (inline implementation for test)
+    function collectIcons(el: React.ReactElement): Array<{ name: string; size?: number }> {
+      const icons: Array<{ name: string; size?: number }> = []
+      function traverse(node: React.ReactNode): void {
+        if (!node || typeof node !== 'object') return
+        if (Array.isArray(node)) {
+          node.forEach(traverse)
+          return
+        }
+        const reactEl = node as React.ReactElement
+        if (!reactEl.type) return
+        if (reactEl.type === 'icon') {
+          const props = reactEl.props as { icon?: string; size?: number }
+          if (props.icon) icons.push({ name: props.icon, size: props.size })
+        }
+        if (typeof reactEl.type === 'function') {
+          try {
+            const rendered = (reactEl.type as React.FC)(reactEl.props)
+            if (rendered) traverse(rendered)
+          } catch {}
+        }
+        const children = reactEl.props?.children
+        if (children) {
+          if (Array.isArray(children)) children.forEach(traverse)
+          else traverse(children)
+        }
+      }
+      traverse(el)
+      return icons
+    }
+
+    const icons = collectIcons(element)
+    expect(icons).toHaveLength(3)
+    expect(icons[0]).toEqual({ name: 'mdi:home', size: 24 })
+    expect(icons[1]).toEqual({ name: 'lucide:star', size: 32 })
+    expect(icons[2]).toEqual({ name: 'heroicons:heart-solid', size: undefined })
+  })
+
+  test(
+    'renders frame with icon children',
+    async () => {
+      if (!renderReady) return
+      const { preloadIcons, renderToNodeChanges, getPendingIcons, clearPendingIcons } =
+        await import('../../src/render/index.ts')
+      const React = (await import('react')).default
+
+      // Preload icon
+      await preloadIcons([{ name: 'mdi:home', size: 24 }])
+      clearPendingIcons()
+
+      const element = React.createElement(
+        'frame',
+        { name: 'IconFrame', style: { width: 100, height: 100 } },
+        React.createElement('icon', { icon: 'mdi:home', size: 24, color: '#3B82F6' })
+      )
+
+      const result = renderToNodeChanges(element, {
+        sessionID,
+        parentGUID,
+        startLocalID: Date.now() % 1000000
+      })
+
+      // Frame node created
+      expect(result.nodeChanges).toHaveLength(1)
+      expect(result.nodeChanges[0].name).toBe('IconFrame')
+
+      // Icon added to pending
+      const pending = getPendingIcons()
+      expect(pending).toHaveLength(1)
+      expect(pending[0].name).toBe('mdi/home')
+      expect(pending[0].svg).toContain('#3B82F6')
+    },
+    RENDER_TIMEOUT
+  )
+})
+
 describe('render with variables', () => {
   test('defineVars creates variable references', async () => {
     const { defineVars, isVariable } = await import('../../src/render/index.ts')

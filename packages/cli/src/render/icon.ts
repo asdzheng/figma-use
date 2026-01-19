@@ -1,7 +1,8 @@
 import { loadIcon } from '@iconify/core/lib/api/icons'
 import { setAPIModule } from '@iconify/core/lib/api/modules'
 import { fetchAPIModule } from '@iconify/core/lib/api/modules/fetch'
-import { iconToSVG, iconToHTML } from '@iconify/utils'
+import { iconToSVG } from '@iconify/utils'
+import type { IconifyIcon } from '@iconify/types'
 
 // Initialize API module
 setAPIModule('', fetchAPIModule)
@@ -10,9 +11,31 @@ export interface IconData {
   svg: string
   width: number
   height: number
+  body: string
+  viewBox: { left: number; top: number; width: number; height: number }
 }
 
 const iconCache = new Map<string, IconData>()
+
+// Raw icon data cache (before size transformation)
+const rawIconCache = new Map<string, IconifyIcon>()
+
+/**
+ * Load raw icon data (without size transformation)
+ */
+async function loadRawIcon(name: string): Promise<IconifyIcon | null> {
+  if (rawIconCache.has(name)) {
+    return rawIconCache.get(name)!
+  }
+
+  const icon = await loadIcon(name)
+  if (!icon) {
+    return null
+  }
+
+  rawIconCache.set(name, icon)
+  return icon
+}
 
 /**
  * Load icon from Iconify and return SVG string
@@ -26,22 +49,45 @@ export async function loadIconSvg(name: string, size: number = 24): Promise<Icon
     return iconCache.get(cacheKey)!
   }
 
-  const icon = await loadIcon(name)
+  const icon = await loadRawIcon(name)
   if (!icon) {
     return null
   }
 
-  const svg = iconToSVG(icon, { height: size, width: size })
-  const html = iconToHTML(svg.body, svg.attributes)
+  const result = iconToSVG(icon, { height: size, width: size })
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" ${Object.entries(result.attributes).map(([k, v]) => `${k}="${v}"`).join(' ')}>${result.body}</svg>`
   
   const data: IconData = {
-    svg: html,
+    svg,
     width: size,
-    height: size
+    height: size,
+    body: result.body,
+    viewBox: {
+      left: result.viewBox[0],
+      top: result.viewBox[1],
+      width: result.viewBox[2],
+      height: result.viewBox[3]
+    }
   }
   
   iconCache.set(cacheKey, data)
   return data
+}
+
+/**
+ * Get cached icon data (synchronous, for use in React components)
+ * Returns null if icon not preloaded
+ */
+export function getIconData(name: string, size: number = 24): IconData | null {
+  return iconCache.get(`${name}@${size}`) || null
+}
+
+/**
+ * Preload icons for use in JSX render
+ * Call before rendering to ensure icons are available synchronously
+ */
+export async function preloadIcons(icons: Array<{ name: string; size?: number }>): Promise<void> {
+  await Promise.all(icons.map(({ name, size }) => loadIconSvg(name, size || 24)))
 }
 
 /**

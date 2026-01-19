@@ -42,6 +42,7 @@ import {
   buildVariantName,
   buildStateGroupPropertyValueOrders
 } from './component-set.tsx'
+import { getIconData } from './icon.ts'
 
 // Track rendered components: symbol -> GUID
 const renderedComponents = new Map<symbol, { sessionID: number; localID: number }>()
@@ -71,6 +72,25 @@ export function getPendingComponentSetInstances(): PendingComponentSetInstance[]
 
 export function clearPendingComponentSetInstances() {
   pendingComponentSetInstances.length = 0
+}
+
+// Pending Icon imports to create via Plugin API
+export interface PendingIcon {
+  svg: string
+  parentGUID: { sessionID: number; localID: number }
+  position: string
+  x: number
+  y: number
+  name: string
+}
+const pendingIcons: PendingIcon[] = []
+
+export function getPendingIcons(): PendingIcon[] {
+  return [...pendingIcons]
+}
+
+export function clearPendingIcons() {
+  pendingIcons.length = 0
 }
 
 export interface RenderOptions {
@@ -413,6 +433,43 @@ function collectNodeChanges(
   result: NodeChange[],
   container: Container
 ): void {
+  // Handle Icon primitive
+  if (instance.type === 'icon') {
+    const props = instance.props as {
+      icon: string
+      size?: number
+      color?: string
+      name?: string
+      style?: Record<string, unknown>
+    }
+    const { icon: iconName, size = 24, color, name: nodeName, style = {} } = props
+    
+    const iconData = getIconData(iconName, size)
+    if (!iconData) {
+      consola.error(`Icon "${iconName}" not found. Did you call preloadIcons()?`)
+      return
+    }
+
+    // Replace currentColor with specified color
+    let svg = iconData.svg
+    if (color) {
+      svg = svg.replace(/currentColor/g, color)
+    } else {
+      svg = svg.replace(/currentColor/g, '#000000')
+    }
+
+    // Add to pending icons for Plugin API import
+    pendingIcons.push({
+      svg,
+      parentGUID,
+      position,
+      x: (style.x as number) || 0,
+      y: (style.y as number) || 0,
+      name: nodeName || iconName.replace(':', '/')
+    })
+    return
+  }
+
   // Handle defineComponent instances
   if (instance.type === '__component_instance__') {
     const sym = instance.props.__componentSymbol as symbol

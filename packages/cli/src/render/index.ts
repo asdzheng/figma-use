@@ -7,9 +7,12 @@ export {
   resetRenderedComponents,
   getPendingComponentSetInstances,
   clearPendingComponentSetInstances,
+  getPendingIcons,
+  clearPendingIcons,
   type RenderOptions,
   type RenderResult,
-  type PendingComponentSetInstance
+  type PendingComponentSetInstance,
+  type PendingIcon
 } from './reconciler.ts'
 export {
   Frame,
@@ -25,6 +28,7 @@ export {
   Group,
   Page,
   View,
+  Icon,
   INTRINSIC_ELEMENTS,
   // Variable bindings (StyleX-inspired)
   defineVars,
@@ -38,6 +42,8 @@ export {
   resetComponentRegistry,
   getComponentRegistry
 } from './components.tsx'
+
+export { preloadIcons, loadIconSvg, getIconData } from './icon.ts'
 
 export {
   // ComponentSet (variants)

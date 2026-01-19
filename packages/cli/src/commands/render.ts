@@ -1,4 +1,5 @@
 import { defineCommand } from 'citty'
+import { consola } from 'consola'
 import { handleError, getFileKey, getParentGUID, sendCommand } from '../client.ts'
 import { ok, fail } from '../format.ts'
 import { resolve } from 'path'
@@ -13,7 +14,10 @@ import {
   isRegistryLoaded,
   resetRenderedComponents,
   getPendingComponentSetInstances,
-  clearPendingComponentSetInstances
+  clearPendingComponentSetInstances,
+  getPendingIcons,
+  clearPendingIcons,
+  preloadIcons
 } from '../render/index.ts'
 import { transformSync } from 'esbuild'
 
@@ -269,6 +273,15 @@ export default defineCommand({
       const props = args.props ? JSON.parse(args.props) : {}
       const element = React.createElement(Component, props)
 
+      // Collect and preload icons from the element tree
+      const icons = collectIcons(element)
+      if (icons.length > 0) {
+        if (!args.json) {
+          console.log(`Preloading ${icons.length} icon(s)...`)
+        }
+        await preloadIcons(icons)
+      }
+
       // Reset rendered component tracking (but NOT the registry - it's populated by defineComponent)
       resetRenderedComponents()
 
@@ -291,8 +304,28 @@ export default defineCommand({
       const pendingInstances = getPendingComponentSetInstances()
       clearPendingComponentSetInstances()
 
+      // Get pending icons (imported via Plugin API)
+      const pendingIconsList = getPendingIcons()
+      clearPendingIcons()
+
       // Send to Figma via proxy
       await sendNodeChanges(result.nodeChanges, pendingInstances)
+
+      // Import pending icons via Plugin API
+      for (const icon of pendingIconsList) {
+        try {
+          const parentId = `${icon.parentGUID.sessionID}:${icon.parentGUID.localID}`
+          await sendCommand('import-svg', {
+            svg: icon.svg,
+            x: icon.x,
+            y: icon.y,
+            parentId,
+            name: icon.name
+          })
+        } catch (e) {
+          consola.error(`Failed to import icon "${icon.name}":`, e)
+        }
+      }
 
       // Trigger layout recalculation via Plugin API
       // Multiplayer nodes aren't immediately visible to plugin, so we call separately
@@ -334,4 +367,54 @@ export default defineCommand({
 function parseGUID(id: string): { sessionID: number; localID: number } {
   const parts = id.split(':').map(Number)
   return { sessionID: parts[0] ?? 0, localID: parts[1] ?? 0 }
+}
+
+/**
+ * Recursively collect Icon primitives from React element tree
+ */
+function collectIcons(element: React.ReactElement): Array<{ name: string; size?: number }> {
+  const icons: Array<{ name: string; size?: number }> = []
+  
+  function traverse(el: React.ReactNode): void {
+    if (!el || typeof el !== 'object') return
+    
+    if (Array.isArray(el)) {
+      el.forEach(traverse)
+      return
+    }
+    
+    const reactEl = el as React.ReactElement
+    if (!reactEl.type) return
+    
+    // Check if this is an icon primitive
+    if (reactEl.type === 'icon') {
+      const props = reactEl.props as { icon?: string; size?: number }
+      if (props.icon) {
+        icons.push({ name: props.icon, size: props.size })
+      }
+    }
+    
+    // If it's a function component, render it to traverse its output
+    if (typeof reactEl.type === 'function') {
+      try {
+        const rendered = (reactEl.type as React.FC)(reactEl.props)
+        if (rendered) traverse(rendered)
+      } catch {
+        // Ignore render errors during collection
+      }
+    }
+    
+    // Traverse children
+    const children = reactEl.props?.children
+    if (children) {
+      if (Array.isArray(children)) {
+        children.forEach(traverse)
+      } else {
+        traverse(children)
+      }
+    }
+  }
+  
+  traverse(element)
+  return icons
 }

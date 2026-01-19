@@ -140,6 +140,15 @@ interface InstanceProps extends BaseProps {
   componentId?: string
 }
 
+interface IconProps extends BaseProps {
+  /** Icon name in format "prefix:name" (e.g., "mdi:home", "lucide:star") */
+  icon: string
+  /** Icon size in pixels (default: 24) */
+  size?: number
+  /** Icon color (hex) */
+  color?: string
+}
+
 // Component factory - creates intrinsic element wrapper
 const c =
   <T extends BaseProps>(type: string): React.FC<T> =>
@@ -160,6 +169,7 @@ export const Instance = c<InstanceProps>('instance')
 export const Group = c<BaseProps>('group')
 export const Page = c<BaseProps>('page')
 export const View = Frame
+export const Icon = c<IconProps>('icon')
 
 // All component names for JSX transform
 export const INTRINSIC_ELEMENTS = [
@@ -175,5 +185,6 @@ export const INTRINSIC_ELEMENTS = [
   'Instance',
   'Group',
   'Page',
-  'View'
+  'View',
+  'Icon'
 ] as const
