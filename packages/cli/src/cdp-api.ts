@@ -50,7 +50,7 @@ async function cdpEval<T>(expression: string): Promise<T> {
       )
     })
 
-    ws.on('message', (data) => {
+    ws.on('message', (data: Buffer) => {
       const msg = JSON.parse(data.toString())
       if (msg.id === 1) {
         clearTimeout(timeout)
@@ -64,7 +64,7 @@ async function cdpEval<T>(expression: string): Promise<T> {
       }
     })
 
-    ws.on('error', (err) => {
+    ws.on('error', (err: Error) => {
       clearTimeout(timeout)
       reject(err)
     })

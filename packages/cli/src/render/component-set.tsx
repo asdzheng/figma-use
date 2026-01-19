@@ -119,8 +119,8 @@ export function generateVariantCombinations<V extends VariantDef>(
       return
     }
 
-    const key = keys[index]
-    for (const value of variants[key]) {
+    const key = keys[index]!
+    for (const value of variants[key]!) {
       combine(index + 1, { ...current, [key]: value })
     }
   }

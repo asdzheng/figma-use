@@ -230,12 +230,27 @@ export interface NodeChange {
   stackCounterAlign?: string
   stackJustify?: string
   stackCounterAlignItems?: string
+  stackPrimaryAlignItems?: string
+  stackPrimarySizing?: 'FIXED' | 'RESIZE_TO_FIT'
+  stackCounterSizing?: 'FIXED' | 'RESIZE_TO_FIT'
+  stackVerticalPadding?: number
+  stackHorizontalPadding?: number
+  // Frame
+  clipsContent?: boolean
   // Text
   fontSize?: number
-  fontName?: { family: string; style: string }
+  fontName?: { family: string; style: string; postscript?: string }
   textAlignHorizontal?: string
   textAlignVertical?: string
   textAutoResize?: string
+  textData?: { characters: string }
+  lineHeight?: { value: number; units: string }
+  letterSpacing?: { value: number; units: string }
+  // Symbol/Instance
+  symbolData?: { symbolID: { sessionID: number; localID: number } }
+  // ComponentSet
+  isStateGroup?: boolean
+  stateGroupPropertyValueOrders?: Array<{ property: string; values: string[] }>
   // Corners
   rectangleTopLeftCornerRadius?: number
   rectangleTopRightCornerRadius?: number
@@ -419,8 +434,8 @@ export function parseVariableId(variableId: string): { sessionID: number; localI
   const match = variableId.match(/VariableID:(\d+):(\d+)/)
   if (!match) return null
   return {
-    sessionID: parseInt(match[1], 10),
-    localID: parseInt(match[2], 10)
+    sessionID: parseInt(match[1]!, 10),
+    localID: parseInt(match[2]!, 10)
   }
 }
 

@@ -330,7 +330,12 @@ export default defineCommand({
 
       // Trigger layout recalculation via Plugin API (needed after icons are added)
       // Multiplayer nodes aren't immediately visible to plugin, so we call separately
-      const rootId = `${result.nodeChanges[0].guid.sessionID}:${result.nodeChanges[0].guid.localID}`
+      const firstNode = result.nodeChanges[0]
+      if (!firstNode) {
+        console.error(fail('No nodes rendered'))
+        process.exit(1)
+      }
+      const rootId = `${firstNode.guid.sessionID}:${firstNode.guid.localID}`
       try {
         await sendCommand('trigger-layout', {
           nodeId: rootId,
@@ -398,15 +403,15 @@ function collectIcons(element: React.ReactElement): Array<{ name: string; size?:
     // If it's a function component, render it to traverse its output
     if (typeof reactEl.type === 'function') {
       try {
-        const rendered = (reactEl.type as React.FC)(reactEl.props)
-        if (rendered) traverse(rendered)
+        const rendered = (reactEl.type as React.FC<Record<string, unknown>>)(reactEl.props as Record<string, unknown>)
+        if (rendered) traverse(rendered as React.ReactNode)
       } catch {
         // Ignore render errors during collection
       }
     }
     
     // Traverse children
-    const children = reactEl.props?.children
+    const children = (reactEl.props as Record<string, unknown>)?.children as React.ReactNode
     if (children) {
       if (Array.isArray(children)) {
         children.forEach(traverse)

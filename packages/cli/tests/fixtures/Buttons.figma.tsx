@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { defineComponentSet, Frame, Text } from '../../src/render/index.ts'
 
 const Button = defineComponentSet(

@@ -70,53 +70,11 @@ export function defineComponent<P extends BaseProps = BaseProps>(
   return ComponentInstance
 }
 
-// Style types
-interface Style {
-  width?: number | string
-  height?: number | string
-  x?: number
-  y?: number
-  flexDirection?: 'row' | 'column'
-  justifyContent?: 'flex-start' | 'center' | 'flex-end' | 'space-between'
-  alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch'
-  gap?: number
-  padding?: number
-  paddingTop?: number
-  paddingRight?: number
-  paddingBottom?: number
-  paddingLeft?: number
-  backgroundColor?: string
-  opacity?: number
-  borderRadius?: number
-  borderTopLeftRadius?: number
-  borderTopRightRadius?: number
-  borderBottomLeftRadius?: number
-  borderBottomRightRadius?: number
-  borderWidth?: number
-  borderColor?: string
-}
+// Style types - use StyleProps from shorthands which includes both full and shorthand names
+import type { StyleProps } from './shorthands.ts'
 
-interface TextStyle extends Style {
-  fontSize?: number
-  fontFamily?: string
-  fontWeight?:
-    | 'normal'
-    | 'bold'
-    | '100'
-    | '200'
-    | '300'
-    | '400'
-    | '500'
-    | '600'
-    | '700'
-    | '800'
-    | '900'
-  fontStyle?: 'normal' | 'italic'
-  color?: string
-  textAlign?: 'left' | 'center' | 'right'
-  lineHeight?: number
-  letterSpacing?: number
-}
+type Style = StyleProps
+type TextStyle = StyleProps
 
 interface BaseProps {
   name?: string

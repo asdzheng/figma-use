@@ -3,7 +3,6 @@
  * Uses auto-sizing (no explicit width/height where possible)
  */
 
-import * as React from 'react'
 import { Frame, Text } from '../../src/render/index.ts'
 
 const colors = {

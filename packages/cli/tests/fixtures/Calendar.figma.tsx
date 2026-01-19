@@ -3,7 +3,6 @@
  * Using Tailwind-like shorthand style props
  */
 
-import * as React from 'react'
 import { Frame, Text, Icon } from '../../src/render/index.ts'
 
 const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']

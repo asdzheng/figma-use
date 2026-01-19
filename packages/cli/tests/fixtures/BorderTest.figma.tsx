@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { defineVars, Frame } from '../../src/render/index.ts'
 
 const colors = defineVars({

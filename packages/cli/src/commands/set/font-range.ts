@@ -27,7 +27,7 @@ export default defineCommand({
       })
       printResult(result, args.json)
     } catch (error) {
-      handleError(error, args.json)
+      handleError(error)
     }
   }
 })

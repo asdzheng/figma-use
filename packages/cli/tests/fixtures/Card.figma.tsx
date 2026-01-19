@@ -1,7 +1,6 @@
 // Example: Render a card component to Figma
 // Usage: figma-use render examples/Card.figma.tsx --props '{"title": "Hello", "items": ["A", "B", "C"]}'
 
-import * as React from 'react'
 import { Frame, Text, Rectangle } from '../../src/render/index.ts'
 
 type CardProps = {

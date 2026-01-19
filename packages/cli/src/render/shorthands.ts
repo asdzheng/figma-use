@@ -1,4 +1,6 @@
-export type StyleValue = string | number | boolean
+import type { FigmaVariable } from './vars.ts'
+
+export type StyleValue = string | number | boolean | FigmaVariable
 
 export interface StyleProps {
   // Size
@@ -7,8 +9,8 @@ export interface StyleProps {
   width?: number
   height?: number
   // Colors
-  bg?: string
-  backgroundColor?: string
+  bg?: string | FigmaVariable
+  backgroundColor?: string | FigmaVariable
   // Border
   rounded?: number
   borderRadius?: number

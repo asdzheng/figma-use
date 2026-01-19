@@ -2,7 +2,6 @@
  * Color Palette - demonstrates defineVars with Figma variables
  */
 
-import * as React from 'react'
 import { defineVars, Frame, Text } from '../../src/render/index.ts'
 
 // Define variables with explicit fallback values

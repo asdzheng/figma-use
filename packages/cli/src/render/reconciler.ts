@@ -36,6 +36,7 @@ import type { NodeChange, Paint } from '../multiplayer/codec.ts'
 import { parseColor } from '../color.ts'
 import { isVariable, resolveVariable, type FigmaVariable } from './vars.ts'
 import { getComponentRegistry } from './components.tsx'
+import { normalizeStyle, type StyleProps } from './shorthands.ts'
 import {
   getComponentSetRegistry,
   generateVariantCombinations,
@@ -118,8 +119,6 @@ interface Container {
   children: Instance[]
 }
 
-import { normalizeStyle } from './shorthands.ts'
-
 function styleToNodeChange(
   type: string,
   props: Record<string, unknown>,
@@ -129,7 +128,7 @@ function styleToNodeChange(
   position: string,
   textContent?: string
 ): NodeChange {
-  const style = normalizeStyle((props.style || {}) as Record<string, unknown>)
+  const style = normalizeStyle((props.style || {}) as StyleProps)
   const name = (props.name as string) || type
 
   const nodeChange: NodeChange = {
@@ -144,7 +143,7 @@ function styleToNodeChange(
   
   // Disable clipsContent for FRAME (Figma default is true which hides overflowing content)
   if (mapType(type) === 'FRAME') {
-    ;(nodeChange as Record<string, unknown>).clipsContent = false
+    nodeChange.clipsContent = false
   }
 
   // Size
@@ -281,10 +280,8 @@ function styleToNodeChange(
   const pb = style.paddingBottom ?? style.padding
   const pl = style.paddingLeft ?? style.padding
 
-  if (pt !== undefined)
-    (nodeChange as unknown as Record<string, unknown>).stackVerticalPadding = Number(pt)
-  if (pl !== undefined)
-    (nodeChange as unknown as Record<string, unknown>).stackHorizontalPadding = Number(pl)
+  if (pt !== undefined) nodeChange.stackVerticalPadding = Number(pt)
+  if (pl !== undefined) nodeChange.stackHorizontalPadding = Number(pl)
   if (pr !== undefined) nodeChange.stackPaddingRight = Number(pr)
   if (pb !== undefined) nodeChange.stackPaddingBottom = Number(pb)
 
@@ -325,27 +322,26 @@ function styleToNodeChange(
   // Text-specific
   if (type.toLowerCase() === 'text' && textContent) {
     // Text content via textData.characters
-    const nc = nodeChange as unknown as Record<string, unknown>
-    nc.textData = { characters: textContent }
-    nc.textAutoResize = 'WIDTH_AND_HEIGHT'
-    nc.textAlignVertical = 'TOP' // Required for text height calculation
+    nodeChange.textData = { characters: textContent }
+    nodeChange.textAutoResize = 'WIDTH_AND_HEIGHT'
+    nodeChange.textAlignVertical = 'TOP' // Required for text height calculation
 
-    if (style.fontSize) nc.fontSize = Number(style.fontSize)
+    if (style.fontSize) nodeChange.fontSize = Number(style.fontSize)
     // CRITICAL: lineHeight MUST be { value: 100, units: 'PERCENT' } for text to have height
     // Without this, TEXT nodes render with height=0 and are invisible
     // Discovered via sniffing Figma's own text creation - see scripts/sniff-text.ts
-    nc.lineHeight = { value: 100, units: 'PERCENT' }
+    nodeChange.lineHeight = { value: 100, units: 'PERCENT' }
     // fontName is ALWAYS required for TEXT nodes, even without explicit fontFamily
     const family = (style.fontFamily as string) || 'Inter'
     const fontStyle = mapFontWeight(style.fontWeight as string)
-    nc.fontName = {
+    nodeChange.fontName = {
       family,
       style: fontStyle,
       postscript: `${family}-${fontStyle}`.replace(/\s+/g, '')
     }
     if (style.textAlign) {
       const map: Record<string, string> = { left: 'LEFT', center: 'CENTER', right: 'RIGHT' }
-      nc.textAlignHorizontal = map[style.textAlign as string] || 'LEFT'
+      nodeChange.textAlignHorizontal = map[style.textAlign as string] || 'LEFT'
     }
     if (style.color) {
       const textColor = style.color
@@ -381,11 +377,10 @@ function styleToNodeChange(
   if (type.toLowerCase() === 'instance' && props.componentId) {
     const match = String(props.componentId).match(/(\d+):(\d+)/)
     if (match) {
-      const nc = nodeChange as unknown as Record<string, unknown>
-      nc.symbolData = {
+      nodeChange.symbolData = {
         symbolID: {
-          sessionID: parseInt(match[1], 10),
-          localID: parseInt(match[2], 10)
+          sessionID: parseInt(match[1]!, 10),
+          localID: parseInt(match[2]!, 10)
         }
       }
     }
@@ -507,8 +502,8 @@ function collectNodeChanges(
       container.localIDCounter = componentResult.nextLocalID
 
       // Change first node to be SYMBOL type and add to results
-      if (componentResult.nodeChanges.length > 0) {
-        const rootChange = componentResult.nodeChanges[0]
+      const rootChange = componentResult.nodeChanges[0]
+      if (rootChange) {
         const originalRootGUID = { ...rootChange.guid }
 
         // Replace root node's guid with componentGUID
@@ -521,6 +516,7 @@ function collectNodeChanges(
         for (let i = 1; i < componentResult.nodeChanges.length; i++) {
           const child = componentResult.nodeChanges[i]
           if (
+            child &&
             child.parentIndex?.guid.localID === originalRootGUID.localID &&
             child.parentIndex?.guid.sessionID === originalRootGUID.sessionID
           ) {
@@ -557,8 +553,7 @@ function collectNodeChanges(
       }
 
       // Link to component
-      const nc = instanceChange as unknown as Record<string, unknown>
-      nc.symbolData = { symbolID: componentGUID }
+      instanceChange.symbolData = { symbolID: componentGUID }
 
       result.push(instanceChange)
     }
@@ -602,13 +597,12 @@ function collectNodeChanges(
         opacity: 1,
         size: { x: 1, y: 1 } // Will be auto-sized
       }
-      const setNc = setChange as unknown as Record<string, unknown>
-      setNc.isStateGroup = true
-      setNc.stateGroupPropertyValueOrders = buildStateGroupPropertyValueOrders(variants)
-      setNc.stackMode = 'HORIZONTAL'
-      setNc.stackSpacing = 20
-      setNc.stackPrimarySizing = 'RESIZE_TO_FIT'
-      setNc.stackCounterSizing = 'RESIZE_TO_FIT'
+      setChange.isStateGroup = true
+      setChange.stateGroupPropertyValueOrders = buildStateGroupPropertyValueOrders(variants)
+      setChange.stackMode = 'HORIZONTAL'
+      setChange.stackSpacing = 20
+      setChange.stackPrimarySizing = 'RESIZE_TO_FIT'
+      setChange.stackCounterSizing = 'RESIZE_TO_FIT'
 
       result.push(setChange)
 
@@ -628,8 +622,8 @@ function collectNodeChanges(
         })
         container.localIDCounter = variantResult.nextLocalID
 
-        if (variantResult.nodeChanges.length > 0) {
-          const rootChange = variantResult.nodeChanges[0]
+        const rootChange = variantResult.nodeChanges[0]
+        if (rootChange) {
           const originalRootGUID = { ...rootChange.guid }
 
           rootChange.guid = variantGUID
@@ -644,6 +638,7 @@ function collectNodeChanges(
           for (let j = 1; j < variantResult.nodeChanges.length; j++) {
             const child = variantResult.nodeChanges[j]
             if (
+              child &&
               child.parentIndex?.guid.localID === originalRootGUID.localID &&
               child.parentIndex?.guid.sessionID === originalRootGUID.sessionID
             ) {
@@ -924,8 +919,9 @@ export function renderToNodeChanges(
 function getDefaultVariants(variants: Record<string, readonly string[]>): Record<string, string> {
   const defaults: Record<string, string> = {}
   for (const [key, values] of Object.entries(variants)) {
-    if (values.length > 0) {
-      defaults[key] = values[0]
+    const firstValue = values[0]
+    if (firstValue !== undefined) {
+      defaults[key] = firstValue
     }
   }
   return defaults

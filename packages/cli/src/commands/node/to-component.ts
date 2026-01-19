@@ -35,7 +35,7 @@ export default defineCommand({
         }
       }
     } catch (error) {
-      handleError(error, args.json)
+      handleError(error)
     }
   }
 })

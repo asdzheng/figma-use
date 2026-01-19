@@ -68,8 +68,8 @@ export function loadVariablesIntoRegistry(variables: Array<{ id: string; name: s
     if (match) {
       variableRegistry.set(v.name, {
         id: v.id,
-        sessionID: parseInt(match[1], 10),
-        localID: parseInt(match[2], 10)
+        sessionID: parseInt(match[1]!, 10),
+        localID: parseInt(match[2]!, 10)
       })
     }
   }
@@ -90,8 +90,8 @@ export function resolveVariable(variable: FigmaVariable): ResolvedVariable {
   if (idMatch) {
     const resolved = {
       id: `VariableID:${idMatch[1]}:${idMatch[2]}`,
-      sessionID: parseInt(idMatch[1], 10),
-      localID: parseInt(idMatch[2], 10)
+      sessionID: parseInt(idMatch[1]!, 10),
+      localID: parseInt(idMatch[2]!, 10)
     }
     variable._resolved = resolved
     return resolved
