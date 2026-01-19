@@ -158,7 +158,7 @@ export default defineCommand({
     parent: { type: 'string', description: 'Parent node ID (sessionID:localID)' },
     export: { type: 'string', description: 'Named export (default: default)' },
     json: { type: 'boolean', description: 'Output as JSON' },
-    dryRun: { type: 'boolean', description: 'Output NodeChanges without sending to Figma' }
+    'dry-run': { type: 'boolean', description: 'Output NodeChanges without sending to Figma' }
   },
   async run({ args }) {
     if (args.examples) {
@@ -278,7 +278,7 @@ export default defineCommand({
         startLocalID: Date.now() % 1000000
       })
 
-      if (args.dryRun) {
+      if (args["dry-run"]) {
         console.log(JSON.stringify(result.nodeChanges, null, 2))
         return
       }

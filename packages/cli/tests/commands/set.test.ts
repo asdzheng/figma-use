@@ -57,9 +57,9 @@ describe('set', () => {
 
   describe('rotation', () => {
     test('changes rotation', async () => {
-      await run(`set rotation ${rectId} 45 --json`)
+      await run(`set rotation ${rectId} --angle 45 --json`)
       // Reset to 0 for other tests
-      await run(`set rotation ${rectId} 0 --json`)
+      await run(`set rotation ${rectId} --angle 0 --json`)
     })
   })
 

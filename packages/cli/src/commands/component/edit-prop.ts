@@ -6,7 +6,7 @@ export default defineCommand({
   args: {
     id: { type: 'positional', description: 'Component ID', required: true },
     name: { type: 'string', description: 'Property name', required: true },
-    newName: { type: 'string', description: 'New name' },
+    'new-name': { type: 'string', description: 'New name' },
     default: { type: 'string', description: 'New default value' },
     json: { type: 'boolean', description: 'Output as JSON' }
   },
@@ -15,7 +15,7 @@ export default defineCommand({
       const result = await sendCommand('edit-component-property', {
         componentId: args.id,
         propertyName: args.name,
-        newName: args.newName,
+        newName: args["new-name"],
         newDefaultValue: args.default
       })
       printResult(result, args.json, 'update')
