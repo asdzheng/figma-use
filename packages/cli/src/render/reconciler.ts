@@ -141,6 +141,11 @@ function styleToNodeChange(
     visible: true,
     opacity: typeof style.opacity === 'number' ? style.opacity : 1
   }
+  
+  // Disable clipsContent for FRAME (Figma default is true which hides overflowing content)
+  if (mapType(type) === 'FRAME') {
+    ;(nodeChange as Record<string, unknown>).clipsContent = false
+  }
 
   // Size
   const width = style.width ?? props.width
