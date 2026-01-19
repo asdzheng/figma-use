@@ -58,9 +58,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   <Frame style={{px: 16, bg: "#3B82F6", rounded: 6, flex: "row"}}>
   ```
 
+- **`render --x` and `--y` options** — position rendered root at specific coordinates
+
 ### Changed
 
+- README rewritten — focused on concepts, moved command list to REFERENCE.md
+- Added REFERENCE.md with full list of 100+ commands
 - CLI arguments now use kebab-case: `--stroke-weight`, `--font-size`, `--min-width`, etc.
+
+### Fixed
+
+- Icon child ordering in render
+- White fill removed from imported SVG icons
+- Test isolation and multiplayer test reliability
+- TypeScript types in .figma.tsx fixtures
+- ComponentSet global registry to avoid module duplication
 
 ## [0.6.3] - 2026-01-19
 

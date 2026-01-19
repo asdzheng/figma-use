@@ -129,6 +129,8 @@ echo '<Frame style={{p: 24, gap: 16, flex: "col", bg: "#FFF", rounded: 12}}>
 
 ⚠️ **stdin does NOT support:** `const`, `let`, `function`, `defineComponent`, `defineComponentSet`, ternary operators, or any JavaScript logic. Only literal JSX.
 
+⚠️ **When rendering multiple elements**, use `--x` and `--y` to position each render at different coordinates. Don't stack everything at (0, 0).
+
 **Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`, `Icon`
 
 **Icons (150k+ from Iconify):**
@@ -212,6 +214,7 @@ For proper Figma ComponentSets with variant properties, create a `.figma.tsx` fi
 ```bash
 figma-use render --examples  # Full API reference
 figma-use render ./MyComponent.figma.tsx
+figma-use render ./MyComponent.figma.tsx --x 100 --y 200  # Position at coordinates
 ```
 
 ---
