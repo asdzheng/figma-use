@@ -65,16 +65,20 @@ const Card = ({ title, description, icon, iconBg, iconColor, footer, variant = '
   )
 }
 
-const StatCard = ({ label, value, change, trend }: { label: string; value: string; change: string; trend: 'up' | 'down' }) => (
-  <Frame name="StatCard" style={{ w: 200, p: 16, rounded: 12, flex: 'col', gap: 8, bg: c.bg, borderColor: c.border, borderWidth: 1 }}>
-    <Text style={{ size: 13, color: c.muted }}>{label}</Text>
-    <Text style={{ size: 28, weight: 700, color: c.text }}>{value}</Text>
-    <Frame style={{ flex: 'row', gap: 4, items: 'center' }}>
-      <Icon icon={trend === 'up' ? 'tabler:trending-up' : 'tabler:trending-down'} size={16} color={trend === 'up' ? c.success : c.error} />
-      <Text style={{ size: 13, weight: 500, color: trend === 'up' ? c.success : c.error }}>{change}</Text>
+const StatCard = ({ label, value, change, positive }: { label: string; value: string; change: string; positive: boolean }) => {
+  const isUp = change.startsWith('+')
+  const trendColor = positive ? c.success : c.error
+  return (
+    <Frame name="StatCard" style={{ w: 280, p: 20, rounded: 12, flex: 'col', gap: 8, bg: c.bg, borderColor: c.border, borderWidth: 1 }}>
+      <Text style={{ size: 13, color: c.muted }}>{label}</Text>
+      <Text style={{ size: 32, weight: 700, color: c.text }}>{value}</Text>
+      <Frame style={{ flex: 'row', gap: 6, items: 'center' }}>
+        <Icon icon={isUp ? 'tabler:trending-up' : 'tabler:trending-down'} size={18} color={trendColor} />
+        <Text style={{ size: 14, weight: 500, color: trendColor }}>{change}</Text>
+      </Frame>
     </Frame>
-  </Frame>
-)
+  )
+}
 
 export default function Cards() {
   return (
@@ -85,21 +89,21 @@ export default function Cards() {
         <Frame style={{ flex: 'row', gap: 16 }}>
           <Card
             title="Getting Started"
-            description="Learn the basics and set up your first project"
+            description="Set up your first project"
             icon="tabler:rocket"
             iconBg="#EFF6FF"
             iconColor={c.primary}
           />
           <Card
             title="Documentation"
-            description="Explore our comprehensive guides"
+            description="Explore guides and tutorials"
             icon="tabler:book"
             iconBg="#F0FDF4"
             iconColor={c.success}
           />
           <Card
             title="API Reference"
-            description="Detailed API documentation"
+            description="Detailed endpoint docs"
             icon="tabler:code"
             iconBg="#FEF3C7"
             iconColor={c.warning}
@@ -111,9 +115,9 @@ export default function Cards() {
       <Frame name="stats" style={{ flex: 'col', gap: 8 }}>
         <Text style={{ size: 12, weight: 600, color: c.muted }}>STAT CARDS</Text>
         <Frame style={{ flex: 'row', gap: 16 }}>
-          <StatCard label="Total Revenue" value="$45,231" change="+12.5%" trend="up" />
-          <StatCard label="Active Users" value="2,345" change="+8.2%" trend="up" />
-          <StatCard label="Bounce Rate" value="24.5%" change="-3.1%" trend="down" />
+          <StatCard label="Total Revenue" value="$45,231" change="+12.5%" positive />
+          <StatCard label="Active Users" value="2,345" change="+8.2%" positive />
+          <StatCard label="Bounce Rate" value="24.5%" change="-3.1%" positive />
         </Frame>
       </Frame>
 
@@ -121,13 +125,13 @@ export default function Cards() {
       <Frame name="simple" style={{ flex: 'col', gap: 8 }}>
         <Text style={{ size: 12, weight: 600, color: c.muted }}>SIMPLE CARDS</Text>
         <Frame style={{ flex: 'row', gap: 16 }}>
-          <Frame style={{ w: 200, p: 16, rounded: 12, bg: c.bg, borderColor: c.border, borderWidth: 1, flex: 'col', gap: 8 }}>
-            <Text style={{ size: 15, weight: 600, color: c.text }}>Card Title</Text>
-            <Text style={{ size: 14, color: c.muted }}>Simple card with just title and description text.</Text>
+          <Frame style={{ w: 280, p: 20, rounded: 12, bg: c.bg, borderColor: c.border, borderWidth: 1, flex: 'col', gap: 8 }}>
+            <Text style={{ size: 16, weight: 600, color: c.text }}>Card Title</Text>
+            <Text style={{ size: 14, color: c.muted }}>Simple card with title and description.</Text>
           </Frame>
-          <Frame style={{ w: 200, p: 16, rounded: 12, bg: c.primary, flex: 'col', gap: 8 }}>
-            <Text style={{ size: 15, weight: 600, color: '#FFFFFF' }}>Highlighted</Text>
-            <Text style={{ size: 14, color: '#FFFFFF', opacity: 0.8 }}>Card with accent background color.</Text>
+          <Frame style={{ w: 280, p: 20, rounded: 12, bg: c.primary, flex: 'col', gap: 8 }}>
+            <Text style={{ size: 16, weight: 600, color: '#FFFFFF' }}>Highlighted</Text>
+            <Text style={{ size: 14, weight: 500, color: '#FFFFFF' }}>Card with accent background.</Text>
           </Frame>
         </Frame>
       </Frame>
