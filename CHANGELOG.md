@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   figma-use create icon mdi:home --color '$Brand/Accent'
   ```
 
+- **`<Icon>` primitive for JSX render** — 150k+ Iconify icons:
+  ```jsx
+  <Frame style={{ flexDirection: "row", gap: 8 }}>
+    <Icon icon="mdi:home" size={24} color="#3B82F6" />
+    <Icon icon="lucide:star" size={32} color="#F59E0B" />
+  </Frame>
+  ```
+  Icons are auto-preloaded before render.
+
 - **Tailwind-like style shorthands** for JSX render:
   - Size: `w`, `h` → `width`, `height`
   - Colors: `bg` → `backgroundColor`, `rounded` → `borderRadius`

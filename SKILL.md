@@ -129,7 +129,15 @@ echo '<Frame style={{p: 24, gap: 16, flex: "col", bg: "#FFF", rounded: 12}}>
 
 ⚠️ **stdin does NOT support:** `const`, `let`, `function`, `defineComponent`, `defineComponentSet`, ternary operators, or any JavaScript logic. Only literal JSX.
 
-**Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`
+**Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`, `Icon`
+
+**Icons (150k+ from Iconify):**
+```bash
+echo '<Frame style={{flex: "row", gap: 8, p: 16}}>
+  <Icon icon="mdi:home" size={24} color="#3B82F6" />
+  <Icon icon="lucide:star" size={24} color="#F59E0B" />
+</Frame>' | figma-use render --stdin
+```
 
 **Style props (with shorthands):**
 

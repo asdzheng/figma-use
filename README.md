@@ -97,7 +97,21 @@ figma-use render ./Card.figma.tsx --props '{"title": "Hello"}'
 
 ### Supported Elements
 
-`Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`
+`Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`, `Icon`
+
+### Icons
+
+Use 150k+ Iconify icons with the `<Icon>` primitive:
+
+```jsx
+<Frame style={{ flexDirection: "row", gap: 8 }}>
+  <Icon icon="mdi:home" size={24} color="#3B82F6" />
+  <Icon icon="lucide:star" size={32} color="#F59E0B" />
+  <Icon icon="heroicons:heart-solid" size={24} color="#E11D48" />
+</Frame>
+```
+
+Icons are automatically preloaded before render. Browse icons: https://icon-sets.iconify.design/
 
 ### Style Properties (with Tailwind-like shorthands)
 
