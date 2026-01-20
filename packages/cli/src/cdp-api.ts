@@ -293,3 +293,100 @@ export async function getVersions(fileKey?: string, limit = 20): Promise<Version
   if (result.error) throw new Error('Failed to fetch versions')
   return result.meta?.versions || []
 }
+
+// Webpack internals access via CDP
+// Uses stable string signatures to find modules (survives minification changes)
+
+const WEBPACK_INIT = `
+if (!window.__webpackRequire__) {
+  window.webpackChunk_figma_web_bundler.push([
+    ['__figma_use_' + Date.now()], {},
+    r => window.__webpackRequire__ = r
+  ]);
+}
+`
+
+const WEBPACK_FIND = `
+window.__findExport = (signature, predicate) => {
+  const r = window.__webpackRequire__;
+  for (const id in r.m) {
+    if (r.m[id].toString().includes(signature)) {
+      const hit = Object.values(r(id)).find(predicate);
+      if (hit) return hit;
+    }
+  }
+};
+`
+
+export async function initWebpackAccess(): Promise<void> {
+  await cdpEval(WEBPACK_INIT + WEBPACK_FIND)
+}
+
+export interface LocalPlugin {
+  name: string
+  plugin_id: string
+  localFileId: number
+  localFilePath: string
+  manifest: {
+    id: string
+    name: string
+    main: string
+    ui?: string
+  }
+}
+
+export async function getLocalPlugins(): Promise<LocalPlugin[]> {
+  await initWebpackAccess()
+
+  const result = await cdpEval<{ plugins: LocalPlugin[] } | { error: string }>(`
+    (() => {
+      const store = window.__findExport(
+        'intended only for debugging',
+        v => v?.getState?.()?.localPlugins
+      );
+      if (!store) return { error: 'Store not found' };
+      
+      const state = store.getState();
+      const plugins = Object.values(state.localPlugins || {});
+      return { plugins };
+    })()
+  `)
+
+  if ('error' in result) throw new Error(result.error)
+  return result.plugins
+}
+
+export async function runLocalPlugin(pluginName: string): Promise<void> {
+  await initWebpackAccess()
+
+  const result = await cdpEval<{ ok: true; name: string } | { error: string }>(`
+    (() => {
+      const store = window.__findExport(
+        'intended only for debugging',
+        v => v?.getState?.()?.localPlugins
+      );
+      const run = window.__findExport(
+        'Plugin Start Initiated',
+        v => typeof v === 'function' && v.toString().includes('Plugin Start')
+      );
+      
+      if (!store || !run) return { error: 'Figma internals not found' };
+      
+      const state = store.getState();
+      const plugin = Object.values(state.localPlugins || {}).find(p => p.name === '${pluginName}');
+      
+      if (!plugin) return { error: 'Plugin not found: ${pluginName}' };
+      
+      run({
+        plugin,
+        openFileKey: state.openFile?.key,
+        isWidget: false,
+        triggeredFrom: 'quick-actions'
+      });
+      
+      return { ok: true, name: plugin.name };
+    })()
+  `)
+
+  if ('error' in result) throw new Error(result.error)
+}

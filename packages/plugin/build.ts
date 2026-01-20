@@ -1,6 +1,6 @@
 import * as esbuild from 'esbuild'
 
-const [, uiBuild] = await Promise.all([
+const [, uiBuild, rpcBuild] = await Promise.all([
   esbuild.build({
     entryPoints: ['src/main.ts'],
     bundle: true,
@@ -14,8 +14,19 @@ const [, uiBuild] = await Promise.all([
     bundle: true,
     write: false,
     target: 'es2015'
+  }),
+  // RPC bundle for CDP injection (no figma.showUI, no figma.ui.onmessage)
+  esbuild.build({
+    entryPoints: ['src/rpc.ts'],
+    bundle: true,
+    write: false,
+    target: 'es2015',
+    minify: true,
   })
 ])
+
+// Write RPC bundle for CLI to use
+await Bun.write('dist/rpc.js', rpcBuild.outputFiles![0].text)
 
 const uiJs = uiBuild.outputFiles![0].text
 const uiHtml = await Bun.file('src/ui.html').text()

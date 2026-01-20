@@ -1,6 +1,7 @@
 import { defineCommand, runMain } from 'citty'
 import * as commands from './commands/index.ts'
 import { version } from '../../../package.json'
+import { closeCDP } from './cdp.ts'
 
 const main = defineCommand({
   meta: {
@@ -11,5 +12,7 @@ const main = defineCommand({
   },
   subCommands: commands
 })
+
+process.on('beforeExit', () => closeCDP())
 
 runMain(main)

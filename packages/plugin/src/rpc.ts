@@ -23,8 +23,6 @@ async function retry<T>(
   return null
 }
 
-figma.showUI(__html__, { width: 300, height: 200 })
-
 // Font cache to avoid repeated loadFontAsync calls
 const loadedFonts = new Set<string>()
 const fontLoadPromises = new Map<string, Promise<void>>()
@@ -196,31 +194,6 @@ const NEEDS_ALL_PAGES = new Set([
 ])
 
 let allPagesLoaded = false
-
-figma.ui.onmessage = async (msg: { type: string; id?: string; command?: string; args?: unknown }) => {
-  // Handle file info request
-  if (msg.type === 'get-file-info') {
-    // sessionID is unique per open file
-    const sessionId = figma.currentPage.id.split(':')[0]
-    const fileName = figma.root.name
-    figma.ui.postMessage({ type: 'file-info', sessionId, fileName })
-    return
-  }
-
-  if (msg.type !== 'command') return
-
-  try {
-    // Only load all pages when needed
-    if (!allPagesLoaded && NEEDS_ALL_PAGES.has(msg.command)) {
-      await figma.loadAllPagesAsync()
-      allPagesLoaded = true
-    }
-    const result = await handleCommand(msg.command, msg.args)
-    figma.ui.postMessage({ type: 'result', id: msg.id, result })
-  } catch (error) {
-    figma.ui.postMessage({ type: 'result', id: msg.id, error: String(error) })
-  }
-}
 
 async function handleCommand(command: string, args?: unknown): Promise<unknown> {
   switch (command) {

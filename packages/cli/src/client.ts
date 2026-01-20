@@ -1,18 +1,29 @@
-import type { ChromeDevToolsTarget } from './types.ts'
+import { cdpEval } from './cdp.ts'
+import { RPC_BUNDLE } from './rpc-bundle.ts'
 
 export { printResult, printError, formatResult } from './output.ts'
+export { getFileKey } from './cdp.ts'
 
-const PROXY_URL = process.env.FIGMA_PROXY_URL || 'http://localhost:38451'
+let rpcInjected = false
 
-export interface PluginConnection {
-  sessionId: string
-  fileName: string
-  active: boolean
-}
+async function ensureRpcInjected(): Promise<void> {
+  if (rpcInjected) return
 
-interface CommandResponse<T> {
-  result?: T
-  error?: string
+  const isReady = await cdpEval<boolean>('typeof window.__figmaRpc === "function"')
+  if (isReady) {
+    rpcInjected = true
+    return
+  }
+
+  await cdpEval(RPC_BUNDLE)
+  
+  // Verify injection
+  const ready = await cdpEval<boolean>('typeof window.__figmaRpc === "function"')
+  if (!ready) {
+    throw new Error('Failed to inject RPC into Figma')
+  }
+  
+  rpcInjected = true
 }
 
 export async function sendCommand<T = unknown>(
@@ -20,25 +31,30 @@ export async function sendCommand<T = unknown>(
   args?: unknown,
   options?: { timeout?: number }
 ): Promise<T> {
-  const response = await fetch(`${PROXY_URL}/command`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ command, args, timeout: options?.timeout })
-  })
-  const data = (await response.json()) as CommandResponse<T>
-  if (data.error) {
-    throw new Error(data.error)
+  await ensureRpcInjected()
+  
+  const code = `window.__figmaRpc(${JSON.stringify(command)}, ${JSON.stringify(args)})`
+  
+  const result = await cdpEval<T | { __error: string }>(code, options?.timeout || 30000)
+  
+  if (result && typeof result === 'object' && '__error' in result) {
+    throw new Error((result as { __error: string }).__error)
   }
-  return data.result as T
+  
+  return result as T
 }
 
 export async function getStatus(): Promise<{ 
-  pluginConnected: boolean
-  activeFile?: string
-  connections?: PluginConnection[]
+  connected: boolean
+  fileName?: string
 }> {
-  const response = await fetch(`${PROXY_URL}/status`)
-  return response.json()
+  try {
+    await ensureRpcInjected()
+    const fileName = await cdpEval<string>('figma.root.name')
+    return { connected: true, fileName }
+  } catch {
+    return { connected: false }
+  }
 }
 
 export function handleError(error: unknown): never {
@@ -47,32 +63,9 @@ export function handleError(error: unknown): never {
   process.exit(1)
 }
 
-/**
- * Get current Figma file key from Chrome DevTools
- */
-export async function getFileKey(): Promise<string> {
-  try {
-    const response = await fetch('http://localhost:9222/json')
-    const targets = (await response.json()) as ChromeDevToolsTarget[]
-
-    for (const target of targets) {
-      const match = target.url.match(/figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/)
-      if (match?.[1]) return match[1]
-    }
-  } catch {
-    // DevTools not available
-  }
-
-  throw new Error('No Figma file found. Start Figma with: figma --remote-debugging-port=9222')
-}
-
-/**
- * Get current page GUID for multiplayer
- */
 export async function getParentGUID(): Promise<{ sessionID: number; localID: number }> {
-  const result = await sendCommand<{ id: string }>('eval', {
-    code: 'return { id: figma.currentPage.id }'
-  })
-  const parts = result.id.split(':').map(Number)
+  await ensureRpcInjected()
+  const id = await cdpEval<string>('figma.currentPage.id')
+  const parts = id.split(':').map(Number)
   return { sessionID: parts[0] ?? 0, localID: parts[1] ?? 0 }
 }
