@@ -19,7 +19,9 @@ async function getCDPTarget(): Promise<CDPTarget> {
   const figmaTarget = targets.find(
     (t) =>
       t.type === 'page' &&
-      (t.url.includes('figma.com/design') || t.url.includes('figma.com/file'))
+      (t.url.includes('figma.com/design') || 
+       t.url.includes('figma.com/file') ||
+       t.url.includes('figma.com/board'))  // FigJam
   )
 
   if (!figmaTarget) {

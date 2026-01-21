@@ -13,12 +13,16 @@ function getPluginDir(): string {
   const currentFile = fileURLToPath(import.meta.url)
   const cliDir = dirname(currentFile)
   
-  // From packages/cli/src/ or dist/cli/
-  if (cliDir.includes('packages/cli')) {
+  // From packages/cli/src/
+  if (cliDir.includes('packages/cli/src')) {
     return join(cliDir, '../../plugin/src')
   }
-  // Bundled - go up to root
-  return join(cliDir, '../packages/plugin/src')
+  // From packages/cli/ (without src)
+  if (cliDir.includes('packages/cli')) {
+    return join(cliDir, '../plugin/src')
+  }
+  // Bundled dist/cli/ - go up to repo root
+  return join(cliDir, '../../packages/plugin/src')
 }
 
 async function buildRpcBundle(): Promise<string> {

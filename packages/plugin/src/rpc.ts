@@ -2194,6 +2194,23 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       if (!fromNode || !('absoluteBoundingBox' in fromNode)) throw new Error('From node not found or invalid')
       if (!toNode || !('absoluteBoundingBox' in toNode)) throw new Error('To node not found or invalid')
 
+      // Map friendly cap names to FigJam enum values
+      const mapCapCreate = (cap: string): ConnectorStrokeCap => {
+        const mapping: Record<string, ConnectorStrokeCap> = {
+          'NONE': 'NONE',
+          'ARROW': 'ARROW_EQUILATERAL',
+          'ARROW_EQUILATERAL': 'ARROW_EQUILATERAL',
+          'ARROW_LINES': 'ARROW_LINES',
+          'TRIANGLE': 'TRIANGLE_FILLED',
+          'TRIANGLE_FILLED': 'TRIANGLE_FILLED',
+          'DIAMOND': 'DIAMOND_FILLED',
+          'DIAMOND_FILLED': 'DIAMOND_FILLED',
+          'CIRCLE': 'CIRCLE_FILLED',
+          'CIRCLE_FILLED': 'CIRCLE_FILLED'
+        }
+        return mapping[cap] || 'NONE'
+      }
+
       const connector = figma.createConnector()
       connector.connectorStart = {
         endpointNodeId: fromId,
@@ -2205,8 +2222,8 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       }
 
       if (lineType) connector.connectorLineType = lineType
-      if (startCap) connector.connectorStartStrokeCap = startCap as ConnectorStrokeCap
-      if (endCap) connector.connectorEndStrokeCap = endCap as ConnectorStrokeCap
+      if (startCap) connector.connectorStartStrokeCap = mapCapCreate(startCap)
+      if (endCap) connector.connectorEndStrokeCap = mapCapCreate(endCap)
       if (cornerRadius !== undefined) connector.cornerRadius = cornerRadius
       if (strokeWeight !== undefined) connector.strokeWeight = strokeWeight
       if (stroke) {
@@ -2300,9 +2317,26 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         }
       }
 
+      // Map friendly cap names to FigJam enum values
+      const mapCapSet = (cap: string): ConnectorStrokeCap => {
+        const mapping: Record<string, ConnectorStrokeCap> = {
+          'NONE': 'NONE',
+          'ARROW': 'ARROW_EQUILATERAL',
+          'ARROW_EQUILATERAL': 'ARROW_EQUILATERAL',
+          'ARROW_LINES': 'ARROW_LINES',
+          'TRIANGLE': 'TRIANGLE_FILLED',
+          'TRIANGLE_FILLED': 'TRIANGLE_FILLED',
+          'DIAMOND': 'DIAMOND_FILLED',
+          'DIAMOND_FILLED': 'DIAMOND_FILLED',
+          'CIRCLE': 'CIRCLE_FILLED',
+          'CIRCLE_FILLED': 'CIRCLE_FILLED'
+        }
+        return mapping[cap] || 'NONE'
+      }
+
       if (lineType) connector.connectorLineType = lineType
-      if (startCap) connector.connectorStartStrokeCap = startCap as ConnectorStrokeCap
-      if (endCap) connector.connectorEndStrokeCap = endCap as ConnectorStrokeCap
+      if (startCap) connector.connectorStartStrokeCap = mapCapSet(startCap)
+      if (endCap) connector.connectorEndStrokeCap = mapCapSet(endCap)
       if (cornerRadius !== undefined) connector.cornerRadius = cornerRadius
       if (strokeWeight !== undefined) connector.strokeWeight = strokeWeight
       if (stroke) {
