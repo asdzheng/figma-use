@@ -75,7 +75,7 @@ Check connection:
 figma-use status
 ```
 
-That's it. No proxy server, no plugin installation required.
+That's it. No plugins to install.
 
 ## Two Modes
 
@@ -333,7 +333,7 @@ Includes [SKILL.md](./SKILL.md) — a reference for Claude Code, Cursor, and oth
 └─────────────┘            └─────────────┘
 ```
 
-figma-use communicates directly with Figma via Chrome DevTools Protocol (CDP). No proxy server, no plugins to install — just start Figma with `--remote-debugging-port=9222` and you're ready.
+figma-use communicates directly with Figma via Chrome DevTools Protocol (CDP). Just start Figma with `--remote-debugging-port=9222` and you're ready.
 
 Commands are executed via `Runtime.evaluate` in Figma's JavaScript context, with full access to the Plugin API.
 

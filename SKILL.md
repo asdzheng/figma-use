@@ -38,7 +38,7 @@ open -a Figma --args --remote-debugging-port=9222
 figma --remote-debugging-port=9222
 ```
 
-No proxy server, no plugins required.
+Start Figma with `--remote-debugging-port=9222` and you're ready.
 
 ## Two Modes
 
