@@ -173,40 +173,19 @@ function generateStorybookAST(
     )
   }
 
-  // const meta: Meta = { title }
+  // export default { title } satisfies Meta
   statements.push(
-    ts.factory.createVariableStatement(
-      undefined,
-      ts.factory.createVariableDeclarationList(
-        [
-          ts.factory.createVariableDeclaration(
-            'meta',
-            undefined,
-            ts.factory.createTypeReferenceNode('Meta'),
-            ts.factory.createObjectLiteralExpression([
-              ts.factory.createPropertyAssignment('title', ts.factory.createStringLiteral(title))
-            ])
-          )
-        ],
-        ts.NodeFlags.Const
+    ts.factory.createExportDefault(
+      ts.factory.createSatisfiesExpression(
+        ts.factory.createObjectLiteralExpression([
+          ts.factory.createPropertyAssignment('title', ts.factory.createStringLiteral(title))
+        ]),
+        ts.factory.createTypeReferenceNode('Meta')
       )
     )
   )
 
-  // export default meta
-  statements.push(ts.factory.createExportDefault(ts.factory.createIdentifier('meta')))
-
-  // type Story = StoryObj
-  statements.push(
-    ts.factory.createTypeAliasDeclaration(
-      undefined,
-      'Story',
-      undefined,
-      ts.factory.createTypeReferenceNode('StoryObj')
-    )
-  )
-
-  // export const VariantName: Story = { render: () => <...> }
+  // export const VariantName: StoryObj = { render: () => <...> }
   for (const variant of variants) {
     statements.push(
       ts.factory.createVariableStatement(
@@ -216,7 +195,7 @@ function generateStorybookAST(
             ts.factory.createVariableDeclaration(
               variantNameToIdentifier(variant.name),
               undefined,
-              ts.factory.createTypeReferenceNode('Story'),
+              ts.factory.createTypeReferenceNode('StoryObj'),
               ts.factory.createObjectLiteralExpression([
                 ts.factory.createPropertyAssignment(
                   'render',

@@ -407,8 +407,7 @@ export async function formatCode(code: string, options: FormatOptions = {}): Pro
     let formatted = result.code
     // Add blank lines for better readability
     formatted = formatted.replace(/^(import .+\n)(?!import)/m, '$1\n')
-    formatted = formatted.replace(/^(export default \w+)\n(?!\n)/m, '$1\n\n')
-    formatted = formatted.replace(/^(type Story = .+)\n(?!\n)/m, '$1\n\n')
+    formatted = formatted.replace(/^(export default .+)\n(?!\n)/m, '$1\n\n')
     formatted = formatted.replace(/^(}\n)(export const)/gm, '$1\n$2')
     return formatted
   } catch (e: unknown) {
