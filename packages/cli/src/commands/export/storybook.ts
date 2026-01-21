@@ -16,6 +16,25 @@ import {
 
 import type { FigmaNode, FormatOptions } from '../../types.ts'
 
+interface FrameworkConfig {
+  module: string
+  storybookType: string
+  fileExt: string
+}
+
+const FRAMEWORKS: Record<string, FrameworkConfig> = {
+  react: {
+    module: '@figma-use/react',
+    storybookType: '@storybook/react',
+    fileExt: '.stories.tsx'
+  },
+  vue: {
+    module: '@figma-use/vue',
+    storybookType: '@storybook/vue3',
+    fileExt: '.stories.tsx'
+  }
+}
+
 interface ComponentInfo {
   id: string
   name: string
@@ -43,7 +62,8 @@ function generateStorybook(
   componentName: string,
   title: string,
   variants: Array<{ name: string; jsx: ts.JsxChild }>,
-  usedComponents: Set<string>
+  usedComponents: Set<string>,
+  framework: FrameworkConfig
 ): ts.SourceFile {
   const statements: ts.Statement[] = []
 
@@ -63,11 +83,11 @@ function generateStorybook(
           )
         ])
       ),
-      ts.factory.createStringLiteral('@storybook/react')
+      ts.factory.createStringLiteral(framework.storybookType)
     )
   )
 
-  // import { Frame, Text, ... } from 'figma-use/render' — only used components
+  // import { Frame, Text, ... } from 'figma-use-react' — only used components
   const renderImports = Array.from(usedComponents).sort()
   if (renderImports.length > 0) {
     statements.push(
@@ -82,7 +102,7 @@ function generateStorybook(
             )
           )
         ),
-        ts.factory.createStringLiteral('figma-use/render')
+        ts.factory.createStringLiteral(framework.module)
       )
     )
   }
@@ -184,6 +204,7 @@ export default defineCommand({
     'icon-threshold': { type: 'string', description: 'Icon match threshold 0-1 (default: 0.9)' },
     'prefer-icons': { type: 'string', description: 'Preferred icon sets (comma-separated, e.g., lucide,tabler)' },
     verbose: { type: 'boolean', alias: 'v', description: 'Show matched icons' },
+    framework: { type: 'string', description: 'Framework: react (default), vue' },
     semi: { type: 'boolean', description: 'Add semicolons (default: false)' },
     'single-quote': { type: 'boolean', description: 'Use single quotes (default: true)' },
     'tab-width': { type: 'string', description: 'Spaces per indent (default: 2)' },
@@ -192,6 +213,13 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
+      const frameworkName = args.framework || 'react'
+      const framework = FRAMEWORKS[frameworkName]
+      if (!framework) {
+        console.error(`Unknown framework: ${frameworkName}. Available: ${Object.keys(FRAMEWORKS).join(', ')}`)
+        process.exit(1)
+      }
+
       if (args.page) {
         await sendCommand('set-current-page', { name: args.page })
       }
@@ -314,11 +342,11 @@ export default defineCommand({
           if (variants.length === 0) continue
 
           const componentName = toComponentName(baseName)
-          const sourceFile = generateStorybook(componentName, baseName, variants, usedComponents)
+          const sourceFile = generateStorybook(componentName, baseName, variants, usedComponents, framework)
           let code = printer.printFile(sourceFile)
           code = await formatCode(code, formatOptions)
 
-          const filePath = join(outDir, `${sanitizeFilename(baseName)}.stories.tsx`)
+          const filePath = join(outDir, `${sanitizeFilename(baseName)}${framework.fileExt}`)
           if (exportedFiles.has(filePath)) {
             errors.push({ name: baseName, error: 'Duplicate component name, skipped' })
             continue
