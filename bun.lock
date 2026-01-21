@@ -11,7 +11,7 @@
         "fontoxpath": "^3.34.0",
         "postcss": "^8.5.6",
         "svgpath": "^2.6.0",
-        "whaticon": "^0.1.1",
+        "whaticon": "0.1.2",
       },
       "devDependencies": {
         "@iconify/core": "^4.1.0",
@@ -232,6 +232,8 @@
 
     "source-map-js": ["source-map-js@1.2.1", "", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
 
+    "svg-parser": ["svg-parser@2.0.4", "", {}, "sha512-e4hG1hRwoOdRb37cIMSgzNsxyzKfayW6VOflrwvR+/bzrkyxY/31WkbgnQpgtrNp1SdpJvpUAGTa/ZoiPNDuRQ=="],
+
     "svgpath": ["svgpath@2.6.0", "", {}, "sha512-OIWR6bKzXvdXYyO4DK/UWa1VA1JeKq8E+0ug2DG98Y/vOmMpfZNj+TIG988HjfYSqtcy/hFOtZq/n/j5GSESNg=="],
 
     "tinyexec": ["tinyexec@1.0.2", "", {}, "sha512-W/KYk+NFhkmsYpuHq5JykngiOCnxeVL8v8dFnqxSD8qEEdRfXk1SDM6JzNqcERbcGYj9tMrDQBYV9cjgnunFIg=="],
@@ -246,7 +248,7 @@
 
     "undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
-    "whaticon": ["whaticon@0.1.1", "", { "dependencies": { "citty": "^0.2.0", "sharp": "^0.33.0" }, "bin": { "whaticon": "dist/cli.js" } }, "sha512-bpFjAlzIJ4G/nzdcaS9rENVM4+KR+EPZSXf+VwnCcNOhzbS1CsSPUEzWPiuSBgFj6vOifQkTKJFmsmRsHwyeFA=="],
+    "whaticon": ["whaticon@0.1.2", "", { "dependencies": { "citty": "^0.2.0", "sharp": "^0.33.0", "svg-parser": "^2.0.4" }, "bin": { "whaticon": "dist/cli.js" } }, "sha512-9tAwu5aZkrLtZLNhVC1KkuYU7zEsmZrr+wdHQdmw/jPMx6Stbq5tvwTQ0tTNLTZPmvwfVDQUl6CZ2XagVwrXng=="],
 
     "whynot": ["whynot@5.0.0", "", {}, "sha512-cGGfDPYYqoHoMWqXVc3G+N74u1FhFhrBa+pOO906b9ktRc/JFUdwroTkfPqjKzyoCLVcKr6yy6bYIcWT7jTg2A=="],
 

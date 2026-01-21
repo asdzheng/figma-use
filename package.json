@@ -13,7 +13,7 @@
     "fontoxpath": "^3.34.0",
     "postcss": "^8.5.6",
     "svgpath": "^2.6.0",
-    "whaticon": "^0.1.1"
+    "whaticon": "0.1.2"
   },
   "devDependencies": {
     "@iconify/core": "^4.1.0",
