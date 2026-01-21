@@ -19,6 +19,7 @@ export default defineCommand({
     'match-icons': { type: 'boolean', description: 'Match vector shapes to Iconify icons (requires whaticon)' },
     'icon-threshold': { type: 'string', description: 'Icon match threshold 0-1 (default: 0.9)' },
     'prefer-icons': { type: 'string', description: 'Preferred icon sets (comma-separated, e.g., lucide,tabler)' },
+    verbose: { type: 'boolean', alias: 'v', description: 'Show matched icons' },
     pretty: { type: 'boolean', description: 'Format output' },
     semi: { type: 'boolean', description: 'Add semicolons (default: false)' },
     'single-quote': { type: 'boolean', description: 'Use single quotes (default: true)' },
@@ -46,13 +47,15 @@ export default defineCommand({
         const matchCount = await matchIconsInTree(node, {
           threshold,
           prefer,
-          onMatch: (n, match) => {
-            console.error(`Matched: ${n.name} → ${match.name} (${(match.similarity * 100).toFixed(0)}%)`)
-          }
+          onMatch: args.verbose
+            ? (n, match) => {
+                console.error(`Matched: ${n.name} → ${match.name} (${(match.similarity * 100).toFixed(0)}%)`)
+              }
+            : undefined
         })
 
-        if (matchCount > 0) {
-          console.error(`\nMatched ${matchCount} icon(s)\n`)
+        if (args.verbose && matchCount > 0) {
+          console.error(`Matched ${matchCount} icon(s)\n`)
         }
       }
 

@@ -6,11 +6,19 @@ interface CDPTarget {
   type: string
 }
 
+interface PendingRequest {
+  resolve: (value: unknown) => void
+  reject: (error: Error) => void
+  timer: ReturnType<typeof setTimeout>
+}
+
 let cachedWs: WebSocket | null = null
 let cachedTarget: CDPTarget | null = null
 let messageId = 0
 let idleTimer: ReturnType<typeof setTimeout> | null = null
 const IDLE_TIMEOUT = 100 // Close connection after 100ms of inactivity
+
+const pendingRequests = new Map<number, PendingRequest>()
 
 async function getCDPTarget(): Promise<CDPTarget> {
   if (cachedTarget) return cachedTarget
@@ -40,6 +48,25 @@ async function getCDPTarget(): Promise<CDPTarget> {
   return figmaTarget
 }
 
+function handleMessage(data: Buffer): void {
+  const msg = JSON.parse(data.toString())
+  if (typeof msg.id !== 'number') return
+
+  const pending = pendingRequests.get(msg.id)
+  if (!pending) return
+
+  pendingRequests.delete(msg.id)
+  clearTimeout(pending.timer)
+  scheduleClose()
+
+  if (msg.result?.exceptionDetails) {
+    const err = msg.result.exceptionDetails
+    pending.reject(new Error(err.exception?.description || err.text || 'CDP error'))
+  } else {
+    pending.resolve(msg.result?.result?.value)
+  }
+}
+
 async function getWebSocket(): Promise<WebSocket> {
   if (cachedWs?.readyState === WebSocket.OPEN) return cachedWs
 
@@ -49,13 +76,26 @@ async function getWebSocket(): Promise<WebSocket> {
     const ws = new WebSocket(target.webSocketDebuggerUrl)
     ws.on('open', () => {
       cachedWs = ws
+      ws.on('message', handleMessage)
       resolve(ws)
     })
     ws.on('error', reject)
+    ws.on('close', () => {
+      // Reject all pending requests on close
+      for (const [id, pending] of pendingRequests) {
+        clearTimeout(pending.timer)
+        pending.reject(new Error('WebSocket closed'))
+        pendingRequests.delete(id)
+      }
+      if (cachedWs === ws) {
+        cachedWs = null
+      }
+    })
   })
 }
 
 function scheduleClose(): void {
+  if (pendingRequests.size > 0) return // Don't close while requests pending
   if (idleTimer) clearTimeout(idleTimer)
   idleTimer = setTimeout(() => {
     closeCDP()
@@ -67,34 +107,22 @@ export async function cdpEval<T>(code: string, timeout = 30000): Promise<T> {
     clearTimeout(idleTimer)
     idleTimer = null
   }
-  
+
   const ws = await getWebSocket()
   const id = ++messageId
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      ws.off('message', handler)
+      pendingRequests.delete(id)
       scheduleClose()
       reject(new Error('CDP timeout'))
     }, timeout)
 
-    const handler = (data: Buffer) => {
-      const msg = JSON.parse(data.toString())
-      if (msg.id === id) {
-        clearTimeout(timer)
-        ws.off('message', handler)
-        scheduleClose()
-
-        if (msg.result?.exceptionDetails) {
-          const err = msg.result.exceptionDetails
-          reject(new Error(err.exception?.description || err.text || 'CDP error'))
-        } else {
-          resolve(msg.result?.result?.value as T)
-        }
-      }
-    }
-
-    ws.on('message', handler)
+    pendingRequests.set(id, {
+      resolve: resolve as (value: unknown) => void,
+      reject,
+      timer
+    })
 
     ws.send(
       JSON.stringify({

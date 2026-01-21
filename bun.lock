@@ -10,7 +10,7 @@
         "esbuild": "^0.25.4",
         "fontoxpath": "^3.34.0",
         "svgpath": "^2.6.0",
-        "whaticon": "^0.1.0",
+        "whaticon": "^0.1.1",
       },
       "devDependencies": {
         "@iconify/core": "^4.1.0",
@@ -237,7 +237,7 @@
 
     "undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
-    "whaticon": ["whaticon@0.1.0", "", { "dependencies": { "citty": "^0.2.0", "sharp": "^0.33.0" }, "bin": { "whaticon": "dist/cli.js" } }, "sha512-+9+mBfu2kH+X/MLhPVOnFunt8ncik+AN+KCO5fn2yEI/H2iQ535/EBuI0zTkTyB1cSSyBd3xt2lIv5sAtl+xaw=="],
+    "whaticon": ["whaticon@0.1.1", "", { "dependencies": { "citty": "^0.2.0", "sharp": "^0.33.0" }, "bin": { "whaticon": "dist/cli.js" } }, "sha512-bpFjAlzIJ4G/nzdcaS9rENVM4+KR+EPZSXf+VwnCcNOhzbS1CsSPUEzWPiuSBgFj6vOifQkTKJFmsmRsHwyeFA=="],
 
     "whynot": ["whynot@5.0.0", "", {}, "sha512-cGGfDPYYqoHoMWqXVc3G+N74u1FhFhrBa+pOO906b9ktRc/JFUdwroTkfPqjKzyoCLVcKr6yy6bYIcWT7jTg2A=="],
 

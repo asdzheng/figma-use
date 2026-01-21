@@ -174,6 +174,7 @@ export default defineCommand({
     'match-icons': { type: 'boolean', description: 'Match vector shapes to Iconify icons (requires whaticon)' },
     'icon-threshold': { type: 'string', description: 'Icon match threshold 0-1 (default: 0.9)' },
     'prefer-icons': { type: 'string', description: 'Preferred icon sets (comma-separated, e.g., lucide,tabler)' },
+    verbose: { type: 'boolean', alias: 'v', description: 'Show matched icons' },
     semi: { type: 'boolean', description: 'Add semicolons (default: false)' },
     'single-quote': { type: 'boolean', description: 'Use single quotes (default: true)' },
     'tab-width': { type: 'string', description: 'Spaces per indent (default: 2)' },
@@ -266,7 +267,15 @@ export default defineCommand({
             if (args['match-icons']) {
               const threshold = args['icon-threshold'] ? parseFloat(args['icon-threshold']) : 0.9
               const prefer = args['prefer-icons']?.split(',').map((s) => s.trim())
-              await matchIconsInTree(node, { threshold, prefer })
+              await matchIconsInTree(node, {
+                threshold,
+                prefer,
+                onMatch: args.verbose
+                  ? (n, match) => {
+                      console.error(`Matched: ${n.name} → ${match.name} (${(match.similarity * 100).toFixed(0)}%)`)
+                    }
+                  : undefined
+              })
             }
 
             const jsx = nodeToJsx(node)

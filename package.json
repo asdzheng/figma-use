@@ -12,7 +12,7 @@
     "esbuild": "^0.25.4",
     "fontoxpath": "^3.34.0",
     "svgpath": "^2.6.0",
-    "whaticon": "^0.1.0"
+    "whaticon": "^0.1.1"
   },
   "devDependencies": {
     "@iconify/core": "^4.1.0",
