@@ -92,3 +92,11 @@ export function formatFont(node: FigmaNode): string | null {
   const style = node.fontStyle && node.fontStyle !== 'Regular' ? ` ${node.fontStyle}` : ''
   return `font: ${node.fontSize}px${family ? ` ${family}${style}` : ''}`
 }
+
+export function installHint(pkg: string): string {
+  const ua = process.env.npm_config_user_agent
+  if (ua?.startsWith('bun')) return `bun add -d ${pkg}`
+  if (ua?.startsWith('pnpm')) return `pnpm add -D ${pkg}`
+  if (ua?.startsWith('yarn')) return `yarn add -D ${pkg}`
+  return `npm install -D ${pkg}`
+}

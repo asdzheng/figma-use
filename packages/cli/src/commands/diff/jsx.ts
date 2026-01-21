@@ -4,6 +4,7 @@ import pc from 'picocolors'
 import * as ts from 'typescript'
 
 import { sendCommand, handleError } from '../../client.ts'
+import { installHint } from '../../format.ts'
 
 import type { FigmaNode, FormatOptions } from '../../types.ts'
 
@@ -132,8 +133,12 @@ async function formatCode(code: string, options: FormatOptions = {}): Promise<st
       trailingComma: options.trailingComma ?? 'es5'
     })
     return result.code
-  } catch {
-    return code
+  } catch (e: unknown) {
+    if ((e as NodeJS.ErrnoException).code === 'ERR_MODULE_NOT_FOUND') {
+      console.error(`oxfmt is required for diff jsx. Install it:\n\n  ${installHint('oxfmt')}\n`)
+      process.exit(1)
+    }
+    throw e
   }
 }
 
