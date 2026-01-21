@@ -57,7 +57,15 @@ echo '<Frame style={{p: 24, gap: 16, flex: "col", bg: "#FFF", rounded: 12}}>
 </Frame>' | figma-use render --stdin --x 100 --y 200
 ```
 
-⚠️ **stdin = pure JSX only.** No variables, no logic, no imports. For components/variants use `.figma.tsx` files.
+stdin supports both pure JSX and full module syntax with imports:
+
+```tsx
+import { Frame, Text, defineComponent } from 'figma-use/render'
+
+const Button = defineComponent('Button', <Frame bg="#3B82F6" p={12} rounded={6}><Text color="#FFF">Click</Text></Frame>)
+
+export default () => <Frame flex="row" gap={8}><Button /><Button /></Frame>
+```
 
 **Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`, `Icon`, `Image`
 
