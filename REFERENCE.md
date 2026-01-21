@@ -252,10 +252,8 @@ figma-use font list --family "Roboto" --json
 
 ```bash
 figma-use status                           # Check connection
-figma-use proxy                            # Start proxy server
-figma-use proxy --port 8080                # Custom port
-figma-use plugin install                   # Install plugin (quit Figma first)
-figma-use plugin list                      # List development plugins
+figma-use mcp serve                        # Start MCP server
+figma-use mcp serve --port 8080            # Custom port
 figma-use mcp                              # Show MCP config snippet
 figma-use profile <command>                # Profile command via CDP
 ```
