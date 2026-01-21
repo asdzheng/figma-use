@@ -16,12 +16,15 @@ async function getCDPTarget(): Promise<CDPTarget> {
   const resp = await fetch('http://localhost:9222/json')
   const targets = (await resp.json()) as CDPTarget[]
 
+  // Prefer design files over FigJam boards
   const figmaTarget = targets.find(
     (t) =>
       t.type === 'page' &&
-      (t.url.includes('figma.com/design') || 
-       t.url.includes('figma.com/file') ||
-       t.url.includes('figma.com/board'))  // FigJam
+      (t.url.includes('figma.com/design') || t.url.includes('figma.com/file'))
+  ) || targets.find(
+    (t) =>
+      t.type === 'page' &&
+      t.url.includes('figma.com/board')  // FigJam fallback
   )
 
   if (!figmaTarget) {

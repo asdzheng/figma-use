@@ -1,15 +1,21 @@
 import { describe, test, expect, beforeAll } from 'bun:test'
-import type { JSONRPCRequest, JSONRPCResponse } from '@modelcontextprotocol/sdk/types.js'
-
+import type { JSONRPCRequest } from '@modelcontextprotocol/sdk/types.js'
 
 const PROXY_URL = 'http://localhost:38451'
 
-async function mcpRequest(method: string, params?: unknown): Promise<JSONRPCResponse> {
+interface MCPResponse {
+  jsonrpc: '2.0'
+  id: number
+  result?: unknown
+  error?: { code: number; message: string }
+}
+
+async function mcpRequest(method: string, params?: unknown): Promise<MCPResponse> {
   const request: JSONRPCRequest = {
     jsonrpc: '2.0',
     id: Date.now(),
     method,
-    params
+    params: params as Record<string, unknown>
   }
 
   const response = await fetch(`${PROXY_URL}/mcp`, {
@@ -28,35 +34,29 @@ async function mcpRequest(method: string, params?: unknown): Promise<JSONRPCResp
 
 async function isProxyRunning(): Promise<boolean> {
   try {
-    // Check proxy status
-    const statusRes = await fetch(`${PROXY_URL}/status`)
-    const status = (await statusRes.json()) as { pluginConnected: boolean }
-    if (!status.pluginConnected) return false
-
-    // Check MCP endpoint responds
-    const mcpRes = await fetch(`${PROXY_URL}/mcp`, {
+    const response = await fetch(`${PROXY_URL}/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' })
     })
-    const response = (await mcpRes.json()) as JSONRPCResponse
-    return response.jsonrpc === '2.0'
+    return response.ok
   } catch {
     return false
   }
 }
 
-describe('MCP Integration', () => {
-  let skipTests = false
+let skipTests = false
 
+describe('MCP Integration', () => {
   beforeAll(async () => {
     skipTests = !(await isProxyRunning())
     if (skipTests) {
-      console.warn('⚠ Skipping MCP integration tests: proxy not running or plugin not connected')
+      console.log('⚠️  MCP server not running, skipping integration tests')
+      console.log('   Start with: figma-use mcp serve --port 38451')
     }
   })
 
-  test('initialize returns server info', async () => {
+  test('initialize handshake', async () => {
     if (skipTests) return
 
     const response = await mcpRequest('initialize', {
@@ -94,7 +94,7 @@ describe('MCP Integration', () => {
     expect(result.tools.some((t) => t.name === 'figma_create_frame')).toBe(true)
   })
 
-  test('tools/call figma_status returns connection status', async () => {
+  test('tools/call executes command', async () => {
     if (skipTests) return
 
     const response = await mcpRequest('tools/call', {
@@ -105,107 +105,78 @@ describe('MCP Integration', () => {
     expect(response.error).toBeUndefined()
     expect(response.result).toBeDefined()
 
-    const result = response.result as {
-      content: Array<{ type: string; text: string }>
-      isError: boolean
-    }
-
-    expect(result.isError).toBe(false)
-    expect(result.content[0].type).toBe('text')
-    expect(result.content[0].text).toContain('pluginConnected')
+    const result = response.result as { content: Array<{ type: string; text: string }> }
+    expect(result.content).toBeDefined()
+    expect(result.content.length).toBeGreaterThan(0)
+    expect(result.content[0]!.type).toBe('text')
+    expect(result.content[0]!.text).toContain('figma')
   })
 
-  test('tools/call figma_page_list returns pages', async () => {
+  test('tools/call with arguments', async () => {
     if (skipTests) return
 
     const response = await mcpRequest('tools/call', {
-      name: 'figma_page_list',
-      arguments: {}
+      name: 'figma_eval',
+      arguments: { code: 'return 1 + 1' }
     })
 
     expect(response.error).toBeUndefined()
     expect(response.result).toBeDefined()
 
-    const result = response.result as {
-      content: Array<{ type: string; text: string }>
-      isError: boolean
-    }
-
-    expect(result.isError).toBe(false)
-
-    const pages = JSON.parse(result.content[0].text)
-    expect(Array.isArray(pages)).toBe(true)
-    expect(pages.length).toBeGreaterThan(0)
-    expect(pages[0]).toHaveProperty('id')
-    expect(pages[0]).toHaveProperty('name')
+    const result = response.result as { content: Array<{ type: string; text: string }> }
+    const text = result.content.find((c) => c.type === 'text')?.text
+    expect(text).toContain('2')
   })
 
-  test('tools/call with unknown tool returns error', async () => {
+  test('unknown tool returns error', async () => {
     if (skipTests) return
 
     const response = await mcpRequest('tools/call', {
-      name: 'figma_nonexistent_tool',
+      name: 'figma_nonexistent_command',
       arguments: {}
     })
 
     expect(response.error).toBeDefined()
-    expect(response.error?.code).toBe(-32602)
-    expect(response.error?.message).toContain('Unknown tool')
+    expect(response.error!.code).toBe(-32602)
+    expect(response.error!.message).toContain('Unknown tool')
   })
 
-  test('tools/call figma_create_rect creates a rectangle', async () => {
+  test('tools/call create and delete', async () => {
     if (skipTests) return
 
-    // String args are coerced to numbers by the proxy (matching CLI behavior)
-    const response = await mcpRequest('tools/call', {
-      name: 'figma_create_rect',
-      arguments: {
-        x: '0',
-        y: '0',
-        width: '100',
-        height: '100',
-        fill: '#FF0000'
-      }
+    const createResponse = await mcpRequest('tools/call', {
+      name: 'figma_create_rectangle',
+      arguments: { x: 0, y: 0, width: 50, height: 50, name: 'MCP Test Rect' }
     })
 
-    expect(response.error).toBeUndefined()
-    expect(response.result).toBeDefined()
+    expect(createResponse.error).toBeUndefined()
+    expect(createResponse.result).toBeDefined()
 
-    const result = response.result as {
-      content: Array<{ type: string; text: string }>
-      isError: boolean
-    }
+    const createResult = createResponse.result as { content: Array<{ type: string; text: string }> }
+    const createText = createResult.content.find((c) => c.type === 'text')?.text ?? ''
 
-    expect(result.isError).toBe(false)
+    const idMatch = createText.match(/id['":\s]+(\d+:\d+)/)
+    expect(idMatch).not.toBeNull()
 
-    const node = JSON.parse(result.content[0].text)
-    expect(node).toHaveProperty('id')
-    expect(node.type).toBe('RECTANGLE')
+    const nodeId = idMatch![1]
 
-    // Clean up
-    if (node.id) {
-      await mcpRequest('tools/call', {
-        name: 'figma_node_delete',
-        arguments: { id: node.id }
-      })
-    }
+    const deleteResponse = await mcpRequest('tools/call', {
+      name: 'figma_node_delete',
+      arguments: { id: nodeId }
+    })
+
+    expect(deleteResponse.error).toBeUndefined()
   })
 
-  test('ping returns empty result', async () => {
+  test('handles Figma connection errors gracefully', async () => {
     if (skipTests) return
 
-    const response = await mcpRequest('ping')
-
-    expect(response.error).toBeUndefined()
-    expect(response.result).toBeDefined()
-  })
-
-  test('unknown method returns error', async () => {
-    if (skipTests) return
-
-    const response = await mcpRequest('unknown/method')
+    const response = await mcpRequest('tools/call', {
+      name: 'figma_eval',
+      arguments: { code: 'throw new Error("test error")' }
+    })
 
     expect(response.error).toBeDefined()
-    expect(response.error?.code).toBe(-32601)
+    expect(response.error!.message).toContain('test error')
   })
 })

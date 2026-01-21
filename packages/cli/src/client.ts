@@ -38,7 +38,7 @@ async function buildRpcBundle(): Promise<string> {
     minify: true
   })
   
-  return result.outputFiles![0].text
+  return result.outputFiles![0]!.text
 }
 
 async function ensureRpcInjected(): Promise<void> {

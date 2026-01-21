@@ -1845,6 +1845,172 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       })
     }
 
+    // ==================== WIDGET JSX ====================
+    case 'create-from-jsx': {
+      const { tree, x, y, parentId } = args as {
+        tree: unknown
+        x?: number
+        y?: number
+        parentId?: string
+      }
+
+      const { AutoLayout, Rectangle, Ellipse, Text, Line, SVG, Image } = figma.widget
+      const h = figma.widget.h
+      type WidgetComponent = Parameters<typeof h>[0]
+
+      const TYPE_MAP: Record<string, WidgetComponent> = {
+        frame: AutoLayout, view: AutoLayout,
+        rectangle: Rectangle, rect: Rectangle,
+        ellipse: Ellipse, text: Text, line: Line, svg: SVG, image: Image
+      } as Record<string, WidgetComponent>
+
+      // Shorthand expansions (Tailwind-like)
+      const SHORTHANDS: Record<string, string> = {
+        w: 'width', h: 'height',
+        bg: 'fill', rounded: 'cornerRadius',
+        p: 'padding', px: '__px', py: '__py',
+        pt: '__pt', pr: '__pr', pb: '__pb', pl: '__pl',
+        size: 'fontSize', font: 'fontFamily', weight: 'fontWeight',
+        flex: 'direction', gap: 'spacing', wrap: '__wrap', rowGap: '__rowGap'
+      }
+
+      const DIRECTION_MAP: Record<string, string> = {
+        row: 'horizontal', column: 'vertical', col: 'vertical'
+      }
+
+      const ALIGN_MAP: Record<string, string> = {
+        start: 'start', end: 'end', center: 'center', between: 'space-between'
+      }
+
+      // Nodes that need wrap applied after creation
+      const wrapNodes: Array<{ path: number[]; rowGap?: number }> = []
+
+      function processProps(props: Record<string, unknown>, isText: boolean): Record<string, unknown> {
+        const result: Record<string, unknown> = {}
+        
+        // Expand shorthands
+        for (const [key, value] of Object.entries(props)) {
+          const mapped = SHORTHANDS[key] || key
+          result[mapped] = value
+        }
+
+        // Direction
+        if (result.direction) {
+          result.direction = DIRECTION_MAP[result.direction as string] || result.direction
+        }
+
+        // Alignment shorthands
+        if (result.justify) {
+          result.horizontalAlignItems = ALIGN_MAP[result.justify as string] || result.justify
+          delete result.justify
+        }
+        if (result.items) {
+          result.verticalAlignItems = ALIGN_MAP[result.items as string] || result.items
+          delete result.items
+        }
+
+        // Padding expansion
+        const p = result.padding as number | undefined
+        const px = result.__px as number | undefined
+        const py = result.__py as number | undefined
+        const pt = result.__pt as number | undefined
+        const pr = result.__pr as number | undefined
+        const pb = result.__pb as number | undefined
+        const pl = result.__pl as number | undefined
+        
+        delete result.__px; delete result.__py
+        delete result.__pt; delete result.__pr; delete result.__pb; delete result.__pl
+
+        if (px !== undefined || py !== undefined || pt !== undefined || pr !== undefined || pb !== undefined || pl !== undefined) {
+          result.padding = {
+            top: pt ?? py ?? p ?? 0,
+            right: pr ?? px ?? p ?? 0,
+            bottom: pb ?? py ?? p ?? 0,
+            left: pl ?? px ?? p ?? 0
+          }
+        }
+
+        // Fill for text = color prop
+        if (isText && result.color && !result.fill) {
+          result.fill = result.color
+          delete result.color
+        }
+
+        // Width 'fill' → 'fill-parent'
+        if (result.width === 'fill') result.width = 'fill-parent'
+        if (result.height === 'fill') result.height = 'fill-parent'
+
+        return result
+      }
+
+      function buildTree(node: unknown, path: number[] = []): unknown {
+        if (typeof node === 'string' || typeof node === 'number') return node
+        if (!node || typeof node !== 'object') return null
+
+        const { type, props, children } = node as {
+          type: string
+          props: Record<string, unknown>
+          children: unknown[]
+        }
+
+        const Component = TYPE_MAP[type]
+        if (!Component) throw new Error(`Unknown element: <${type}>`)
+
+        const isText = type === 'text'
+        const processed = processProps(props || {}, isText)
+
+        // Track wrap nodes
+        if (processed.__wrap) {
+          wrapNodes.push({ path: [...path], rowGap: processed.__rowGap as number | undefined })
+          delete processed.__wrap
+          delete processed.__rowGap
+        }
+
+        const builtChildren = (children || [])
+          .map((c, i) => buildTree(c, [...path, i]))
+          .filter(Boolean)
+
+        return builtChildren.length === 0
+          ? h(Component, processed)
+          : h(Component, processed, ...builtChildren)
+      }
+
+      const widgetTree = buildTree(tree)
+      const node = await figma.createNodeFromJSXAsync(
+        widgetTree as Parameters<typeof figma.createNodeFromJSXAsync>[0]
+      )
+
+      // Apply position
+      if (x !== undefined) node.x = x
+      if (y !== undefined) node.y = y
+
+      // Apply wrap (Widget API doesn't support it directly)
+      for (const { path, rowGap } of wrapNodes) {
+        let target: SceneNode = node
+        for (const index of path) {
+          if ('children' in target) target = (target as FrameNode).children[index]
+        }
+        if (target && 'layoutWrap' in target) {
+          const frame = target as FrameNode
+          frame.layoutWrap = 'WRAP'
+          frame.primaryAxisSizingMode = 'FIXED'
+          frame.counterAxisSizingMode = 'AUTO'
+          if (rowGap !== undefined) frame.counterAxisSpacing = rowGap
+        }
+      }
+
+      // Attach to parent
+      if (parentId) {
+        const parent = await figma.getNodeByIdAsync(parentId)
+        if (parent && 'appendChild' in parent) (parent as FrameNode).appendChild(node)
+      } else {
+        figma.currentPage.appendChild(node)
+      }
+
+      figma.viewport.scrollAndZoomIntoView([node])
+      return { id: node.id, name: node.name }
+    }
+
     // ==================== EVAL ====================
     case 'eval': {
       const { code } = args as { code: string }

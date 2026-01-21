@@ -1,12 +1,68 @@
 /**
- * Figma-like React components
- *
- * API inspired by react-figma but outputs JSON instead of Figma nodes
+ * Figma JSX Components
+ * 
+ * Returns TreeNode objects for Figma Widget API rendering.
+ * Use @ts-expect-error in .figma.tsx files if TypeScript complains about JSX types.
  */
 
-import * as React from 'react'
+import { node, type BaseProps, type TextProps, type TreeNode } from './tree.ts'
 
-// Re-export defineVars for use in .figma.tsx files
+// Core components
+export function Frame(props: BaseProps): TreeNode {
+  return node('frame', props)
+}
+
+export function Text(props: TextProps): TreeNode {
+  return node('text', props)
+}
+
+export function Rectangle(props: BaseProps): TreeNode {
+  return node('rectangle', props)
+}
+
+export function Ellipse(props: BaseProps): TreeNode {
+  return node('ellipse', props)
+}
+
+export function Line(props: BaseProps): TreeNode {
+  return node('line', props)
+}
+
+export function Image(props: BaseProps & { src: string }): TreeNode {
+  return node('image', props)
+}
+
+export function SVG(props: BaseProps & { src: string }): TreeNode {
+  return node('svg', props)
+}
+
+export function Star(props: BaseProps & { points?: number; innerRadius?: number }): TreeNode {
+  return node('star', props)
+}
+
+export function Polygon(props: BaseProps & { pointCount?: number }): TreeNode {
+  return node('polygon', props)
+}
+
+export function Vector(props: BaseProps): TreeNode {
+  return node('vector', props)
+}
+
+export function Group(props: BaseProps): TreeNode {
+  return node('group', props)
+}
+
+// Aliases
+export const View = Frame
+export const Rect = Rectangle
+export const Component = Frame
+export const Instance = Frame
+export const Page = Frame
+
+// Intrinsic elements
+export const INTRINSIC_ELEMENTS = ['frame', 'text', 'rectangle', 'ellipse', 'line', 'image', 'svg', 'star', 'polygon', 'vector', 'group']
+
+// Variables
 export {
   defineVars,
   figmaVar,
@@ -16,133 +72,27 @@ export {
   type FigmaVariable
 } from './vars.ts'
 
-// Component registry - tracks defined components and their instances
-interface ComponentDef {
-  name: string
-  element: React.ReactElement
-  guid?: string // Set after first render creates the component
-}
+// Legacy component registry
+const componentRegistry = new Map<symbol, { name: string; element: unknown }>()
+export const resetComponentRegistry = () => componentRegistry.clear()
+export const getComponentRegistry = () => componentRegistry
 
-const componentRegistry = new Map<symbol, ComponentDef>()
-
-export function resetComponentRegistry() {
-  componentRegistry.clear()
-}
-
-export function getComponentRegistry() {
-  return componentRegistry
-}
-
-/**
- * Define a reusable Figma component
- *
- * @example
- * const Button = defineComponent('Button',
- *   <Frame style={{ padding: 12, backgroundColor: "#3B82F6" }}>
- *     <Text style={{ color: "#FFF" }}>Click</Text>
- *   </Frame>
- * )
- *
- * export default () => (
- *   <Frame>
- *     <Button />
- *     <Button />
- *   </Frame>
- * )
- */
-export function defineComponent<P extends BaseProps = BaseProps>(
-  name: string,
-  element: React.ReactElement
-): React.FC<P> {
+export function defineComponent(name: string, element: unknown) {
   const sym = Symbol(name)
   componentRegistry.set(sym, { name, element })
-
-  // Return a component that renders as a special marker
-  const ComponentInstance: React.FC<P> = (props) => {
-    return React.createElement('__component_instance__', {
-      __componentSymbol: sym,
-      __componentName: name,
-      ...props
-    })
-  }
-  ComponentInstance.displayName = name
-
-  return ComponentInstance
+  return () => element
 }
 
-// Style types - use StyleProps from shorthands which includes both full and shorthand names
-import type { StyleProps } from './shorthands.ts'
-
-type Style = StyleProps
-type TextStyle = StyleProps
-
-interface BaseProps {
-  name?: string
-  style?: Style
-  children?: React.ReactNode
-}
-
-interface TextProps extends Omit<BaseProps, 'style'> {
-  style?: TextStyle
-}
-
-interface StarProps extends BaseProps {
-  pointCount?: number
-}
-
-interface PolygonProps extends BaseProps {
-  pointCount?: number
-}
-
-interface InstanceProps extends BaseProps {
-  componentId?: string
-}
-
-interface IconProps extends BaseProps {
-  /** Icon name in format "prefix:name" (e.g., "mdi:home", "lucide:star") */
+// Icon
+export interface IconProps {
   icon: string
-  /** Icon size in pixels (default: 24) */
   size?: number
-  /** Icon color (hex) */
   color?: string
 }
 
-// Component factory - creates intrinsic element wrapper
-const c =
-  <T extends BaseProps>(type: string): React.FC<T> =>
-  (props) =>
-    React.createElement(type, props)
+export function Icon(props: IconProps) {
+  return { __icon: true, ...props }
+}
 
-// Components
-export const Frame = c<BaseProps>('frame')
-export const Rectangle = c<BaseProps>('rectangle')
-export const Ellipse = c<BaseProps>('ellipse')
-export const Text = c<TextProps>('text')
-export const Line = c<BaseProps>('line')
-export const Star = c<StarProps>('star')
-export const Polygon = c<PolygonProps>('polygon')
-export const Vector = c<BaseProps>('vector')
-export const Component = c<BaseProps>('component')
-export const Instance = c<InstanceProps>('instance')
-export const Group = c<BaseProps>('group')
-export const Page = c<BaseProps>('page')
-export const View = Frame
-export const Icon = c<IconProps>('icon')
-
-// All component names for JSX transform
-export const INTRINSIC_ELEMENTS = [
-  'Frame',
-  'Rectangle',
-  'Ellipse',
-  'Text',
-  'Line',
-  'Star',
-  'Polygon',
-  'Vector',
-  'Component',
-  'Instance',
-  'Group',
-  'Page',
-  'View',
-  'Icon'
-] as const
+// Re-export types
+export type { BaseProps, TextProps, StyleProps, TreeNode } from './tree.ts'

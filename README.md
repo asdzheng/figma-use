@@ -90,6 +90,8 @@ echo '<Frame style={{p: 24, gap: 16, flex: "col", bg: "#FFF", rounded: 12}}>
 
 The stdin mode accepts pure JSX only — no variables, no logic. For components, variants, and conditions, use `.figma.tsx` files.
 
+**Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`, `Icon`
+
 ## Examples
 
 ### Icons

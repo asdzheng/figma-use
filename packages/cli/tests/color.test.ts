@@ -3,9 +3,9 @@ import { parseColor, colorToFill, rgbaToHex } from '../src/color.ts'
 
 describe('color', () => {
   test('parseColor parses hex colors', () => {
-    expect(parseColor('#ff0000')).toEqual({ r: 1, g: 0, b: 0, a: 1 })
-    expect(parseColor('#00ff00')).toEqual({ r: 0, g: 1, b: 0, a: 1 })
-    expect(parseColor('#0000ff')).toEqual({ r: 0, g: 0, b: 1, a: 1 })
+    expect(parseColor('#FF0000')).toEqual({ r: 1, g: 0, b: 0, a: 1 })
+    expect(parseColor('#00FF00')).toEqual({ r: 0, g: 1, b: 0, a: 1 })
+    expect(parseColor('#0000FF')).toEqual({ r: 0, g: 0, b: 1, a: 1 })
     expect(parseColor('#ffffff')).toEqual({ r: 1, g: 1, b: 1, a: 1 })
     expect(parseColor('#000000')).toEqual({ r: 0, g: 0, b: 0, a: 1 })
   })
@@ -18,7 +18,7 @@ describe('color', () => {
   })
 
   test('parseColor parses hex with alpha', () => {
-    const c = parseColor('#ff000080')
+    const c = parseColor('#FF000080')
     expect(c.r).toBeCloseTo(1, 2)
     expect(c.a).toBeCloseTo(0.5, 1)
   })
@@ -61,7 +61,7 @@ describe('color', () => {
   })
 
   test('colorToFill creates Figma fill', () => {
-    const fill = colorToFill('#ff0000')
+    const fill = colorToFill('#FF0000')
     expect(fill.type).toBe('SOLID')
     expect(fill.color.r).toBe(1)
     expect(fill.color.g).toBe(0)
@@ -70,8 +70,8 @@ describe('color', () => {
   })
 
   test('rgbaToHex converts to hex', () => {
-    expect(rgbaToHex({ r: 1, g: 0, b: 0, a: 1 })).toBe('#ff0000')
-    expect(rgbaToHex({ r: 0, g: 1, b: 0, a: 1 })).toBe('#00ff00')
-    expect(rgbaToHex({ r: 0, g: 0, b: 1, a: 1 })).toBe('#0000ff')
+    expect(rgbaToHex({ r: 1, g: 0, b: 0, a: 1 })).toBe('#FF0000')
+    expect(rgbaToHex({ r: 0, g: 1, b: 0, a: 1 })).toBe('#00FF00')
+    expect(rgbaToHex({ r: 0, g: 0, b: 1, a: 1 })).toBe('#0000FF')
   })
 })

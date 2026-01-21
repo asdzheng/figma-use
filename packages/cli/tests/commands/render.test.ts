@@ -1,5 +1,7 @@
 /**
  * Render tests via CLI (CDP-based)
+ * 
+ * Uses Widget API (createNodeFromJSXAsync) for rendering.
  */
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { run, trackNode, setupTestPage, teardownTestPage } from '../helpers.ts'
@@ -20,42 +22,40 @@ describe('render', () => {
     await teardownTestPage()
   })
 
-  test('renders component and returns correct node structure', async () => {
+  test('renders component and returns root node', async () => {
     const result = (await run(
       `render tests/fixtures/Card.figma.tsx --props '{"title":"Test","items":["A"]}' --parent "${testFrameId}" --json`
-    )) as Array<{ id: string; name: string }>
+    )) as { id: string; name: string }
 
-    expect(result.length).toBeGreaterThan(0)
-    expect(result.find(n => n.name === 'Card')).toBeDefined()
-    
-    // Track for cleanup
-    const card = result.find(n => n.name === 'Card')
-    if (card) trackNode(card.id)
+    expect(result.id).toBeDefined()
+    expect(result.name).toBe('Card')
+    trackNode(result.id)
   }, 30000)
 
-  test('renders correct number of nodes for multiple items', async () => {
+  test('renders nested children correctly', async () => {
     const result = (await run(
       `render tests/fixtures/Card.figma.tsx --props '{"title":"Products","items":["iPhone","MacBook","AirPods"]}' --parent "${testFrameId}" --x 350 --json`
-    )) as Array<{ id: string; name: string }>
+    )) as { id: string; name: string }
 
-    // Card + Title + Items frame + 3 item frames + 3 texts + Actions + 2 buttons + 2 button texts
-    expect(result.length).toBeGreaterThanOrEqual(10)
-    
-    const card = result.find(n => n.name === 'Card')
-    if (card) trackNode(card.id)
+    expect(result.name).toBe('Card')
+    trackNode(result.id)
+
+    // Verify children were created
+    const tree = (await run(`node tree ${result.id} --json`)) as { children?: Array<{ name: string }> }
+    expect(tree.children).toBeDefined()
+    expect(tree.children!.length).toBeGreaterThan(0)
   }, 30000)
 
   test('applies layout and styling props', async () => {
     const result = (await run(
       `render tests/fixtures/Card.figma.tsx --props '{"title":"Styled","items":["A"]}' --parent "${testFrameId}" --x 700 --json`
-    )) as Array<{ id: string; name: string }>
+    )) as { id: string; name: string }
 
-    const card = result.find(n => n.name === 'Card')
-    expect(card).toBeDefined()
-    if (card) trackNode(card.id)
+    expect(result.name).toBe('Card')
+    trackNode(result.id)
 
     // Verify via node get
-    const cardInfo = (await run(`node get ${card!.id} --json`)) as {
+    const cardInfo = (await run(`node get ${result.id} --json`)) as {
       layoutMode?: string
       itemSpacing?: number
       cornerRadius?: number
@@ -71,17 +71,19 @@ describe('render', () => {
   test('creates text nodes with content', async () => {
     const result = (await run(
       `render tests/fixtures/Card.figma.tsx --props '{"title":"Hello World","items":["A"]}' --parent "${testFrameId}" --x 1050 --json`
-    )) as Array<{ id: string; name: string }>
+    )) as { id: string; name: string }
 
-    const titleNode = result.find(n => n.name === 'Title')
+    trackNode(result.id)
+
+    // Find title in tree
+    const tree = (await run(`node tree ${result.id} --depth 3 --json`)) as {
+      children?: Array<{ name: string; characters?: string; children?: Array<{ characters?: string }> }>
+    }
+
+    // Title should be in children
+    const titleNode = tree.children?.find(c => c.name === 'Title')
     expect(titleNode).toBeDefined()
-    
-    const card = result.find(n => n.name === 'Card')
-    if (card) trackNode(card.id)
-
-    // Verify text content
-    const titleInfo = (await run(`node get ${titleNode!.id} --json`)) as { characters?: string }
-    expect(titleInfo.characters).toBe('Hello World')
+    expect(titleNode!.characters).toBe('Hello World')
   }, 30000)
 
   test('renders into specific parent', async () => {
@@ -92,25 +94,24 @@ describe('render', () => {
 
     const result = (await run(
       `render tests/fixtures/Card.figma.tsx --props '{"title":"Nested","items":["X"]}' --parent "${container.id}" --json`
-    )) as Array<{ id: string; name: string }>
+    )) as { id: string; name: string }
 
-    const card = result.find(n => n.name === 'Card')
-    expect(card).toBeDefined()
+    expect(result.name).toBe('Card')
 
     // Verify parent
-    const cardInfo = (await run(`node get ${card!.id} --json`)) as { parentId?: string }
+    const cardInfo = (await run(`node get ${result.id} --json`)) as { parentId?: string }
     expect(cardInfo.parentId).toBe(container.id)
   }, 30000)
 })
 
 describe('render from file', () => {
   test('renders existing fixture file', async () => {
-    const { run } = await import('../helpers.ts')
+    const { run, trackNode } = await import('../helpers.ts')
     
-    // Use existing fixture
-    const result = (await run(`render tests/fixtures/Card.figma.tsx --props '{"title":"FileTest","items":["A"]}' --json`)) as Array<{ id: string; name: string }>
-    expect(result.length).toBeGreaterThan(0)
-    expect(result.find(n => n.name === 'Card')).toBeDefined()
+    const result = (await run(`render tests/fixtures/Card.figma.tsx --props '{"title":"FileTest","items":["A"]}' --json`)) as { id: string; name: string }
+    expect(result.id).toBeDefined()
+    expect(result.name).toBe('Card')
+    trackNode(result.id)
   }, 30000)
 })
 
@@ -131,7 +132,6 @@ describe('render with icons', () => {
     ])
     
     const icons = collectIcons(element)
-    // collectIcons returns array of {name, size} objects
     expect(icons.map(i => i.name)).toContain('mdi:home')
     expect(icons.map(i => i.name)).toContain('lucide:star')
   })
@@ -145,7 +145,6 @@ describe('render with variables', () => {
       primary: { name: 'Colors/Blue', value: '#3B82F6' }
     })
     
-    // defineVars returns objects with Symbol marker
     expect(colors.primary).toBeDefined()
     expect(colors.primary.name).toBe('Colors/Blue')
   })

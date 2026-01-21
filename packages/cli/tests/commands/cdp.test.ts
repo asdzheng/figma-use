@@ -105,7 +105,7 @@ describe('font', () => {
   test('list filters by family', async () => {
     // Get first font family to use as filter
     const all = (await run('font list --json')) as { family: string }[]
-    const firstFamily = all[0].family
+    const firstFamily = all[0]!.family
 
     const result = (await run(`font list --family "${firstFamily}" --json`)) as { family: string }[]
     expect(result.length).toBeGreaterThan(0)

@@ -48,10 +48,23 @@ export function colorToFill(color: string | RGBA) {
 }
 
 /**
- * Format RGBA to hex string
+ * Format RGBA to hex string (#RRGGBB or #RRGGBBAA if alpha < 1)
  */
-export function rgbaToHex(color: RGBA): string {
-  return formatHex({ mode: 'rgb', r: color.r, g: color.g, b: color.b }) ?? '#000000'
+export function rgbaToHex(color: RGBA, includeAlpha = false): string {
+  const hex = formatHex({ mode: 'rgb', r: color.r, g: color.g, b: color.b }) ?? '#000000'
+  if (includeAlpha && color.a < 1) {
+    const alpha = Math.round(color.a * 255).toString(16).padStart(2, '0')
+    return `${hex}${alpha}`.toUpperCase()
+  }
+  return hex.toUpperCase()
+}
+
+/**
+ * Parse color string to hex (#RRGGBB or #RRGGBBAA)
+ */
+export function toHex(color: string): string {
+  const rgba = parseColor(color)
+  return rgbaToHex(rgba, true)
 }
 
 /**

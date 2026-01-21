@@ -47,7 +47,7 @@ function parseCommandFile(content: string, name: string): ToolDef | null {
       node.expression.text === 'defineCommand'
     ) {
       const arg = node.arguments[0]
-      if (ts.isObjectLiteralExpression(arg)) {
+      if (arg && ts.isObjectLiteralExpression(arg)) {
         for (const prop of arg.properties) {
           if (!ts.isPropertyAssignment(prop)) continue
           const propName = prop.name.getText(sourceFile)
@@ -107,7 +107,7 @@ function parseCommandFile(content: string, name: string): ToolDef | null {
       node.expression.text === 'sendCommand'
     ) {
       const firstArg = node.arguments[0]
-      if (ts.isStringLiteral(firstArg)) {
+      if (firstArg && ts.isStringLiteral(firstArg)) {
         pluginCommand = firstArg.text
       }
     }

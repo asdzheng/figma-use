@@ -1,6 +1,4 @@
-// Example: Render a card component to Figma
-// Usage: figma-use render examples/Card.figma.tsx --props '{"title": "Hello", "items": ["A", "B", "C"]}'
-
+/** @jsxImportSource ../../src/render */
 import { Frame, Text } from '../../src/render/index.ts'
 
 type CardProps = {
@@ -13,70 +11,26 @@ export default function Card({ title, items, variant = 'primary' }: CardProps) {
   const bgColor = variant === 'primary' ? '#3B82F6' : '#6B7280'
 
   return (
-    <Frame
-      name="Card"
-      style={{
-        width: 320,
-        height: 400,
-        backgroundColor: '#FFFFFF',
-        flexDirection: 'column',
-        gap: 16,
-        padding: 24,
-        borderRadius: 12
-      }}
-    >
-      <Text name="Title" style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>
+    <Frame name="Card" w={320} h={400} bg="#FFFFFF" flex="col" gap={16} p={24} rounded={12}>
+      <Text name="Title" size={24} weight="bold" color="#111827">
         {title}
       </Text>
 
-      <Frame name="Items" style={{ flexDirection: 'column', gap: 8, width: 272 }}>
+      <Frame name="Items" flex="col" gap={8} w={272}>
         {items.map((item, i) => (
-          <Frame
-            key={i}
-            name={`Item ${i + 1}`}
-            style={{
-              flexDirection: 'row',
-              gap: 12,
-              paddingTop: 12,
-              paddingBottom: 12,
-              paddingLeft: 16,
-              paddingRight: 16,
-              backgroundColor: '#F3F4F6',
-              borderRadius: 8
-            }}
-          >
-            <Frame style={{ width: 8, height: 8, backgroundColor: bgColor, borderRadius: 4 }} />
-            <Text style={{ fontSize: 14, color: '#374151' }}>{item}</Text>
+          <Frame key={i} name={`Item ${i + 1}`} flex="row" gap={12} py={12} px={16} bg="#F3F4F6" rounded={8}>
+            <Frame w={8} h={8} bg={bgColor} rounded={4} />
+            <Text size={14} color="#374151">{item}</Text>
           </Frame>
         ))}
       </Frame>
 
-      <Frame name="Actions" style={{ flexDirection: 'row', gap: 8 }}>
-        <Frame
-          name="Primary Button"
-          style={{
-            backgroundColor: bgColor,
-            paddingTop: 12,
-            paddingBottom: 12,
-            paddingLeft: 24,
-            paddingRight: 24,
-            borderRadius: 8
-          }}
-        >
-          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }}>Action</Text>
+      <Frame name="Actions" flex="row" gap={8}>
+        <Frame name="Primary Button" bg={bgColor} py={12} px={24} rounded={8}>
+          <Text color="#FFFFFF" size={14} weight={500}>Action</Text>
         </Frame>
-        <Frame
-          name="Secondary Button"
-          style={{
-            backgroundColor: '#E5E7EB',
-            paddingTop: 12,
-            paddingBottom: 12,
-            paddingLeft: 24,
-            paddingRight: 24,
-            borderRadius: 8
-          }}
-        >
-          <Text style={{ color: '#374151', fontSize: 14, fontWeight: '500' }}>Cancel</Text>
+        <Frame name="Secondary Button" bg="#E5E7EB" py={12} px={24} rounded={8}>
+          <Text color="#374151" size={14} weight={500}>Cancel</Text>
         </Frame>
       </Frame>
     </Frame>

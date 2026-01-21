@@ -3,7 +3,8 @@ import { setAPIModule } from '@iconify/core/lib/api/modules'
 import { fetchAPIModule } from '@iconify/core/lib/api/modules/fetch'
 import { iconToSVG } from '@iconify/utils'
 import type { IconifyIcon } from '@iconify/types'
-import type { ReactElement, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import type { Props, ReactElement } from './tree.ts'
 
 // Initialize API module
 setAPIModule('', fetchAPIModule)
@@ -117,7 +118,7 @@ export const iconSets = {
 /**
  * Recursively collect Icon primitives from React element tree
  */
-export function collectIcons(element: ReactElement): Array<{ name: string; size?: number }> {
+export function collectIcons(element: ReactNode): Array<{ name: string; size?: number }> {
   const icons: Array<{ name: string; size?: number }> = []
 
   function traverse(node: ReactNode): void {
@@ -140,8 +141,7 @@ export function collectIcons(element: ReactElement): Array<{ name: string; size?
 
     if (typeof el.type === 'function') {
       try {
-        const Component = el.type as (props: Record<string, unknown>) => ReactNode
-        const rendered = Component(el.props as Record<string, unknown>)
+        const rendered = (el.type as (p: Props) => ReactNode)(el.props as Props)
         if (rendered) traverse(rendered)
       } catch {
         // Ignore render errors during collection

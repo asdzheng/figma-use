@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0] - 2025-01-20
+## [Unreleased]
 
 ### Changed
 
@@ -26,9 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed Figma plugin installation requirement
   - RPC code built on-demand with esbuild (no more 374KB embedded bundle)
 
-- **CLI bundle size reduced** — 1.85MB → 1.35MB (-27%)
+- **CLI bundle size reduced** — 1.85MB → 1.0MB (-46%)
 
 - **Faster startup** — no WebSocket handshake, no plugin initialization
+
+- **New JSX renderer** — uses Figma Widget API (`createNodeFromJSXAsync`) instead of custom reconciler
+  - Simpler architecture: components return TreeNode, processed on Figma side
+  - Custom JSX runtime for `.figma.tsx` files (`@jsxImportSource`)
+  - All style shorthands processed in `rpc.ts`
 
 ### Added
 
@@ -46,18 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
   Supports `px`, `fr`, and `auto`/`hug` in template syntax. Separate gaps with `colGap` and `rowGap`.
 
-- **`query` command** — XPath selectors for finding nodes (powered by fontoxpath)
-  ```bash
-  figma-use query "//FRAME"                              # All frames
-  figma-use query "//FRAME[@width < 300]"                # Frames narrower than 300px  
-  figma-use query "//COMPONENT[starts-with(@name, 'Button')]"  # Name starts with
-  figma-use query "//FRAME[contains(@name, 'Card')]"     # Name contains
-  figma-use query "//SECTION/FRAME"                      # Direct children
-  figma-use query "//SECTION//TEXT"                      # All descendants
-  figma-use query "//*[@cornerRadius > 0]"               # Any node with radius
-  ```
-  Full XPath 3.1 support: axes, predicates, functions, arithmetic
-
 ### Changed (MCP)
 
 - **MCP server is now standalone** — `figma-use mcp serve` instead of running with proxy
@@ -72,6 +65,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `figma-use plugin install/uninstall` commands (no plugin required)
 - Multi-file support via proxy (use multiple Figma windows instead)
 - `file list/select` commands (use multiple Figma windows instead)
+
+## [0.8.0] - 2026-01-20
+
+### Added
+
+- **`query` command** — XPath selectors for finding nodes (powered by fontoxpath)
+  ```bash
+  figma-use query "//FRAME"                              # All frames
+  figma-use query "//FRAME[@width < 300]"                # Frames narrower than 300px  
+  figma-use query "//COMPONENT[starts-with(@name, 'Button')]"  # Name starts with
+  figma-use query "//FRAME[contains(@name, 'Card')]"     # Name contains
+  figma-use query "//SECTION/FRAME"                      # Direct children
+  figma-use query "//SECTION//TEXT"                      # All descendants
+  figma-use query "//*[@cornerRadius > 0]"               # Any node with radius
+  ```
+  Full XPath 3.1 support: axes, predicates, functions, arithmetic
+
+- **Multi-file support** — proxy now supports multiple simultaneous plugin connections
+  - Each plugin instance registers with fileKey and fileName
+  - `file list` — show all connected files
+  - `file select <name>` — switch active file (partial match supported)
+  - `status` shows all connected files with active marker
+  
+- **Connector commands** — work with connector lines
+  - `connector list` — list connectors on current page
+  - `connector get <id>` — get connector details (endpoints, stroke, line type)
+  - `connector set <id>` — update connector properties (stroke, weight, line type, caps)
+  - `connector create` — create connector (FigJam only, Figma API limitation)
+
+- **`figma_render` MCP tool** — render JSX via MCP protocol
+
+- **MCP.md** — documentation for Model Context Protocol integration
+
+### Changed
+
+- Extracted `transformJsxSnippet` to separate module for reuse
+
+### Fixed
+
+- `@dannote/figma-use/render` — missing `color.ts` in published package
+- Proxy connection cleanup on plugin disconnect
 
 ## [0.7.1] - 2026-01-19
 
