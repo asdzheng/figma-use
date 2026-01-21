@@ -115,7 +115,7 @@ Also: `gap`, `opacity`, `color`, `borderColor`, `borderWidth`, `textAlign`, `x`,
 First call creates master, rest create instances:
 
 ```tsx
-import { defineComponent, Frame, Text } from '@dannote/figma-use/render'
+import { defineComponent, Frame, Text } from 'figma-use/render'
 
 const Card = defineComponent('Card',
   <Frame style={{ p: 24, bg: '#FFF', rounded: 12 }}>
@@ -139,7 +139,7 @@ figma-use render --examples  # Full API reference
 ## Variants (ComponentSet)
 
 ```tsx
-import { defineComponentSet, Frame, Text } from '@dannote/figma-use/render'
+import { defineComponentSet, Frame, Text } from 'figma-use/render'
 
 const Button = defineComponentSet('Button', {
   variant: ['Primary', 'Secondary'] as const,

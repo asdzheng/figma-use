@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Runtime-agnostic** — CLI now works with both Node.js and Bun
 
+- **Package renamed** — `@dannote/figma-use` → `figma-use`
+  ```bash
+  npx figma-use status
+  bunx figma-use status
+  ```
+
 - **Faster startup** — no WebSocket handshake, no plugin initialization
 
 - **New JSX renderer** — uses Figma Widget API (`createNodeFromJSXAsync`) instead of custom reconciler

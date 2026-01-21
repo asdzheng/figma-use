@@ -47,7 +47,13 @@ JSX is how LLMs already think about UI. They've seen millions of React component
 ## Installation
 
 ```bash
-npm install -g @dannote/figma-use
+npm install -g figma-use
+```
+
+Or run directly without installing:
+
+```bash
+npx figma-use status
 ```
 
 Start Figma with remote debugging enabled:
@@ -119,7 +125,7 @@ Browse 150k+ icons: [icon-sets.iconify.design](https://icon-sets.iconify.design/
 In a `.figma.tsx` file you can define components. First call creates the master, the rest create instances:
 
 ```tsx
-import { defineComponent, Frame, Text } from '@dannote/figma-use/render'
+import { defineComponent, Frame, Text } from 'figma-use/render'
 
 const Card = defineComponent(
   'Card',
@@ -142,7 +148,7 @@ export default () => (
 ComponentSet with all combinations:
 
 ```tsx
-import { defineComponentSet, Frame, Text } from '@dannote/figma-use/render'
+import { defineComponentSet, Frame, Text } from 'figma-use/render'
 
 const Button = defineComponentSet(
   'Button',
@@ -210,7 +216,7 @@ figma-use set layout <id> --mode GRID --cols "100px 1fr 100px" --rows "auto" --g
 Bind colors to Figma variables by name. The hex value is a fallback:
 
 ```tsx
-import { defineVars, Frame, Text } from '@dannote/figma-use/render'
+import { defineVars, Frame, Text } from 'figma-use/render'
 
 const colors = defineVars({
   bg: { name: 'Colors/Gray/50', value: '#F8FAFC' },

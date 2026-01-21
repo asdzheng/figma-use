@@ -1,5 +1,5 @@
 {
-  "name": "@dannote/figma-use-mcp",
+  "name": "figma-use-mcp",
   "version": "0.5.3",
   "description": "MCP server module for Figma",
   "type": "module",
