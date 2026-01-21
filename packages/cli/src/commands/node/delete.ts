@@ -2,14 +2,15 @@ import { defineCommand } from 'citty'
 import { sendCommand, printResult, handleError } from '../../client.ts'
 
 export default defineCommand({
-  meta: { description: 'Delete a node' },
+  meta: { description: 'Delete node(s)' },
   args: {
-    id: { type: 'positional', description: 'Node ID', required: true },
+    ids: { type: 'positional', description: 'Node ID(s) separated by space', required: true },
     json: { type: 'boolean', description: 'Output as JSON' }
   },
   async run({ args }) {
     try {
-      const result = await sendCommand('delete-node', { id: args.id })
+      const ids = args.ids.split(/\s+/).filter(Boolean)
+      const result = await sendCommand('delete-node', { ids })
       printResult(result, args.json)
     } catch (e) {
       handleError(e)

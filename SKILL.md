@@ -233,7 +233,7 @@ figma-use set layout <id> --mode VERTICAL --gap 12 --padding 16
 figma-use set layout <id> --mode GRID --cols "1fr 1fr 1fr" --rows "auto" --gap 16
 figma-use node move <id> --x 100 --y 200
 figma-use node resize <id> --width 300 --height 200
-figma-use node delete <id>
+figma-use node delete <id> [id2...]
 figma-use node to-component <id>
 
 # Export

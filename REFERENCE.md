@@ -64,7 +64,7 @@ figma-use node tree --depth 3              # Limit depth
 figma-use node tree <id>                   # Tree from specific node
 figma-use node children <id>               # List direct children
 figma-use node bounds <id>                 # Position, size, center point
-figma-use node delete <id>
+figma-use node delete <id> [id2] [id3...]
 figma-use node clone <id>                  # Clone in same parent
 figma-use node clone <id> --parent <pid>   # Clone to different parent
 figma-use node rename <id> "New Name"

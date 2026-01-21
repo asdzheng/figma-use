@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`node delete` supports multiple IDs** — delete several nodes at once
+  ```bash
+  figma-use node delete 1:23 1:24 1:25
+  ```
+
 - **Grid layout support** — CSS Grid for 2D layouts in both CLI and JSX
   ```bash
   figma-use set layout <id> --mode GRID --cols "100px 1fr 100px" --rows "auto" --gap 16

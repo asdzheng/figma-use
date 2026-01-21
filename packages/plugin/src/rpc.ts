@@ -1730,11 +1730,19 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
     // ==================== DELETE ====================
     case 'delete-node': {
-      const { id } = args as { id: string }
-      const node = await figma.getNodeByIdAsync(id)
-      if (!node || !('remove' in node)) throw new Error('Node not found')
-      node.remove()
-      return { deleted: true }
+      const { ids, id } = args as { ids?: string[]; id?: string }
+      const nodeIds = ids ?? (id ? [id] : [])
+      if (nodeIds.length === 0) throw new Error('No node IDs provided')
+      
+      let deleted = 0
+      for (const nodeId of nodeIds) {
+        const node = await figma.getNodeByIdAsync(nodeId)
+        if (node && 'remove' in node) {
+          node.remove()
+          deleted++
+        }
+      }
+      return { deleted }
     }
 
     // ==================== BOUNDS ====================
