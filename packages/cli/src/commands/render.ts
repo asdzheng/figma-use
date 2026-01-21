@@ -48,7 +48,7 @@ EXAMPLES
 
 ELEMENTS
 
-  Frame, Rectangle, Ellipse, Text, Line, Star, Polygon, Vector, Group, Icon
+  Frame, Rectangle, Ellipse, Text, Line, Star, Polygon, Vector, Group, Icon, Image
 
 SHORTHANDS
 

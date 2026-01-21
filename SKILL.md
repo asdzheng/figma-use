@@ -59,7 +59,7 @@ echo '<Frame style={{p: 24, gap: 16, flex: "col", bg: "#FFF", rounded: 12}}>
 
 ⚠️ **stdin = pure JSX only.** No variables, no logic, no imports. For components/variants use `.figma.tsx` files.
 
-**Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`, `Icon`
+**Elements:** `Frame`, `Rectangle`, `Ellipse`, `Text`, `Line`, `Star`, `Polygon`, `Vector`, `Group`, `Icon`, `Image`
 
 ⚠️ **Always use `--x` and `--y`** to position renders. Don't stack everything at (0, 0).
 
@@ -76,6 +76,13 @@ figma-use create icon heroicons:bell-solid --component  # as Figma component
 In JSX:
 ```tsx
 <Icon icon="mdi:home" size={24} color="#3B82F6" />
+```
+
+## Images
+
+Load images from URL:
+```tsx
+<Image src="https://example.com/photo.jpg" w={200} h={150} />
 ```
 
 ## Variables as Tokens
