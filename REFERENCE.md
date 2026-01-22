@@ -2,6 +2,40 @@
 
 Complete list of all figma-use commands. For conceptual overview see [README.md](./README.md).
 
+## Init & Config
+
+```bash
+figma-use init                             # Create .figma-use.json with defaults
+figma-use init --force                     # Overwrite existing config
+figma-use init --preset strict             # Use strict lint preset
+```
+
+Config file `.figma-use.json`:
+```json
+{
+  "lint": {
+    "preset": "recommended"
+  },
+  "storybook": {
+    "page": "Components",
+    "out": "./stories",
+    "matchIcons": true,
+    "preferIcons": ["lucide", "tabler"],
+    "iconThreshold": 0.85,
+    "framework": "react"
+  },
+  "format": {
+    "pretty": true,
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "none"
+  }
+}
+```
+
+CLI args override config values.
+
 ## Create
 
 ```bash
@@ -40,6 +74,7 @@ figma-use set rotation <id> 45
 figma-use set visible <id> true|false
 figma-use set locked <id> true|false
 figma-use set text <id> "New text"
+figma-use set text-resize <id> none|height|width-and-height|truncate
 figma-use set font <id> --family "Inter" --style "Bold" --size 20
 figma-use set font-range <id> --start 0 --end 5 --style Bold --color "#FF0000"
 figma-use set effect <id> --type DROP_SHADOW --radius 10 --color "#00000040" --offset-x 0 --offset-y 4
@@ -115,6 +150,48 @@ figma-use export node <id> --output design.pdf --format pdf
 figma-use export node <id> --scale 2       # 2x resolution
 figma-use export selection --output sel.png
 figma-use export screenshot --output viewport.png
+```
+
+## Export JSX
+
+```bash
+figma-use export jsx <id>                  # Minified output
+figma-use export jsx <id> --pretty         # Formatted (uses config or oxfmt)
+figma-use export jsx <id> --match-icons    # Match vectors to Iconify icons
+figma-use export jsx <id> --match-icons --prefer-icons lucide,tabler
+figma-use export jsx <id> --icon-threshold 0.9
+figma-use export jsx <id> --name MyComponent
+figma-use export jsx <id> --pretty --semi --tabs
+```
+
+Uses `.figma-use.json` for defaults (matchIcons, preferIcons, format settings).
+
+## Export Storybook
+
+```bash
+figma-use export storybook                 # Uses config: page, out, matchIcons, etc.
+figma-use export storybook --out ./stories
+figma-use export storybook --page "Components"
+figma-use export storybook --match-icons --prefer-icons bi,lucide
+figma-use export storybook --framework vue
+figma-use export storybook --no-fonts      # Skip fonts.css generation
+```
+
+Generates:
+- `Component.tsx` — React/Vue component with props
+- `Component.stories.tsx` — Storybook stories with args
+- `fonts.css` — Google Fonts imports
+
+Uses `.figma-use.json` for defaults.
+
+## Export Fonts
+
+```bash
+figma-use export fonts                     # List fonts used on page
+figma-use export fonts --css               # Output @font-face CSS
+figma-use export fonts --google            # Google Fonts import URLs
+figma-use export fonts --json              # JSON format
+figma-use export fonts --out ./fonts.css   # Write to file
 ```
 
 ## Pages & Viewport
