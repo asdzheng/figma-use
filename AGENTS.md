@@ -161,3 +161,49 @@ npm publish
 - `refactor:` — code change that neither fixes nor adds
 - `test:` — adding tests
 - `chore:` — maintenance tasks
+
+## Testing Storybook Export
+
+After running `export storybook`, verify all stories render correctly:
+
+### Quick Check (single story)
+```bash
+bunx agent-browser open "http://localhost:6006/iframe.html?viewMode=story&id=button--primary"
+bunx agent-browser eval "document.getElementById('storybook-root').innerHTML"
+bunx agent-browser close
+```
+
+### Full Test (all stories)
+```bash
+# Start Storybook first
+cd <storybook-project> && npm run storybook &
+
+# Test all stories
+PASS=0; FAIL=0
+for f in stories/*.stories.tsx; do
+  # Extract component name (lowercase, spaces to dashes)
+  title=$(grep "title:" "$f" | sed "s/.*title: ['\"]//;s/['\"].*//" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+  [ -z "$title" ] && title=$(basename "$f" .stories.tsx | tr '[:upper:]' '[:lower:]')
+  
+  # Extract story names and convert to kebab-case
+  for story in $(grep -o "export const [A-Za-z]*:" "$f" | sed 's/export const //;s/://'); do
+    id="${title}--$(echo "$story" | sed 's/\([A-Z]\)/-\1/g;s/^-//' | tr '[:upper:]' '[:lower:]')"
+    
+    bunx agent-browser open "http://localhost:6006/iframe.html?viewMode=story&id=${id}" 2>/dev/null
+    result=$(bunx agent-browser eval "
+      const root = document.getElementById('storybook-root');
+      const error = document.getElementById('error-message');
+      error?.textContent ? 'ERROR: ' + error.textContent : (root?.innerHTML?.length > 10 ? 'OK' : 'EMPTY')
+    " 2>&1)
+    
+    [[ "$result" == *"OK"* ]] && { echo "✓ $id"; ((PASS++)); } || { echo "✗ $id: $result"; ((FAIL++)); }
+  done
+done
+echo "=== $PASS passed, $FAIL failed ==="
+bunx agent-browser close
+```
+
+### Common Issues
+- **"Can't find variable: React"** — missing `import React from 'react'` in generated `.tsx`
+- **Story not found** — title has spaces (use dashes in ID: `Objects Table Row` → `objects-table-row`)
+- **EMPTY render** — component returns null or has runtime error
