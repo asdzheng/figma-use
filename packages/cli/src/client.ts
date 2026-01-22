@@ -4,12 +4,14 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
 import { cdpEval } from './cdp.ts'
+import { isDaemonAvailable, callDaemon } from './daemon/index.ts'
 
 export { printResult, printError, formatResult } from './output.ts'
 export { getFileKey } from './cdp.ts'
 
 let rpcInjected = false
 let currentRpcHash: string | null = null
+let useDaemon: boolean | null = null
 
 function getPluginDir(): string {
   // Works both in dev (src/) and bundled (dist/)
@@ -69,7 +71,8 @@ async function ensureRpcInjected(): Promise<void> {
   currentRpcHash = hash
 }
 
-export async function sendCommand<T = unknown>(
+// Direct command - used by daemon, no daemon check to avoid loops
+export async function sendCommandDirect<T = unknown>(
   command: string,
   args?: unknown,
   options?: { timeout?: number }
@@ -85,6 +88,28 @@ export async function sendCommand<T = unknown>(
   }
 
   return result as T
+}
+
+export async function sendCommand<T = unknown>(
+  command: string,
+  args?: unknown,
+  options?: { timeout?: number }
+): Promise<T> {
+  // Try daemon first (much faster for sequential commands)
+  if (useDaemon === null) {
+    useDaemon = isDaemonAvailable()
+  }
+
+  if (useDaemon) {
+    try {
+      return await callDaemon<T>(command, args)
+    } catch {
+      // Daemon failed, fall back to direct connection
+      useDaemon = false
+    }
+  }
+
+  return sendCommandDirect<T>(command, args, options)
 }
 
 export async function getStatus(): Promise<{
