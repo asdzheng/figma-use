@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   figma-use analyze colors                  # Colors by frequency
   figma-use analyze colors --show-similar   # Find similar colors to merge
   ```
-  Shows which colors come from variables/styles vs hardcoded.
+  Shows variable names (`$Colors/Neutral/200`). Same hex with different variables shown separately.
 
   **`analyze typography`** — font usage map
   ```bash
