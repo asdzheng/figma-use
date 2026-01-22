@@ -3105,18 +3105,32 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'analyze-colors': {
-      const colors = new Map<string, { count: number; nodes: string[]; isVariable: boolean; isStyle: boolean }>()
+      const colors = new Map<string, { count: number; nodes: string[]; variableName: string | null; isStyle: boolean }>()
+      const variableCache = new Map<string, string>()
 
-      function extractColors(node: SceneNode) {
+      async function getVariableName(varId: string): Promise<string | null> {
+        if (variableCache.has(varId)) return variableCache.get(varId)!
+        try {
+          const variable = await figma.variables.getVariableByIdAsync(varId)
+          const name = variable?.name || null
+          if (name) variableCache.set(varId, name)
+          return name
+        } catch {
+          return null
+        }
+      }
+
+      async function extractColors(node: SceneNode) {
         if ('fills' in node && Array.isArray(node.fills)) {
           for (const fill of node.fills) {
             if (fill.type === 'SOLID' && fill.visible !== false) {
               const hex = rgbToHex(fill.color).toUpperCase()
-              const isVariable = fill.boundVariables?.color !== undefined
-              const entry = colors.get(hex) || { count: 0, nodes: [], isVariable: false, isStyle: false }
+              const varBinding = fill.boundVariables?.color
+              const varName = varBinding ? await getVariableName(varBinding.id) : null
+              const entry = colors.get(hex) || { count: 0, nodes: [], variableName: null, isStyle: false }
               entry.count++
               if (entry.nodes.length < 5) entry.nodes.push(node.id)
-              if (isVariable) entry.isVariable = true
+              if (varName && !entry.variableName) entry.variableName = varName
               colors.set(hex, entry)
             }
           }
@@ -3125,11 +3139,12 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           for (const stroke of node.strokes) {
             if (stroke.type === 'SOLID' && stroke.visible !== false) {
               const hex = rgbToHex(stroke.color).toUpperCase()
-              const isVariable = stroke.boundVariables?.color !== undefined
-              const entry = colors.get(hex) || { count: 0, nodes: [], isVariable: false, isStyle: false }
+              const varBinding = stroke.boundVariables?.color
+              const varName = varBinding ? await getVariableName(varBinding.id) : null
+              const entry = colors.get(hex) || { count: 0, nodes: [], variableName: null, isStyle: false }
               entry.count++
               if (entry.nodes.length < 5) entry.nodes.push(node.id)
-              if (isVariable) entry.isVariable = true
+              if (varName && !entry.variableName) entry.variableName = varName
               colors.set(hex, entry)
             }
           }
@@ -3151,14 +3166,14 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
 
       const nodes = figma.currentPage.findAll()
       for (const node of nodes) {
-        extractColors(node)
+        await extractColors(node)
       }
 
       const result = [...colors.entries()].map(([hex, data]) => ({
         hex,
         count: data.count,
         nodes: data.nodes,
-        isVariable: data.isVariable,
+        variableName: data.variableName,
         isStyle: data.isStyle
       }))
 

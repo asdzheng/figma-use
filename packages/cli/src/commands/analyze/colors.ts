@@ -5,7 +5,7 @@ interface ColorInfo {
   hex: string
   count: number
   nodes: string[]
-  isVariable: boolean
+  variableName: string | null
   isStyle: boolean
 }
 
@@ -98,14 +98,14 @@ export default defineCommand({
     for (const color of sorted) {
       const bar = '█'.repeat(Math.min(Math.ceil(color.count / 10), 30))
       const tags: string[] = []
-      if (color.isVariable) tags.push('var')
-      if (color.isStyle) tags.push('style')
+      if (color.variableName) tags.push(`$${color.variableName}`)
+      else if (color.isStyle) tags.push('style')
       const tagStr = tags.length ? ` (${tags.join(', ')})` : ''
       console.log(`${color.hex}  ${bar} ${color.count}×${tagStr}`)
     }
 
-    const hardcoded = result.colors.filter((c) => !c.isVariable && !c.isStyle)
-    const fromVars = result.colors.filter((c) => c.isVariable)
+    const hardcoded = result.colors.filter((c) => !c.variableName && !c.isStyle)
+    const fromVars = result.colors.filter((c) => c.variableName)
     const fromStyles = result.colors.filter((c) => c.isStyle)
 
     console.log()
