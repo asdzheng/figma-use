@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import * as ts from 'typescript'
 
+import { closeCDP } from '../../cdp.ts'
 import { sendCommand, handleError } from '../../client.ts'
 import { writeFontsCss } from '../../fonts.ts'
 import { ok, fail } from '../../format.ts'
@@ -780,6 +781,7 @@ export default defineCommand({
           `\nExported ${results.length} stories${fontsFile ? ' + fonts.css' : ''}${errors.length ? `, ${errors.length} errors` : ''}`
         )
       }
+      closeCDP()
     } catch (e) {
       handleError(e)
     }
