@@ -3166,6 +3166,7 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
     }
 
     case 'analyze-typography': {
+      // Key includes styleName to separate same font with/without style
       const styles = new Map<string, {
         family: string
         size: number
@@ -3173,8 +3174,22 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         lineHeight: string
         count: number
         nodes: string[]
-        isStyle: boolean
+        styleName: string | null
       }>()
+
+      const styleCache = new Map<string, string>()
+
+      async function getStyleName(styleId: string): Promise<string | null> {
+        if (styleCache.has(styleId)) return styleCache.get(styleId)!
+        try {
+          const style = await figma.getStyleByIdAsync(styleId)
+          const name = style?.name || null
+          if (name) styleCache.set(styleId, name)
+          return name
+        } catch {
+          return null
+        }
+      }
 
       const nodes = figma.currentPage.findAll(n => n.type === 'TEXT') as TextNode[]
 
@@ -3190,8 +3205,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           lh.unit === 'AUTO' ? 'auto' :
           lh.unit === 'PERCENT' ? `${lh.value}%` : `${lh.value}px`
 
-        const key = `${family}|${size}|${weight}|${lineHeight}`
-        const hasStyle = node.textStyleId && typeof node.textStyleId === 'string'
+        const styleId = node.textStyleId && typeof node.textStyleId === 'string' ? node.textStyleId : null
+        const styleName = styleId ? await getStyleName(styleId) : null
+
+        const key = `${family}|${size}|${weight}|${lineHeight}|${styleName || ''}`
 
         const entry = styles.get(key) || {
           family,
@@ -3200,11 +3217,10 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
           lineHeight,
           count: 0,
           nodes: [],
-          isStyle: false
+          styleName
         }
         entry.count++
         if (entry.nodes.length < 5) entry.nodes.push(node.id)
-        if (hasStyle) entry.isStyle = true
         styles.set(key, entry)
       }
 

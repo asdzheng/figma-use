@@ -8,7 +8,7 @@ interface TypographyStyle {
   lineHeight: string
   count: number
   nodes: string[]
-  isStyle: boolean
+  styleName: string | null
 }
 
 export default defineCommand({
@@ -76,14 +76,15 @@ export default defineCommand({
       console.log('Typography styles:\n')
       for (const s of sorted.slice(0, limit)) {
         const bar = '█'.repeat(Math.min(Math.ceil(s.count / 10), 20))
-        const styleTag = s.isStyle ? ' (style)' : ''
-        console.log(`${s.family} ${s.size}px ${s.weight}${styleTag}`)
+        const styleTag = s.styleName ? ` (${s.styleName})` : ''
+        const lh = s.lineHeight !== 'auto' ? ` / ${s.lineHeight}` : ''
+        console.log(`${s.family} ${s.size}px ${s.weight}${lh}${styleTag}`)
         console.log(`    ${bar} ${s.count}×`)
       }
     }
 
-    const withStyle = result.styles.filter((s) => s.isStyle)
-    const withoutStyle = result.styles.filter((s) => !s.isStyle)
+    const withStyle = result.styles.filter((s) => s.styleName)
+    const withoutStyle = result.styles.filter((s) => !s.styleName)
 
     console.log()
     console.log(`${result.styles.length} unique styles from ${result.totalTextNodes} text nodes`)
