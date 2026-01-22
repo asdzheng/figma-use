@@ -1,3 +1,4 @@
+import pc from 'picocolors'
 import type { LintResult, LintMessage, Severity } from '../core/types.ts'
 
 const SEVERITY_ICONS: Record<Severity, string> = {
@@ -7,27 +8,22 @@ const SEVERITY_ICONS: Record<Severity, string> = {
   off: ' ',
 }
 
-const SEVERITY_COLORS: Record<Severity, string> = {
-  error: '\x1b[31m',   // red
-  warning: '\x1b[33m', // yellow
-  info: '\x1b[36m',    // cyan
-  off: '\x1b[90m',     // gray
+const severityColor = (severity: Severity, text: string): string => {
+  switch (severity) {
+    case 'error': return pc.red(text)
+    case 'warning': return pc.yellow(text)
+    case 'info': return pc.cyan(text)
+    default: return pc.dim(text)
+  }
 }
 
-const RESET = '\x1b[0m'
-const BOLD = '\x1b[1m'
-const DIM = '\x1b[2m'
-
 export interface ConsoleReporterOptions {
-  color?: boolean
   verbose?: boolean
 }
 
 export function formatReport(result: LintResult, options: ConsoleReporterOptions = {}): string {
-  const { color = true, verbose = false } = options
+  const { verbose = false } = options
   const lines: string[] = []
-
-  const c = (code: string, text: string) => (color ? `${code}${text}${RESET}` : text)
 
   // Group messages by node
   const byNode = new Map<string, LintMessage[]>()
@@ -46,16 +42,16 @@ export function formatReport(result: LintResult, options: ConsoleReporterOptions
     })
 
     const hasError = messages.some(m => m.severity === 'error')
-    const icon = hasError ? c(SEVERITY_COLORS.error, '✖') : c(SEVERITY_COLORS.warning, '⚠')
-    lines.push(`${icon} ${c(BOLD, nodePath)}`)
+    const icon = hasError ? pc.red('✖') : pc.yellow('⚠')
+    lines.push(`${icon} ${pc.bold(nodePath)}`)
 
     for (const msg of messages) {
-      const sevIcon = c(SEVERITY_COLORS[msg.severity], SEVERITY_ICONS[msg.severity])
-      const ruleId = c(DIM, msg.ruleId)
+      const sevIcon = severityColor(msg.severity, SEVERITY_ICONS[msg.severity])
+      const ruleId = pc.dim(msg.ruleId)
       lines.push(`    ${sevIcon}  ${msg.message}  ${ruleId}`)
 
       if (verbose && msg.suggest) {
-        lines.push(`       ${c(DIM, `→ ${msg.suggest}`)}`)
+        lines.push(`       ${pc.dim(`→ ${msg.suggest}`)}`)
       }
     }
 
@@ -65,13 +61,13 @@ export function formatReport(result: LintResult, options: ConsoleReporterOptions
   // Summary line
   const parts: string[] = []
   if (result.errorCount > 0) {
-    parts.push(c(SEVERITY_COLORS.error, `${result.errorCount} error${result.errorCount !== 1 ? 's' : ''}`))
+    parts.push(pc.red(`${result.errorCount} error${result.errorCount !== 1 ? 's' : ''}`))
   }
   if (result.warningCount > 0) {
-    parts.push(c(SEVERITY_COLORS.warning, `${result.warningCount} warning${result.warningCount !== 1 ? 's' : ''}`))
+    parts.push(pc.yellow(`${result.warningCount} warning${result.warningCount !== 1 ? 's' : ''}`))
   }
   if (result.infoCount > 0) {
-    parts.push(c(SEVERITY_COLORS.info, `${result.infoCount} info`))
+    parts.push(pc.cyan(`${result.infoCount} info`))
   }
 
   if (parts.length > 0) {
@@ -79,10 +75,10 @@ export function formatReport(result: LintResult, options: ConsoleReporterOptions
     lines.push(parts.join('  '))
 
     if (result.fixableCount > 0) {
-      lines.push(c(DIM, `\nRun with --fix to auto-fix ${result.fixableCount} issue${result.fixableCount !== 1 ? 's' : ''}`))
+      lines.push(pc.dim(`\nRun with --fix to auto-fix ${result.fixableCount} issue${result.fixableCount !== 1 ? 's' : ''}`))
     }
   } else {
-    lines.push(c('\x1b[32m', '✔ No issues found'))
+    lines.push(pc.green('✔ No issues found'))
   }
 
   return lines.join('\n')
