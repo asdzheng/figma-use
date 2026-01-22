@@ -161,7 +161,7 @@ Compare two nodes as JSX diff:
 figma-use diff jsx 123:456 789:012
 ```
 
-### Export to Storybook
+### Export to Storybook (Experimental)
 
 Export all components on a page as Storybook stories:
 
@@ -362,7 +362,7 @@ figma-use query "//*[@cornerRadius > 0]"               # Any node with radius
 
 Full XPath 3.1 support — predicates, functions, arithmetic, axes.
 
-### Lint
+### Lint (Experimental)
 
 Check designs for consistency, accessibility, and best practices:
 

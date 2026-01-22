@@ -197,7 +197,7 @@ figma-use component edit-prop <id> --name "Label" --default "Click me"
 figma-use component delete-prop <id> --name "Label"
 ```
 
-## Lint
+## Lint (Experimental)
 
 ```bash
 figma-use lint                             # Lint current page with recommended preset
@@ -226,7 +226,7 @@ figma-use lint --list-rules                # Show all available rules
 
 **Presets:** `recommended`, `strict`, `accessibility`, `design-system`
 
-## Diff (Experimental)
+## Diff
 
 ```bash
 figma-use diff create --from <id1> --to <id2>

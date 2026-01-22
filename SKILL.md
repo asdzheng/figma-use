@@ -131,7 +131,7 @@ Compare two nodes as JSX:
 figma-use diff jsx <from-id> <to-id>
 ```
 
-## Export Storybook
+## Export Storybook (Experimental)
 
 Export all components on current page as Storybook stories:
 
@@ -343,7 +343,7 @@ figma-use viewport zoom-to-fit <id>
 
 Full reference: [REFERENCE.md](https://github.com/dannote/figma-use/blob/master/REFERENCE.md)
 
-## Lint
+## Lint (Experimental)
 
 Check designs for consistency and accessibility issues:
 
