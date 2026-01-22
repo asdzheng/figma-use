@@ -19,6 +19,10 @@ export default defineCommand({
       type: 'string',
       description: 'Node ID to lint (default: current page)',
     },
+    page: {
+      type: 'string',
+      description: 'Page name to lint (partial match supported)',
+    },
     preset: {
       type: 'string',
       description: 'Preset to use: recommended, strict, accessibility, design-system',
@@ -70,9 +74,20 @@ export default defineCommand({
       return
     }
 
+    // Resolve page name to ID if specified
+    let rootId = args.root
+    if (args.page) {
+      const pageId = await sendCommand<string | null>('find-page', { name: args.page })
+      if (!pageId) {
+        console.error(`Page "${args.page}" not found`)
+        process.exit(1)
+      }
+      rootId = pageId
+    }
+
     // Get node tree from Figma (returned as JSON string due to size limits)
     const treeJson = await sendCommand<string>('lint-tree', {
-      rootId: args.root,
+      rootId,
     })
     const tree = JSON.parse(treeJson) as FigmaNode
 

@@ -2834,6 +2834,21 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       return results
     }
 
+    case 'find-page': {
+      const { name } = args as { name: string }
+      const pages = figma.root.children
+      const lowerName = name.toLowerCase()
+      
+      // Exact match first
+      let page = pages.find(p => p.name === name)
+      // Then partial match
+      if (!page) {
+        page = pages.find(p => p.name.toLowerCase().includes(lowerName))
+      }
+      
+      return page?.id ?? null
+    }
+
     case 'lint-tree': {
       const { rootId } = args as { rootId?: string }
       let root: BaseNode
