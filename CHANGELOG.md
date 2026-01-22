@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **TypeScript module not found** — moved `typescript` from devDependencies to dependencies, fixing `ERR_MODULE_NOT_FOUND` error when running via `npx figma-use` or `bunx figma-use` ([#2](https://github.com/dannote/figma-use/issues/2))
+
 ### Added
 
 - **`analyze clusters` command** — find repeated design patterns (potential components)
