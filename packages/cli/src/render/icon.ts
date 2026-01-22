@@ -5,7 +5,7 @@ import { iconToSVG } from '@iconify/utils'
 
 import type { Props, ReactElement } from './tree.ts'
 import type { IconifyIcon } from '@iconify/types'
-import type { ReactNode } from 'react'
+import type { ReactNode } from './mini-react.ts'
 
 // Initialize API module
 setAPIModule('', fetchAPIModule)

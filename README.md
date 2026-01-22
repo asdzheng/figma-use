@@ -362,6 +362,29 @@ figma-use query "//*[@cornerRadius > 0]"               # Any node with radius
 
 Full XPath 3.1 support — predicates, functions, arithmetic, axes.
 
+### Analyze Clusters
+
+Find repeated patterns in a design — potential components that should be extracted:
+
+```bash
+figma-use analyze clusters
+```
+
+Output:
+```
+[0] 48× frame "Header" pattern (100% match)
+    1280×56 | Frame > [Frame×2, Text]
+    examples: 53171:21628, 53171:21704, 53171:21768
+
+[1] 72× frame "LegendItem" pattern (87% match)
+    212×40 (±8px) | Frame > [Icon, Text]
+    examples: 53171:18929, 53171:18971, 53171:19013
+
+12 clusters from 1847 nodes (892 clustered)
+```
+
+Uses fuzzy matching to handle hand-drawn variations. Confidence score shows how consistent the instances are.
+
 ### Lint (Experimental)
 
 Check designs for consistency, accessibility, and best practices:

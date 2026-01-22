@@ -274,6 +274,19 @@ figma-use component edit-prop <id> --name "Label" --default "Click me"
 figma-use component delete-prop <id> --name "Label"
 ```
 
+## Analyze
+
+```bash
+figma-use analyze clusters                 # Find repeated patterns (potential components)
+figma-use analyze clusters --limit 10      # Top 10 clusters
+figma-use analyze clusters --min-count 5   # Require at least 5 instances
+figma-use analyze clusters --min-size 50   # Skip nodes smaller than 50px
+figma-use analyze clusters --json          # JSON output
+```
+
+Output shows pattern signature, instance count, confidence score, and example node IDs.
+Uses fuzzy matching (size buckets) to handle hand-drawn variations.
+
 ## Lint (Experimental)
 
 ```bash

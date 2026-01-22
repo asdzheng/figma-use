@@ -1,4 +1,4 @@
-import WebSocket from 'ws'
+// Use native WebSocket (Node 21+, Bun) - no external dependency
 
 interface CDPTarget {
   webSocketDebuggerUrl: string
@@ -16,7 +16,7 @@ let cachedWs: WebSocket | null = null
 let cachedTarget: CDPTarget | null = null
 let messageId = 0
 let idleTimer: ReturnType<typeof setTimeout> | null = null
-const IDLE_TIMEOUT = 100 // Close connection after 100ms of inactivity
+const IDLE_TIMEOUT = 100
 
 const pendingRequests = new Map<number, PendingRequest>()
 
@@ -26,16 +26,13 @@ async function getCDPTarget(): Promise<CDPTarget> {
   const resp = await fetch('http://localhost:9222/json')
   const targets = (await resp.json()) as CDPTarget[]
 
-  // Prefer design files over FigJam boards
   const figmaTarget =
     targets.find(
       (t) =>
         t.type === 'page' &&
         (t.url.includes('figma.com/design') || t.url.includes('figma.com/file'))
     ) ||
-    targets.find(
-      (t) => t.type === 'page' && t.url.includes('figma.com/board') // FigJam fallback
-    )
+    targets.find((t) => t.type === 'page' && t.url.includes('figma.com/board'))
 
   if (!figmaTarget) {
     throw new Error(
@@ -48,8 +45,8 @@ async function getCDPTarget(): Promise<CDPTarget> {
   return figmaTarget
 }
 
-function handleMessage(data: Buffer): void {
-  const msg = JSON.parse(data.toString())
+function handleMessage(event: MessageEvent): void {
+  const msg = JSON.parse(event.data)
   if (typeof msg.id !== 'number') return
 
   const pending = pendingRequests.get(msg.id)
@@ -74,14 +71,16 @@ async function getWebSocket(): Promise<WebSocket> {
 
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(target.webSocketDebuggerUrl)
-    ws.on('open', () => {
+
+    ws.addEventListener('open', () => {
       cachedWs = ws
-      ws.on('message', handleMessage)
+      ws.addEventListener('message', handleMessage)
       resolve(ws)
     })
-    ws.on('error', reject)
-    ws.on('close', () => {
-      // Reject all pending requests on close
+
+    ws.addEventListener('error', () => reject(new Error('WebSocket connection failed')))
+
+    ws.addEventListener('close', () => {
       for (const [id, pending] of pendingRequests) {
         clearTimeout(pending.timer)
         pending.reject(new Error('WebSocket closed'))
@@ -95,7 +94,7 @@ async function getWebSocket(): Promise<WebSocket> {
 }
 
 function scheduleClose(): void {
-  if (pendingRequests.size > 0) return // Don't close while requests pending
+  if (pendingRequests.size > 0) return
   if (idleTimer) clearTimeout(idleTimer)
   idleTimer = setTimeout(() => {
     closeCDP()

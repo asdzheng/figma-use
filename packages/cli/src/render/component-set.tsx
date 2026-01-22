@@ -32,7 +32,8 @@
  * Discovered through protocol sniffing - see scripts/sniff-ws.ts
  */
 
-import * as React from 'react'
+import * as React from './mini-react.ts'
+import type { FC, ReactElement } from './mini-react.ts'
 
 type VariantDef = Record<string, readonly string[]>
 type VariantProps<V extends VariantDef> = { [K in keyof V]: V[K][number] }
@@ -40,7 +41,7 @@ type VariantProps<V extends VariantDef> = { [K in keyof V]: V[K][number] }
 interface ComponentSetDef<V extends VariantDef> {
   name: string
   variants: V
-  render: (props: VariantProps<V>) => React.ReactElement
+  render: (props: VariantProps<V>) => ReactElement
   symbol: symbol
 }
 
@@ -80,8 +81,8 @@ export function getComponentSetRegistry() {
 export function defineComponentSet<V extends VariantDef>(
   name: string,
   variants: V,
-  render: (props: VariantProps<V>) => React.ReactElement
-): React.FC<Partial<VariantProps<V>> & { style?: Record<string, unknown> }> {
+  render: (props: VariantProps<V>) => ReactElement
+): FC<Partial<VariantProps<V>> & { style?: Record<string, unknown> }> {
   const sym = Symbol(name)
   componentSetRegistry.set(sym, {
     name,
@@ -90,7 +91,7 @@ export function defineComponentSet<V extends VariantDef>(
     symbol: sym
   } as ComponentSetDef<VariantDef>)
 
-  const VariantInstance: React.FC<
+  const VariantInstance: FC<
     Partial<VariantProps<V>> & { style?: Record<string, unknown> }
   > = (props) => {
     const { style, ...variantProps } = props

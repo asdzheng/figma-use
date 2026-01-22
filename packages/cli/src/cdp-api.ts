@@ -1,4 +1,4 @@
-import WebSocket from 'ws'
+// Use native WebSocket (Node 21+, Bun) - no external dependency
 
 interface CDPTarget {
   webSocketDebuggerUrl: string
@@ -36,7 +36,7 @@ async function cdpEval<T>(expression: string): Promise<T> {
       reject(new Error('CDP timeout'))
     }, 10000)
 
-    ws.on('open', () => {
+    ws.addEventListener('open', () => {
       ws.send(
         JSON.stringify({
           id: 1,
@@ -50,8 +50,8 @@ async function cdpEval<T>(expression: string): Promise<T> {
       )
     })
 
-    ws.on('message', (data: Buffer) => {
-      const msg = JSON.parse(data.toString())
+    ws.addEventListener('message', (event: MessageEvent) => {
+      const msg = JSON.parse(event.data)
       if (msg.id === 1) {
         clearTimeout(timeout)
         ws.close()
@@ -64,9 +64,9 @@ async function cdpEval<T>(expression: string): Promise<T> {
       }
     })
 
-    ws.on('error', (err: Error) => {
+    ws.addEventListener('error', () => {
       clearTimeout(timeout)
-      reject(err)
+      reject(new Error('WebSocket error'))
     })
   })
 }
@@ -90,25 +90,12 @@ export interface BrowserComment {
 export async function getCommentsViaBrowser(fileKey?: string): Promise<BrowserComment[]> {
   const key = fileKey || (await getFileKeyFromBrowser())
 
-  // Use CDP to make the fetch from within Figma's page context
-  // This bypasses CORS and uses the session cookies
   const result = await cdpEval<{ comments?: BrowserComment[]; error?: string }>(`
     (async () => {
       try {
-        // Figma's internal comment fetching uses their own transport
-        // Let's try to find it in their app state
-        
-        // First approach: Access Figma's React fiber to find comment data
         const root = document.getElementById('react-page');
         if (!root) return { error: 'No react root' };
-        
-        // Get file key from URL
         const fileKey = '${key}';
-        
-        // Try to access comments through Figma's GraphQL/internal API
-        // Figma uses a custom WebSocket protocol for most data
-        
-        // For now, return empty - we need to investigate the internal data store
         return { comments: [], note: 'Browser API access requires further investigation' };
       } catch (e) {
         return { error: e.message };
@@ -293,9 +280,6 @@ export async function getVersions(fileKey?: string, limit = 20): Promise<Version
   if (result.error) throw new Error('Failed to fetch versions')
   return result.meta?.versions || []
 }
-
-// Webpack internals access via CDP
-// Uses stable string signatures to find modules (survives minification changes)
 
 const WEBPACK_INIT = `
 if (!window.__webpackRequire__) {

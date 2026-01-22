@@ -1,5 +1,5 @@
 import { transformSync } from 'esbuild'
-import * as React from 'react'
+import * as React from './mini-react.ts'
 
 import { sendCommand } from '../client.ts'
 import { loadVariablesIntoRegistry, isRegistryLoaded, preloadIcons, collectIcons } from './index.ts'

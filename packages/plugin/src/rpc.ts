@@ -3011,6 +3011,99 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       })))
     }
 
+    case 'analyze-clusters': {
+      const { minSize = 30, minCount = 2, limit = 20 } = args as {
+        minSize?: number
+        minCount?: number
+        limit?: number
+      }
+
+      const SIZE_BUCKETS = [16, 24, 32, 40, 48, 64, 80, 100, 120, 150, 200, 250, 300, 400, 500, 800, 1000, 1280, 1920]
+
+      function toBucket(val: number): number {
+        return SIZE_BUCKETS.reduce((prev, curr) =>
+          Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
+        )
+      }
+
+      function getSignature(node: SceneNode): string {
+        const wBucket = toBucket(node.width)
+        const hBucket = toBucket(node.height)
+
+        const childTypes = new Map<string, number>()
+        if ('children' in node) {
+          for (const child of node.children) {
+            const t = child.type === 'INSTANCE' ? 'COMPONENT' : child.type
+            childTypes.set(t, (childTypes.get(t) || 0) + 1)
+          }
+        }
+
+        const childSig = [...childTypes.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([t, n]) => `${t}:${n}`)
+          .join(',')
+
+        return childSig ? `${node.type}:${wBucket}x${hBucket}|${childSig}` : `${node.type}:${wBucket}x${hBucket}`
+      }
+
+      const nodes = figma.currentPage.findAll()
+      const clusters = new Map<string, Array<{
+        id: string
+        name: string
+        width: number
+        height: number
+        childCount: number
+        type: string
+      }>>()
+
+      for (const node of nodes) {
+        // Skip instances, vectors, text, lines
+        if (node.type === 'INSTANCE') continue
+        if (node.type === 'VECTOR') continue
+        if (node.type === 'LINE') continue
+        if (node.type === 'BOOLEAN_OPERATION') continue
+        if (node.type === 'TEXT') continue
+        if (node.type === 'ELLIPSE') continue
+        if (node.type === 'RECTANGLE') continue
+        if (node.type === 'POLYGON') continue
+        if (node.type === 'STAR') continue
+
+        // Skip small elements
+        if (node.width < minSize || node.height < minSize) continue
+
+        const sig = getSignature(node)
+        if (!clusters.has(sig)) clusters.set(sig, [])
+        clusters.get(sig)!.push({
+          id: node.id,
+          name: node.name,
+          width: Math.round(node.width),
+          height: Math.round(node.height),
+          childCount: 'children' in node ? node.children.length : 0,
+          type: node.type
+        })
+      }
+
+      // Filter and sort
+      const result = [...clusters.entries()]
+        .filter(([_, nodes]) => nodes.length >= minCount)
+        .sort((a, b) => b[1].length - a[1].length)
+        .slice(0, limit)
+        .map(([signature, nodes]) => {
+          const widths = nodes.map(n => n.width)
+          const heights = nodes.map(n => n.height)
+          return {
+            signature,
+            nodes,
+            avgWidth: widths.reduce((a, b) => a + b, 0) / widths.length,
+            avgHeight: heights.reduce((a, b) => a + b, 0) / heights.length,
+            widthRange: Math.max(...widths) - Math.min(...widths),
+            heightRange: Math.max(...heights) - Math.min(...heights)
+          }
+        })
+
+      return { clusters: result, totalNodes: nodes.length }
+    }
+
     default:
       throw new Error(`Unknown command: ${command}`)
   }

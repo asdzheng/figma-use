@@ -343,6 +343,25 @@ figma-use viewport zoom-to-fit <id>
 
 Full reference: [REFERENCE.md](https://github.com/dannote/figma-use/blob/master/REFERENCE.md)
 
+## Analyze Clusters
+
+Find repeated patterns — potential components to extract:
+
+```bash
+figma-use analyze clusters
+figma-use analyze clusters --limit 10      # Top 10 clusters
+figma-use analyze clusters --min-count 5   # At least 5 instances
+figma-use analyze clusters --json          # Machine-readable
+```
+
+**Use cases:**
+- **Component extraction** — find copy-pasted elements that should be components
+- **Design audit** — identify inconsistencies (similar but not identical elements)
+- **Refactoring** — discover patterns before restructuring a file
+- **Onboarding** — understand structure of unfamiliar design files
+
+Output shows count, structure signature, confidence (100% = identical, lower = variations), and example IDs.
+
 ## Lint (Experimental)
 
 Check designs for consistency and accessibility issues:
@@ -372,7 +391,7 @@ Exit code 1 if errors found — use in CI pipelines.
 
 ## Output
 
-Human-readable by default. Add `--json` for machine parsing.
+Human-readable by default — **prefer this to save tokens**. Use `--json` only when you need to parse specific fields programmatically.
 
 ## Node IDs
 

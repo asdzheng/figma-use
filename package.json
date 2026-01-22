@@ -36,7 +36,8 @@
     "./components": "./packages/cli/src/render/components.tsx"
   },
   "bin": {
-    "figma-use": "bin/figma-use.js"
+    "figma-use": "bin/figma-use.js",
+    "figma-fast": "bin/figma-fast.js"
   },
   "bugs": {
     "url": "https://github.com/dannote/figma-use/issues"
@@ -65,11 +66,13 @@
   "license": "MIT",
   "scripts": {
     "build": "bun run build:cli",
-    "build:cli": "bun build packages/cli/src/index.ts --outdir dist/cli --target node --external esbuild --external typescript --external @modelcontextprotocol/sdk --external oxfmt --external whaticon",
+    "build:cli": "bun build packages/cli/src/index.ts --outdir dist/cli --target node --minify --external esbuild --external typescript --external @modelcontextprotocol/sdk --external oxfmt --external whaticon --external pngjs --external pixelmatch",
     "test": "cd packages/cli && bun test",
     "lint": "oxlint packages/",
     "format": "oxfmt --write packages/",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "build:fast": "bun build packages/cli/src/fast.ts --outfile dist/fast.mjs --target node --minify"
   },
-  "type": "module"
+  "type": "module",
+  "sideEffects": false
 }

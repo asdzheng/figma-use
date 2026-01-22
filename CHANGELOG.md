@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`analyze clusters` command** — find repeated design patterns (potential components)
+  ```bash
+  figma-use analyze clusters                # Find all clusters
+  figma-use analyze clusters --limit 10     # Show top 10
+  figma-use analyze clusters --min-count 5  # Min 5 instances
+  figma-use analyze clusters --min-size 50  # Min 50px nodes
+  figma-use analyze clusters --json         # JSON output
+  ```
+  Uses fuzzy matching with size buckets to handle hand-drawn variations. Shows confidence score (100% = all identical, lower = variations exist).
+
+- **V8 compile cache** — 25% faster startup on repeated runs (Node.js 22+)
+
 - **`lint` command** (experimental) — design linter with 17 rules for consistency, accessibility, and best practices
   ```bash
   figma-use lint                          # Recommended preset

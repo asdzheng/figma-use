@@ -1,4 +1,4 @@
-const CLI = 'bun run src/index.ts'
+const CLI = 'bun ../../dist/cli/index.js'
 const cwd = import.meta.dir + '/..'
 
 export async function run(cmd: string, parseJson: boolean = true): Promise<unknown> {
