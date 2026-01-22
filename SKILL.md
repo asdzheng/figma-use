@@ -349,6 +349,7 @@ Check designs for consistency and accessibility issues:
 
 ```bash
 figma-use lint                          # Recommended preset
+figma-use lint --page "Components"      # Lint specific page
 figma-use lint --preset strict          # Stricter rules
 figma-use lint --preset accessibility   # A11y only (contrast, touch targets)
 figma-use lint --rule color-contrast    # Single rule

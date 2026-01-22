@@ -368,6 +368,7 @@ Check designs for consistency, accessibility, and best practices:
 
 ```bash
 figma-use lint                          # Recommended rules
+figma-use lint --page "Components"      # Lint specific page
 figma-use lint --preset strict          # Stricter for production
 figma-use lint --preset accessibility   # A11y checks only
 figma-use lint -v                       # With fix suggestions

@@ -197,6 +197,35 @@ figma-use component edit-prop <id> --name "Label" --default "Click me"
 figma-use component delete-prop <id> --name "Label"
 ```
 
+## Lint
+
+```bash
+figma-use lint                             # Lint current page with recommended preset
+figma-use lint --page "Components"         # Lint specific page by name
+figma-use lint --root <id>                 # Lint specific node
+figma-use lint --preset strict             # Use strict preset
+figma-use lint --preset accessibility      # A11y rules only
+figma-use lint --preset design-system      # Maximum strictness
+figma-use lint --rule color-contrast       # Run specific rule
+figma-use lint --rule no-groups --rule no-hardcoded-colors  # Multiple rules
+figma-use lint -v                          # Verbose with suggestions
+figma-use lint --json                      # JSON output for CI
+figma-use lint --list-rules                # Show all available rules
+```
+
+**Rules (17 total):**
+
+| Category | Rules |
+|----------|-------|
+| Design Tokens | `no-hardcoded-colors`, `consistent-spacing`, `consistent-radius`, `effect-style-required` |
+| Layout | `prefer-auto-layout`, `pixel-perfect` |
+| Typography | `text-style-required`, `min-text-size`, `no-mixed-styles` |
+| Accessibility | `color-contrast`, `touch-target-size` |
+| Structure | `no-default-names`, `no-hidden-layers`, `no-deeply-nested`, `no-empty-frames`, `no-groups` |
+| Components | `no-detached-instances` |
+
+**Presets:** `recommended`, `strict`, `accessibility`, `design-system`
+
 ## Diff (Experimental)
 
 ```bash
