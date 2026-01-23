@@ -64,9 +64,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```bash
   figma-use comment watch                 # Wait indefinitely
   figma-use comment watch --timeout 60    # Exit after 60s if no comment
-  figma-use comment watch --json          # JSON output for parsing
+  figma-use comment watch --json          # JSON output with target_node
   ```
-  Returns comment text, author, and node context when a new comment arrives.
+  Returns comment text, author, and `target_node` (exact element under the comment pin).
+
+- **`comment resolve`** — mark comment as resolved
+  ```bash
+  figma-use comment resolve <comment-id>
+  ```
 
 ### Removed
 

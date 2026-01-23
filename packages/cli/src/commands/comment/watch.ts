@@ -1,11 +1,44 @@
 import { defineCommand } from 'citty'
 
 import { getComments, type Comment } from '../../cdp-api.ts'
-import { handleError } from '../../client.ts'
+import { handleError, sendCommand } from '../../client.ts'
 import { dim, accent } from '../../format.ts'
 
-function formatComment(c: Comment): string {
-  const node = c.client_meta?.node_id ? dim(` on ${c.client_meta.node_id}`) : ''
+interface TargetNode {
+  id: string
+  name: string
+  type: string
+}
+
+async function findTargetNode(comment: Comment): Promise<TargetNode | null> {
+  const meta = comment.client_meta
+  if (!meta?.node_id) return null
+
+  // Try to find the exact node at comment coordinates
+  if (meta.x !== undefined && meta.y !== undefined) {
+    try {
+      const target = await sendCommand<TargetNode | null>('find-node-at-point', {
+        parentId: meta.node_id,
+        x: meta.x,
+        y: meta.y
+      })
+      if (target) return target
+    } catch {}
+  }
+
+  // Fallback to the frame itself
+  try {
+    const node = await sendCommand<{ id: string; name: string; type: string }>('get-node-info', {
+      id: meta.node_id
+    })
+    if (node) return { id: node.id, name: node.name, type: node.type }
+  } catch {}
+
+  return null
+}
+
+function formatComment(c: Comment, target?: TargetNode | null): string {
+  const node = target ? dim(` on ${target.name} [${target.id}]`) : c.client_meta?.node_id ? dim(` on ${c.client_meta.node_id}`) : ''
   const reply = c.parent_id ? dim(' (reply)') : ''
   const date = new Date(c.created_at).toLocaleDateString()
   return `${accent(c.user.handle)}${reply}${node} ${dim(date)}\n  ${c.message}\n  ${dim(`id: ${c.id}`)}`
@@ -56,11 +89,16 @@ export default defineCommand({
 
         if (newComments.length > 0) {
           const comment = newComments[0]!
+          const target = await findTargetNode(comment)
 
           if (args.json) {
-            console.log(JSON.stringify(comment, null, 2))
+            const result = {
+              ...comment,
+              target_node: target
+            }
+            console.log(JSON.stringify(result, null, 2))
           } else {
-            console.log(formatComment(comment))
+            console.log(formatComment(comment, target))
           }
 
           return

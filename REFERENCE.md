@@ -379,6 +379,7 @@ figma-use comment add "Review this section"
 figma-use comment add "Check alignment" --x 200 --y 100
 figma-use comment add "Reply text" --reply <comment-id>
 figma-use comment delete <id>
+figma-use comment resolve <id>             # Mark comment as resolved
 figma-use comment watch                    # Wait for new comment, exit when received
 figma-use comment watch --timeout 60       # Timeout after 60 seconds
 figma-use comment watch --json             # Output as JSON for automation

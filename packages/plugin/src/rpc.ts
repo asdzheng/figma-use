@@ -2753,6 +2753,66 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
       return { id: node.id, name: node.name }
     }
 
+    // ==================== FIND NODE AT POINT ====================
+    case 'find-node-at-point': {
+      const { parentId, x, y } = args as { parentId: string; x: number; y: number }
+      const parent = await figma.getNodeByIdAsync(parentId)
+      if (!parent || !('children' in parent)) {
+        return null
+      }
+
+      // Get absolute position of parent
+      const parentNode = parent as SceneNode
+      const parentX = 'absoluteTransform' in parentNode ? parentNode.absoluteTransform[0][2] : 0
+      const parentY = 'absoluteTransform' in parentNode ? parentNode.absoluteTransform[1][2] : 0
+
+      // Point in absolute coordinates
+      const absX = parentX + x
+      const absY = parentY + y
+
+      // Find smallest node containing the point (deepest in hierarchy)
+      let bestMatch: SceneNode | null = null
+      let bestArea = Infinity
+
+      const checkNode = (node: SceneNode) => {
+        if (!('absoluteTransform' in node) || !('width' in node) || !('height' in node)) return
+        if ('visible' in node && !node.visible) return
+
+        const nodeX = node.absoluteTransform[0][2]
+        const nodeY = node.absoluteTransform[1][2]
+        const nodeW = node.width
+        const nodeH = node.height
+
+        // Check if point is inside node bounds
+        if (absX >= nodeX && absX <= nodeX + nodeW && absY >= nodeY && absY <= nodeY + nodeH) {
+          const area = nodeW * nodeH
+          if (area < bestArea) {
+            bestArea = area
+            bestMatch = node
+          }
+        }
+
+        // Recurse into children
+        if ('children' in node) {
+          for (const child of (node as ChildrenMixin).children) {
+            checkNode(child as SceneNode)
+          }
+        }
+      }
+
+      for (const child of (parent as ChildrenMixin).children) {
+        checkNode(child as SceneNode)
+      }
+
+      if (!bestMatch) return null
+
+      return {
+        id: bestMatch.id,
+        name: bestMatch.name,
+        type: bestMatch.type
+      }
+    }
+
     // ==================== EVAL ====================
     case 'eval': {
       const { code } = args as { code: string }

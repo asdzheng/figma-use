@@ -257,6 +257,24 @@ export async function deleteComment(commentId: string, fileKey?: string): Promis
   if (result.error) throw new Error('Failed to delete comment')
 }
 
+export async function resolveComment(commentId: string, fileKey?: string): Promise<void> {
+  const key = fileKey || (await getFileKeyFromBrowser())
+
+  const result = await cdpEval<{ error?: boolean }>(`
+    (async () => {
+      const resp = await fetch('https://www.figma.com/api/file/${key}/comments/${commentId}', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolved_at: new Date().toISOString() })
+      });
+      return await resp.json();
+    })()
+  `)
+
+  if (result.error) throw new Error('Failed to resolve comment')
+}
+
 export interface Version {
   id: string
   created_at: string

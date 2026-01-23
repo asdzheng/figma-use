@@ -608,10 +608,11 @@ Output when comment arrives:
 Agent workflow — run once per comment, then restart:
 
 1. `figma-use comment watch --json` — blocks until new comment
-2. Parse the JSON, get `message` and `client_meta.node_id`
+2. Parse the JSON, get `message` and `target_node` (exact element under comment)
 3. Process the request (modify design, etc.)
 4. Reply: `figma-use comment add "Done!" --reply <comment-id>`
-5. Exit. External runner restarts for next comment.
+5. Resolve: `figma-use comment resolve <comment-id>`
+6. Exit. External runner restarts for next comment.
 
 Options:
 - `--timeout 60` — exit after 60s if no comment (returns `{"timeout":true}`)
