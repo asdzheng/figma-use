@@ -1,4 +1,5 @@
 import { defineCommand } from 'citty'
+import { histogram, summary } from 'agentfmt'
 import { sendCommand } from '../../client.ts'
 
 interface TypographyStyle {
@@ -46,10 +47,10 @@ export default defineCommand({
       }
       console.log('Font families:\n')
       const families = [...byFamily.entries()].sort((a, b) => b[1] - a[1])
-      for (const [family, count] of families) {
-        const bar = '█'.repeat(Math.min(Math.ceil(count / 20), 30))
-        console.log(`${family.padEnd(20)} ${bar} ${count}×`)
-      }
+      console.log(histogram(families.map(([family, count]) => ({
+        label: family.padEnd(20),
+        value: count
+      })), { scale: 20 }))
     } else if (groupBy === 'size') {
       const bySize = new Map<number, number>()
       for (const s of sorted) {
@@ -57,10 +58,10 @@ export default defineCommand({
       }
       console.log('Font sizes:\n')
       const sizes = [...bySize.entries()].sort((a, b) => a[0] - b[0])
-      for (const [size, count] of sizes) {
-        const bar = '█'.repeat(Math.min(Math.ceil(count / 20), 30))
-        console.log(`${String(size).padStart(3)}px ${bar} ${count}×`)
-      }
+      console.log(histogram(sizes.map(([size, count]) => ({
+        label: `${String(size).padStart(3)}px`,
+        value: count
+      })), { scale: 20 }))
     } else if (groupBy === 'weight') {
       const byWeight = new Map<string, number>()
       for (const s of sorted) {
@@ -68,26 +69,28 @@ export default defineCommand({
       }
       console.log('Font weights:\n')
       const weights = [...byWeight.entries()].sort((a, b) => b[1] - a[1])
-      for (const [weight, count] of weights) {
-        const bar = '█'.repeat(Math.min(Math.ceil(count / 20), 30))
-        console.log(`${weight.padEnd(12)} ${bar} ${count}×`)
-      }
+      console.log(histogram(weights.map(([weight, count]) => ({
+        label: weight.padEnd(12),
+        value: count
+      })), { scale: 20 }))
     } else {
       console.log('Typography styles:\n')
-      for (const s of sorted.slice(0, limit)) {
-        const bar = '█'.repeat(Math.min(Math.ceil(s.count / 10), 20))
-        const styleTag = s.styleName ? ` (${s.styleName})` : ''
+      const items = sorted.slice(0, limit).map((s) => {
         const lh = s.lineHeight !== 'auto' ? ` / ${s.lineHeight}` : ''
-        console.log(`${s.family} ${s.size}px ${s.weight}${lh}${styleTag}`)
-        console.log(`    ${bar} ${s.count}×`)
-      }
+        return {
+          label: `${s.family} ${s.size}px ${s.weight}${lh}`,
+          value: s.count,
+          tag: s.styleName || undefined
+        }
+      })
+      console.log(histogram(items))
     }
 
     const withStyle = result.styles.filter((s) => s.styleName)
     const withoutStyle = result.styles.filter((s) => !s.styleName)
 
     console.log()
-    console.log(`${result.styles.length} unique styles from ${result.totalTextNodes} text nodes`)
+    console.log(summary({ 'unique styles': result.styles.length }) + ` from ${result.totalTextNodes} text nodes`)
     console.log(`  ${withStyle.length} use text styles, ${withoutStyle.length} hardcoded`)
   },
 })

@@ -1,4 +1,5 @@
 import { defineCommand } from 'citty'
+import { histogram, summary } from 'agentfmt'
 import { sendCommand } from '../../client.ts'
 
 interface SpacingValue {
@@ -33,27 +34,27 @@ export default defineCommand({
 
     if (allGaps.length > 0) {
       console.log('Gap values:\n')
-      for (const g of allGaps.slice(0, 15)) {
-        const bar = '█'.repeat(Math.min(Math.ceil(g.count / 5), 30))
-        const offGrid = g.value % gridSize !== 0 ? ' ⚠' : ''
-        console.log(`${String(g.value).padStart(4)}px ${bar} ${g.count}×${offGrid}`)
-      }
+      console.log(histogram(allGaps.slice(0, 15).map((g) => ({
+        label: `${String(g.value).padStart(4)}px`,
+        value: g.count,
+        suffix: g.value % gridSize !== 0 ? '⚠' : undefined
+      })), { scale: 5 }))
     }
 
     if (allPaddings.length > 0) {
       console.log('\nPadding values:\n')
-      for (const p of allPaddings.slice(0, 15)) {
-        const bar = '█'.repeat(Math.min(Math.ceil(p.count / 5), 30))
-        const offGrid = p.value % gridSize !== 0 ? ' ⚠' : ''
-        console.log(`${String(p.value).padStart(4)}px ${bar} ${p.count}×${offGrid}`)
-      }
+      console.log(histogram(allPaddings.slice(0, 15).map((p) => ({
+        label: `${String(p.value).padStart(4)}px`,
+        value: p.count,
+        suffix: p.value % gridSize !== 0 ? '⚠' : undefined
+      })), { scale: 5 }))
     }
 
     const offGridGaps = allGaps.filter((g) => g.value % gridSize !== 0 && g.value > 0)
     const offGridPaddings = allPaddings.filter((p) => p.value % gridSize !== 0 && p.value > 0)
 
     console.log()
-    console.log(`${allGaps.length} gap values, ${allPaddings.length} padding values`)
+    console.log(summary({ 'gap values': allGaps.length, 'padding values': allPaddings.length }))
 
     if (offGridGaps.length > 0 || offGridPaddings.length > 0) {
       console.log(`\n⚠ Off-grid values (not divisible by ${gridSize}px):`)

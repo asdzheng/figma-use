@@ -1,4 +1,5 @@
 import { defineCommand } from 'citty'
+import { histogram, summary } from 'agentfmt'
 import { sendCommand } from '../../client.ts'
 
 interface ColorInfo {
@@ -95,21 +96,20 @@ export default defineCommand({
 
     console.log('Colors by usage:\n')
 
-    for (const color of sorted) {
-      const bar = '█'.repeat(Math.min(Math.ceil(color.count / 10), 30))
-      const tags: string[] = []
-      if (color.variableName) tags.push(`$${color.variableName}`)
-      else if (color.isStyle) tags.push('style')
-      const tagStr = tags.length ? ` (${tags.join(', ')})` : ''
-      console.log(`${color.hex}  ${bar} ${color.count}×${tagStr}`)
-    }
+    const items = sorted.map((color) => {
+      let tag: string | undefined
+      if (color.variableName) tag = `$${color.variableName}`
+      else if (color.isStyle) tag = 'style'
+      return { label: color.hex, value: color.count, tag }
+    })
+    console.log(histogram(items))
 
     const hardcoded = result.colors.filter((c) => !c.variableName && !c.isStyle)
     const fromVars = result.colors.filter((c) => c.variableName)
     const fromStyles = result.colors.filter((c) => c.isStyle)
 
     console.log()
-    console.log(`${result.colors.length} unique colors from ${result.totalNodes} nodes`)
+    console.log(summary({ 'unique colors': result.colors.length }) + ` from ${result.totalNodes} nodes`)
     console.log(`  ${fromVars.length} from variables, ${fromStyles.length} from styles, ${hardcoded.length} hardcoded`)
 
     if (args['show-similar']) {
