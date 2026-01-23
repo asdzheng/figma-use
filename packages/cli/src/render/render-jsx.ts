@@ -34,7 +34,7 @@ export async function renderJsx(
     } catch {}
   }
 
-  const element = React.createElement(Component)
+  const element = React.createElement(Component, null)
 
   const icons = collectIcons(element)
   if (icons.length > 0) await preloadIcons(icons)

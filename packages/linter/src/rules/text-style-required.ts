@@ -26,10 +26,10 @@ export default defineRule({
     // Optionally allow unstyled text inside components (for dynamic content)
     if (options?.allowInComponents) {
       // Check if any parent is a component
-      let parent = node.parent
+      let parent: { id: string; name: string; type?: string; parent?: { id: string; name: string } } | undefined = node.parent as typeof parent
       while (parent) {
-        if ((parent as { type?: string }).type === 'COMPONENT') return
-        parent = (parent as { parent?: unknown }).parent
+        if (parent.type === 'COMPONENT') return
+        parent = parent.parent as typeof parent
       }
     }
 

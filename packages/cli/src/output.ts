@@ -23,9 +23,9 @@ function formatNode(node: Record<string, unknown>, indent = ''): string {
   const stroke = formatStroke(node.strokes as FigmaNode['strokes'], node.strokeWeight as number)
   if (stroke) details.push(`stroke: ${stroke}`)
 
-  if (node.cornerRadius && node.cornerRadius !== 0) {
+  if (node.cornerRadius && (node.cornerRadius as number) !== 0) {
     let radiusStr = `${node.cornerRadius}px`
-    if (node.cornerSmoothing && node.cornerSmoothing > 0) {
+    if (node.cornerSmoothing && (node.cornerSmoothing as number) > 0) {
       radiusStr += ` (smooth: ${Math.round((node.cornerSmoothing as number) * 100)}%)`
     }
     details.push(`radius: ${radiusStr}`)
@@ -231,7 +231,7 @@ function formatVariable(variable: Record<string, unknown>): string {
   const valuesByMode = variable.valuesByMode as Record<string, unknown>
   if (valuesByMode) {
     const modes = Object.entries(valuesByMode)
-    if (modes.length === 1) {
+    if (modes.length === 1 && modes[0]) {
       lines.push(`  value: ${modes[0][1]}`)
     } else {
       for (const [modeId, value] of modes) {

@@ -17,10 +17,10 @@ export default defineRule({
     const maxDepth = options?.maxDepth ?? 6
 
     let depth = 0
-    let current = node.parent
+    let current: { id: string; name: string; parent?: { id: string; name: string } } | undefined = node.parent as typeof current
     while (current) {
       depth++
-      current = (current as { parent?: unknown }).parent
+      current = current.parent
     }
 
     if (depth > maxDepth) {

@@ -6,7 +6,19 @@ import { getTools, getToolByName } from '../../../../mcp/src/index.ts'
 import { sendCommand } from '../../client.ts'
 import { renderJsx } from '../../render/index.ts'
 
-import type { JSONRPCRequest, JSONRPCResponse } from '@modelcontextprotocol/sdk/types.js'
+interface JSONRPCRequest {
+  jsonrpc: '2.0'
+  id: string | number
+  method: string
+  params?: Record<string, unknown>
+}
+
+interface JSONRPCResponse {
+  jsonrpc: '2.0'
+  id: string | number
+  result?: unknown
+  error?: { code: number; message: string; data?: unknown }
+}
 
 const MCP_VERSION = '2024-11-05'
 const mcpSessions = new Map<string, { initialized: boolean }>()
@@ -65,9 +77,10 @@ async function handleMcpRequest(req: JSONRPCRequest): Promise<JSONRPCResponse> {
 
         // Coerce string args to numbers where schema expects them
         const coercedArgs: Record<string, unknown> = {}
-        if (args && tool.inputSchema.properties) {
+        const properties = tool.inputSchema.properties as Record<string, { type?: string }> | undefined
+        if (args && properties) {
           for (const [key, value] of Object.entries(args)) {
-            const propSchema = tool.inputSchema.properties[key] as { type?: string } | undefined
+            const propSchema = properties[key]
             if (propSchema?.type === 'string' && typeof value === 'string') {
               const parsed = z.coerce.number().safeParse(value)
               coercedArgs[key] = parsed.success ? parsed.data : value

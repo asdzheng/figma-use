@@ -105,7 +105,7 @@ function parseProps(definitions: Record<string, ComponentPropertyDefinition>): P
         options.every((o) => o.toLowerCase() === 'true' || o.toLowerCase() === 'false')
 
       // Auto-rename generic "Property N" to semantic names for booleans
-      let camelName = toCamelCase(name.split('#')[0])
+      let camelName = toCamelCase(name.split('#')[0] || name)
       if (isBoolean && /^property\d*$/i.test(camelName)) {
         camelName = 'checked'
       }
@@ -119,7 +119,7 @@ function parseProps(definitions: Record<string, ComponentPropertyDefinition>): P
       })
     } else if (def.type === 'TEXT') {
       // TEXT properties become string props
-      const baseName = name.split('#')[0]
+      const baseName = name.split('#')[0] || name
       props.push({
         name,
         camelName: toCamelCase(baseName),
@@ -174,14 +174,14 @@ function groupComponents(components: ComponentInfo[]): Map<string, ComponentGrou
     if (comp.componentSetId) {
       groupKey = comp.componentSetId
       const setInfo = componentSets.get(comp.componentSetId)
-      baseName = setInfo?.name || comp.name.split(',')[0].split('=')[0]
+      baseName = setInfo?.name || comp.name.split(',')[0]?.split('=')[0] || comp.name
       isComponentSet = true
       componentSetId = comp.componentSetId
       if (setInfo?.componentPropertyDefinitions) {
         props = parseProps(setInfo.componentPropertyDefinitions)
       }
     } else if (comp.name.includes('/')) {
-      baseName = comp.name.split('/')[0]
+      baseName = comp.name.split('/')[0] || comp.name
       groupKey = `name:${baseName}`
       // Check for TEXT properties on regular components
       if (comp.componentPropertyDefinitions) {
@@ -296,9 +296,9 @@ function generateComponentAST(
   const bodyStatements: ts.Statement[] = []
   const variantProps = props.filter((p) => p.type !== 'text')
 
-  if (variantProps.length === 1 && variantProps[0].type === 'boolean') {
+  if (variantProps.length === 1 && variantProps[0]?.type === 'boolean') {
     // Simple boolean: if (prop) return <true> else return <false>
-    const prop = variantProps[0]
+    const prop = variantProps[0]!
     const trueKey = `${prop.name}=true`
     const falseKey = `${prop.name}=false`
     const trueJsx = variants.get(trueKey)
@@ -318,7 +318,7 @@ function generateComponentAST(
     for (const [key, jsx] of variants) {
       const variantValues = parseVariantName(key)
       const conditions = variantProps.map((p) => {
-        const value = variantValues[p.name]
+        const value = variantValues[p.name] ?? ''
         if (p.type === 'boolean') {
           return value === 'true'
             ? ts.factory.createIdentifier(p.camelName)
@@ -636,7 +636,7 @@ async function exportGroup(
   group: ComponentGroup,
   options: ProcessOptions,
   framework: FrameworkConfig,
-  formatOptions: FormatOptions,
+  formatOptions: Partial<FormatOptions>,
   outDir: string,
   printer: ts.Printer
 ): Promise<ExportResult | ExportError> {
@@ -650,7 +650,7 @@ async function exportGroup(
 
     // Regular components with TEXT props → generate component with text props
     const textProps = props?.filter((p) => p.type === 'text') || []
-    if (textProps.length > 0 && comps.length === 1) {
+    if (textProps.length > 0 && comps.length === 1 && comps[0]) {
       return await exportComponentWithTextProps(
         baseName,
         comps[0],
@@ -698,7 +698,7 @@ async function exportComponentWithTextProps(
   props: PropInfo[],
   options: ProcessOptions,
   framework: FrameworkConfig,
-  formatOptions: FormatOptions,
+  formatOptions: Partial<FormatOptions>,
   outDir: string,
   printer: ts.Printer
 ): Promise<ExportResult | ExportError> {
@@ -922,7 +922,7 @@ async function exportComponentSet(
   props: PropInfo[],
   options: ProcessOptions,
   framework: FrameworkConfig,
-  formatOptions: FormatOptions,
+  formatOptions: Partial<FormatOptions>,
   outDir: string,
   printer: ts.Printer
 ): Promise<ExportResult | ExportError> {
@@ -1017,8 +1017,8 @@ export default defineCommand({
       const config = mergeWithDefaults(fileConfig)
 
       // CLI args override config (explicit args take precedence)
-      const frameworkName = args.framework || config.storybook.framework
-      const framework = FRAMEWORKS[frameworkName]
+      const frameworkName = args.framework || config.storybook.framework || 'react'
+      const framework = FRAMEWORKS[frameworkName as keyof typeof FRAMEWORKS]
       if (!framework) {
         console.error(`Unknown framework: ${frameworkName}. Available: ${Object.keys(FRAMEWORKS).join(', ')}`)
         process.exit(1)
@@ -1040,7 +1040,7 @@ export default defineCommand({
         mkdirSync(outDir, { recursive: true })
       }
 
-      const formatOptions: FormatOptions = {
+      const formatOptions: Partial<FormatOptions> = {
         semi: args.semi ?? config.format.semi,
         singleQuote: args['single-quote'] ?? config.format.singleQuote ?? true,
         tabWidth: args['tab-width'] ? Number(args['tab-width']) : config.format.tabWidth,

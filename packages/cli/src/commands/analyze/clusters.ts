@@ -23,7 +23,7 @@ interface Cluster {
 function calcConfidence(nodes: ClusterNode[]): number {
   if (nodes.length < 2) return 100
 
-  const base = nodes[0]
+  const base = nodes[0]!
   let score = 0
 
   for (const node of nodes.slice(1)) {
@@ -42,12 +42,14 @@ function calcConfidence(nodes: ClusterNode[]): number {
 function formatSignature(sig: string): string {
   // "FRAME:200x40|TEXT:1,FRAME:1" -> "Frame > [Text, Frame]"
   const [typeSize, children] = sig.split('|')
-  const [type] = typeSize.split(':')
+  const type = typeSize?.split(':')[0]
 
+  if (!type) return sig
   if (!children) return type.charAt(0) + type.slice(1).toLowerCase()
 
   const childParts = children.split(',').map((c) => {
     const [t, count] = c.split(':')
+    if (!t) return ''
     const name = t.charAt(0) + t.slice(1).toLowerCase()
     return Number(count) > 1 ? `${name}×${count}` : name
   })
@@ -85,9 +87,9 @@ export default defineCommand({
     }
 
     for (let i = 0; i < result.clusters.length; i++) {
-      const c = result.clusters[i]
+      const c = result.clusters[i]!
       const confidence = calcConfidence(c.nodes)
-      const firstNode = c.nodes[0]
+      const firstNode = c.nodes[0]!
       const typeLower = firstNode.type.toLowerCase()
 
       // Size range

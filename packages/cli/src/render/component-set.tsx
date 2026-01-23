@@ -102,7 +102,7 @@ export function defineComponentSet<V extends VariantDef>(
       style
     })
   }
-  VariantInstance.displayName = name
+  ;(VariantInstance as unknown as { displayName: string }).displayName = name
 
   return VariantInstance
 }

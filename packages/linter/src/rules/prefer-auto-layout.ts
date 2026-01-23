@@ -38,8 +38,8 @@ function checkForOverlaps(
 ): boolean {
   for (let i = 0; i < children.length; i++) {
     for (let j = i + 1; j < children.length; j++) {
-      const a = children[i]
-      const b = children[j]
+      const a = children[i]!
+      const b = children[j]!
 
       if (
         a.x === undefined ||

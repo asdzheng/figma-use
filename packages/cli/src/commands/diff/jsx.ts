@@ -122,7 +122,7 @@ function nodeToJsxAst(node: FigmaNode): ts.JsxChild | null {
   )
 }
 
-async function formatCode(code: string, options: FormatOptions = {}): Promise<string> {
+async function formatCode(code: string, options: Partial<FormatOptions> = {}): Promise<string> {
   try {
     const oxfmt = await import('oxfmt')
     const result = await oxfmt.format('component.tsx', code, {
@@ -131,7 +131,7 @@ async function formatCode(code: string, options: FormatOptions = {}): Promise<st
       tabWidth: options.tabWidth ?? 2,
       useTabs: options.useTabs ?? false,
       trailingComma: options.trailingComma ?? 'es5'
-    })
+    } as FormatOptions)
     return result.code
   } catch (e: unknown) {
     if ((e as NodeJS.ErrnoException).code === 'ERR_MODULE_NOT_FOUND') {
@@ -142,7 +142,7 @@ async function formatCode(code: string, options: FormatOptions = {}): Promise<st
   }
 }
 
-async function nodeToJsx(id: string, formatOptions: FormatOptions = {}): Promise<string> {
+async function nodeToJsx(id: string, formatOptions: Partial<FormatOptions> = {}): Promise<string> {
   const node = await sendCommand<FigmaNode>('get-node-tree', { id })
   if (!node) throw new Error('Node not found')
 
@@ -179,7 +179,7 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
-      const formatOptions: FormatOptions = {
+      const formatOptions: Partial<FormatOptions> = {
         semi: args.semi,
         singleQuote: args['single-quote'] !== false,
         tabWidth: args['tab-width'] ? Number(args['tab-width']) : undefined,

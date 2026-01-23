@@ -19,11 +19,10 @@ export default defineRule({
 
     // Allow hidden layers in components (often used for variants/states)
     if (options?.allowInComponents !== false) {
-      let parent = node.parent
+      let parent: { id: string; name: string; type?: string; parent?: { id: string; name: string } } | undefined = node.parent as typeof parent
       while (parent) {
-        const parentType = (parent as { type?: string }).type
-        if (parentType === 'COMPONENT' || parentType === 'COMPONENT_SET') return
-        parent = (parent as { parent?: unknown }).parent
+        if (parent.type === 'COMPONENT' || parent.type === 'COMPONENT_SET') return
+        parent = parent.parent as typeof parent
       }
     }
 

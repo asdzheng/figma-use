@@ -136,8 +136,9 @@ function svgToJsx(svgString: string): ts.JsxElement | ts.JsxSelfClosingElement |
   let match
   while ((match = attrRegex.exec(attrsStr || '')) !== null) {
     const [, name, value] = match
+    if (!name || !value) continue
     // Convert kebab-case to camelCase for React
-    const jsxName = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+    const jsxName = name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
     // Skip xmlns
     if (jsxName === 'xmlns') continue
     attrs.push(createJsxAttribute(jsxName, strLit(value)))
@@ -148,16 +149,18 @@ function svgToJsx(svgString: string): ts.JsxElement | ts.JsxSelfClosingElement |
   const elementRegex = /<(\w+)([^/>]*)(\/?)>/g
   let elemMatch
   while ((elemMatch = elementRegex.exec(innerContent || '')) !== null) {
-    const [, tagName, elemAttrs, selfClose] = elemMatch
+    const [, tagName, elemAttrs] = elemMatch
+    if (!tagName) continue
     const childAttrs: ts.JsxAttribute[] = []
 
     const childAttrRegex = /(\w+(?:-\w+)*)="([^"]*)"/g
     let childAttrMatch
     while ((childAttrMatch = childAttrRegex.exec(elemAttrs || '')) !== null) {
       const [, attrName, attrValue] = childAttrMatch
+      if (!attrName) continue
       // Convert kebab-case to camelCase
-      const jsxAttrName = attrName.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
-      childAttrs.push(createJsxAttribute(jsxAttrName, strLit(attrValue)))
+      const jsxAttrName = attrName.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
+      childAttrs.push(createJsxAttribute(jsxAttrName, strLit(attrValue ?? '')))
     }
 
     children.push(
@@ -661,7 +664,7 @@ export function toComponentName(name: string): string {
   return result
 }
 
-export async function formatCode(code: string, options: FormatOptions = {}): Promise<string> {
+export async function formatCode(code: string, options: Partial<FormatOptions> = {}): Promise<string> {
   try {
     const oxfmt = await import('oxfmt')
     const result = await oxfmt.format('component.tsx', code, {
@@ -671,7 +674,7 @@ export async function formatCode(code: string, options: FormatOptions = {}): Pro
       useTabs: options.useTabs ?? false,
       trailingComma: options.trailingComma ?? 'es5',
       printWidth: options.printWidth ?? 100
-    })
+    } as FormatOptions)
     let formatted = result.code
     // Add blank lines for better readability
     formatted = formatted.replace(/^(import .+\n)(?!import)/m, '$1\n')

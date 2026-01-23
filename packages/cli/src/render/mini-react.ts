@@ -15,11 +15,12 @@ export function createElement(
   props: Record<string, unknown> | null,
   ...children: ReactNode[]
 ): ReactElement {
+  const flatChildren = children.flat()
   return {
     type,
     props: {
       ...props,
-      children: children.length === 1 ? children[0] : children.length > 0 ? children.flat() : undefined
+      children: flatChildren.length === 1 ? (flatChildren as ReactNode[]) : flatChildren.length > 0 ? flatChildren : undefined
     }
   }
 }

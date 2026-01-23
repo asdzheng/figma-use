@@ -2,9 +2,10 @@ import { readdir, readFile } from 'fs/promises'
 import { join } from 'path'
 import ts from 'typescript'
 
-import type { Tool } from '@modelcontextprotocol/sdk/types.js'
-
-export interface ToolDef extends Tool {
+export interface ToolDef {
+  name: string
+  description: string
+  inputSchema: Record<string, unknown>
   pluginCommand: string
 }
 
