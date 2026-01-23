@@ -167,19 +167,14 @@ figma-use diff jsx 123:456 789:012
 
 ### Export to Storybook (Experimental)
 
-Export all components on a page as Storybook stories:
+Export components as Storybook stories:
 
 ```bash
 figma-use export storybook --out ./stories
 figma-use export storybook --out ./stories --match-icons --prefer-icons lucide
 ```
 
-Generates `.stories.tsx` for each component:
-
-- **ComponentSets** → React component with props + stories with args
-- **VARIANT properties** → Union type props (`variant: 'Primary' | 'Secondary'`)
-- **TEXT properties** → Editable string props (`label: string`)
-- **Grouped by `/`** → Components like `Button/Primary`, `Button/Secondary` become one story file
+Generates `.stories.tsx` with typed props from component properties.
 
 ### Components
 
