@@ -1,6 +1,6 @@
 import { defineCommand } from 'citty'
 
-import { getVersions } from '../../cdp-api.ts'
+import { getVersions } from '../../cdp.ts'
 import { handleError } from '../../client.ts'
 import { dim, accent } from '../../format.ts'
 
