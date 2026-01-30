@@ -49,10 +49,7 @@ export interface Rule {
   check(node: FigmaNode, context: RuleContext): void
 }
 
-export interface NodeRef {
-  id: string
-  name: string
-}
+export type { NodeRef } from '../../../shared/types.ts'
 
 export interface FigmaNode {
   id: string
