@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`arrange` command** — layout nodes on the canvas using grid, row, column, or d3 treemap algorithms
+  - `grid` — auto-calculated columns, respects per-column/row max sizes
+  - `row` / `column` — linear arrangements with configurable gap
+  - `squarify` — smart rectangle packing via d3-hierarchy treemap (golden-ratio aspect)
+  - `binary` — balanced binary tree partitioning via d3-hierarchy
+  - No IDs = arranges all top-level page children (fixes agent "pile of frames at origin" problem)
+
 ## [0.11.0] - 2026-01-23
 
 ### Added
