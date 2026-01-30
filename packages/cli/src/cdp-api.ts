@@ -1,80 +1,4 @@
-// Use native WebSocket (Node 21+, Bun) - no external dependency
-
-interface CDPTarget {
-  webSocketDebuggerUrl: string
-  url: string
-}
-
-async function getCDPTarget(): Promise<CDPTarget> {
-  const resp = await fetch('http://localhost:9222/json')
-  const targets = (await resp.json()) as CDPTarget[]
-
-  const figmaTarget = targets.find(
-    (t) => t.url.includes('figma.com/design') || t.url.includes('figma.com/file')
-  )
-
-  if (!figmaTarget) {
-    throw new Error('No Figma file open. Start Figma with --remote-debugging-port=9222')
-  }
-
-  return figmaTarget
-}
-
-function getFileKeyFromUrl(url: string): string {
-  const match = url.match(/\/(file|design)\/([a-zA-Z0-9]+)/)
-  if (!match?.[2]) throw new Error('Could not extract file key from URL')
-  return match[2]
-}
-
-async function cdpEval<T>(expression: string): Promise<T> {
-  const target = await getCDPTarget()
-
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(target.webSocketDebuggerUrl)
-    const timeout = setTimeout(() => {
-      ws.close()
-      reject(new Error('CDP timeout'))
-    }, 10000)
-
-    ws.addEventListener('open', () => {
-      ws.send(
-        JSON.stringify({
-          id: 1,
-          method: 'Runtime.evaluate',
-          params: {
-            expression,
-            awaitPromise: true,
-            returnByValue: true
-          }
-        })
-      )
-    })
-
-    ws.addEventListener('message', (event: MessageEvent) => {
-      const msg = JSON.parse(event.data)
-      if (msg.id === 1) {
-        clearTimeout(timeout)
-        ws.close()
-
-        if (msg.result?.exceptionDetails) {
-          reject(new Error(msg.result.exceptionDetails.text))
-        } else {
-          resolve(msg.result?.result?.value as T)
-        }
-      }
-    })
-
-    ws.addEventListener('error', () => {
-      clearTimeout(timeout)
-      reject(new Error('WebSocket error'))
-    })
-  })
-}
-
-export async function getFileKeyFromBrowser(): Promise<string> {
-  const target = await getCDPTarget()
-  return getFileKeyFromUrl(target.url)
-}
+import { cdpEval, getFileKey } from './cdp.ts'
 
 export interface BrowserComment {
   id: string
@@ -88,7 +12,7 @@ export interface BrowserComment {
 }
 
 export async function getCommentsViaBrowser(fileKey?: string): Promise<BrowserComment[]> {
-  const key = fileKey || (await getFileKeyFromBrowser())
+  const key = fileKey || (await getFileKey())
 
   const result = await cdpEval<{ comments?: BrowserComment[]; error?: string }>(`
     (async () => {
@@ -123,8 +47,7 @@ export interface FileInfo {
 }
 
 export async function getFileInfoViaBrowser(): Promise<FileInfo> {
-  const target = await getCDPTarget()
-  const key = getFileKeyFromUrl(target.url)
+  const key = await getFileKey()
 
   const name = await cdpEval<string>(
     `document.title.replace(' – Figma', '').replace(' - Figma', '')`
@@ -181,7 +104,7 @@ function mapComment(c: InternalComment): Comment {
 }
 
 export async function getComments(fileKey?: string): Promise<Comment[]> {
-  const key = fileKey || (await getFileKeyFromBrowser())
+  const key = fileKey || (await getFileKey())
 
   const result = await cdpEval<{ meta: InternalComment[]; error?: boolean }>(`
     (async () => {
@@ -206,7 +129,7 @@ export async function postComment(
     replyTo?: string
   }
 ): Promise<Comment> {
-  const key = options?.fileKey || (await getFileKeyFromBrowser())
+  const key = options?.fileKey || (await getFileKey())
   const x = options?.x ?? 100
   const y = options?.y ?? 100
   const nodeId = options?.nodeId || '0:1'
@@ -242,7 +165,7 @@ export async function postComment(
 }
 
 export async function deleteComment(commentId: string, fileKey?: string): Promise<void> {
-  const key = fileKey || (await getFileKeyFromBrowser())
+  const key = fileKey || (await getFileKey())
 
   const result = await cdpEval<{ error?: boolean }>(`
     (async () => {
@@ -258,7 +181,7 @@ export async function deleteComment(commentId: string, fileKey?: string): Promis
 }
 
 export async function resolveComment(commentId: string, fileKey?: string): Promise<void> {
-  const key = fileKey || (await getFileKeyFromBrowser())
+  const key = fileKey || (await getFileKey())
 
   const result = await cdpEval<{ error?: boolean }>(`
     (async () => {
@@ -284,7 +207,7 @@ export interface Version {
 }
 
 export async function getVersions(fileKey?: string, limit = 20): Promise<Version[]> {
-  const key = fileKey || (await getFileKeyFromBrowser())
+  const key = fileKey || (await getFileKey())
 
   const result = await cdpEval<{ meta?: { versions: Version[] }; error?: boolean }>(`
     (async () => {
