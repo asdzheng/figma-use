@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `binary` — balanced binary tree partitioning via d3-hierarchy
   - No IDs = arranges all top-level page children (fixes agent "pile of frames at origin" problem)
 
+### Changed
+
+- **Deduplicated plugin internals** — extracted 19 shared utility functions (serializeNode, color conversion, font loading, etc.) from `rpc.ts` and `main.ts` into `shared.ts` (−316 lines)
+- **Deduplicated CDP layer** — `cdp-api.ts` now reuses the connection-pooled `cdpEval` and `getFileKey` from `cdp.ts` instead of reimplementing its own WebSocket handling (−77 lines)
+- **Deduplicated types** — `NodeRef` extracted to `packages/shared/types.ts`; local `ExportResult` in `diff/visual.ts` replaced with import from `types.ts`; storybook's unrelated `ExportResult` renamed to `StoryExportResult`
+
 ## [0.11.0] - 2026-01-23
 
 ### Added
