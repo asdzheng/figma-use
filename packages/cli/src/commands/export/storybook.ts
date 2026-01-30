@@ -68,7 +68,7 @@ interface ComponentGroup {
   componentSetId?: string
 }
 
-interface ExportResult {
+interface StoryExportResult {
   name: string
   file: string
   variants: number
@@ -669,7 +669,7 @@ async function exportGroup(
   formatOptions: Partial<FormatOptions>,
   outDir: string,
   printer: ts.Printer
-): Promise<ExportResult | ExportError> {
+): Promise<StoryExportResult | ExportError> {
   const { baseName, components: comps, isComponentSet, props } = group
 
   try {
@@ -740,7 +740,7 @@ async function exportComponentWithTextProps(
   formatOptions: Partial<FormatOptions>,
   outDir: string,
   printer: ts.Printer
-): Promise<ExportResult | ExportError> {
+): Promise<StoryExportResult | ExportError> {
   const componentName = toPascalCase(baseName.replace(/\//g, ''))
 
   // Build textPropMap: textPropertyRef → camelName
@@ -984,7 +984,7 @@ async function exportComponentSet(
   formatOptions: Partial<FormatOptions>,
   outDir: string,
   printer: ts.Printer
-): Promise<ExportResult | ExportError> {
+): Promise<StoryExportResult | ExportError> {
   const componentName = toPascalCase(baseName)
   const variantJsxMap = new Map<string, ts.JsxChild>()
   const usedComponents = new Set<string>()
@@ -1059,7 +1059,7 @@ async function exportComponentSet(
   return { name: baseName, file: storiesPath, variants: storyVariants.length }
 }
 
-function isError(result: ExportResult | ExportError): result is ExportError {
+function isError(result: StoryExportResult | ExportError): result is ExportError {
   return 'error' in result
 }
 
@@ -1148,7 +1148,7 @@ export default defineCommand({
       )
 
       const results = allResults.filter(
-        (r): r is ExportResult => !isError(r) && !exportedFiles.has(r.file)
+        (r): r is StoryExportResult => !isError(r) && !exportedFiles.has(r.file)
       )
       const errors = allResults.filter(isError)
 
