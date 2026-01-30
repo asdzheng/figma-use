@@ -1,4 +1,5 @@
 import svgpath from 'svgpath'
+import { hierarchy, treemap, treemapSquarify, treemapBinary } from 'd3-hierarchy'
 
 import { queryNodes } from './query.ts'
 
@@ -4667,6 +4668,114 @@ async function handleCommand(command: string, args?: unknown): Promise<unknown> 
         refs,
         refCount: refCounter
       }
+    }
+
+    // ==================== ARRANGE ====================
+    case 'arrange': {
+      const { ids, mode, gap, cols, width } = args as {
+        ids?: string[]
+        mode: string
+        gap?: number
+        cols?: number
+        width?: number
+      }
+
+      const spacing = gap ?? 40
+
+      let nodes: SceneNode[]
+      if (ids && ids.length > 0) {
+        const fetched = await Promise.all(ids.map((id) => figma.getNodeByIdAsync(id)))
+        nodes = fetched.filter((n): n is SceneNode => n !== null)
+      } else {
+        nodes = [...figma.currentPage.children] as SceneNode[]
+      }
+
+      if (nodes.length === 0) throw new Error('No nodes to arrange')
+
+      const sizes = nodes.map((n) => ({ width: n.width, height: n.height }))
+
+      if (mode === 'row') {
+        let x = 0
+        for (let i = 0; i < nodes.length; i++) {
+          nodes[i]!.x = x
+          nodes[i]!.y = 0
+          x += sizes[i]!.width + spacing
+        }
+      } else if (mode === 'column') {
+        let y = 0
+        for (let i = 0; i < nodes.length; i++) {
+          nodes[i]!.x = 0
+          nodes[i]!.y = y
+          y += sizes[i]!.height + spacing
+        }
+      } else if (mode === 'squarify' || mode === 'binary') {
+        const totalArea = sizes.reduce((sum, s) => sum + s.width * s.height, 0)
+        const boundingWidth = width ?? Math.ceil(Math.sqrt(totalArea) * 1.4)
+
+        const avgAspect =
+          sizes.reduce((sum, s) => sum + s.width / s.height, 0) / sizes.length
+        const boundingHeight = Math.ceil(boundingWidth / avgAspect)
+
+        const root = hierarchy({
+          children: nodes.map((n, i) => ({ index: i, value: sizes[i]!.width * sizes[i]!.height }))
+        })
+          .sum((d: { value?: number }) => d.value ?? 0)
+          .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+
+        const tile = mode === 'binary' ? treemapBinary : treemapSquarify
+        treemap<{ index?: number; value?: number }>()
+          .tile(tile)
+          .size([boundingWidth, boundingHeight])
+          .padding(spacing)(root)
+
+        for (const leaf of root.leaves()) {
+          const idx = leaf.data.index!
+          nodes[idx]!.x = Math.round(leaf.x0)
+          nodes[idx]!.y = Math.round(leaf.y0)
+        }
+      } else {
+        // grid (default)
+        const colCount =
+          cols ?? Math.ceil(Math.sqrt(nodes.length))
+        const colWidths: number[] = []
+        const rowHeights: number[] = []
+        const rowCount = Math.ceil(nodes.length / colCount)
+
+        for (let c = 0; c < colCount; c++) {
+          let maxW = 0
+          for (let r = 0; r < rowCount; r++) {
+            const i = r * colCount + c
+            if (i < nodes.length) maxW = Math.max(maxW, sizes[i]!.width)
+          }
+          colWidths.push(maxW)
+        }
+        for (let r = 0; r < rowCount; r++) {
+          let maxH = 0
+          for (let c = 0; c < colCount; c++) {
+            const i = r * colCount + c
+            if (i < nodes.length) maxH = Math.max(maxH, sizes[i]!.height)
+          }
+          rowHeights.push(maxH)
+        }
+
+        for (let i = 0; i < nodes.length; i++) {
+          const r = Math.floor(i / colCount)
+          const c = i % colCount
+          let x = 0
+          for (let cc = 0; cc < c; cc++) x += colWidths[cc]! + spacing
+          let y = 0
+          for (let rr = 0; rr < r; rr++) y += rowHeights[rr]! + spacing
+          nodes[i]!.x = x
+          nodes[i]!.y = y
+        }
+      }
+
+      return nodes.map((n) => ({
+        id: n.id,
+        name: n.name,
+        x: Math.round(n.x),
+        y: Math.round(n.y)
+      }))
     }
 
     default:
