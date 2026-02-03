@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.2] - 2026-01-29
+
+### Added
+
+- **`arrange` command** — layout nodes on the canvas using grid, row, column, or d3 treemap algorithms
+  - `grid` — auto-calculated columns, respects per-column/row max sizes
+  - `row` / `column` — linear arrangements with configurable gap
+  - `squarify` — smart rectangle packing via d3-hierarchy treemap (golden-ratio aspect)
+  - `binary` — balanced binary tree partitioning via d3-hierarchy
+  - No IDs = arranges all top-level page children (fixes agent "pile of frames at origin" problem)
+
+### Changed
+
+- **Deduplicated plugin internals** — extracted 19 shared utility functions (serializeNode, color conversion, font loading, etc.) from `rpc.ts` and `main.ts` into `shared.ts` (−316 lines)
+- **Merged `cdp-api.ts` into `cdp.ts`** — single CDP module instead of two overlapping files; eliminated duplicate WebSocket handling, target discovery, and file key extraction
+- **Deduplicated types** — `NodeRef` extracted to `packages/shared/types.ts`; local `ExportResult` in `diff/visual.ts` replaced with import from `types.ts`; storybook's unrelated `ExportResult` renamed to `StoryExportResult`
+
 ## [0.11.1] - 2026-01-29
 
 ### Fixed

@@ -266,6 +266,21 @@ figma-use boolean intersect "1:2 1:3"
 figma-use boolean exclude "1:2 1:3"
 ```
 
+## Arrange
+
+```bash
+figma-use arrange                                       # All top-level nodes in grid
+figma-use arrange "1:2 1:3 1:4"                         # Specific nodes
+figma-use arrange --mode row --gap 60                   # Horizontal row
+figma-use arrange --mode column --gap 80                # Vertical stack
+figma-use arrange --mode grid --cols 3 --gap 40         # 3-column grid
+figma-use arrange --mode squarify --gap 60              # Smart packing (d3 treemap)
+figma-use arrange --mode binary --gap 60 --width 5000   # Balanced binary split
+```
+
+Modes: `grid` (default), `row`, `column`, `squarify`, `binary`.
+`squarify` and `binary` use d3-hierarchy treemap for size-aware packing of mixed-dimension frames.
+
 ## Groups
 
 ```bash

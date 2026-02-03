@@ -6,10 +6,7 @@ import { PNG } from 'pngjs'
 import { sendCommand, handleError } from '../../client.ts'
 import { fail } from '../../format.ts'
 
-interface ExportResult {
-  data: string
-  filename: string
-}
+import type { ExportResult } from '../../types.ts'
 
 export default defineCommand({
   meta: { description: 'Create visual diff between two nodes as PNG' },

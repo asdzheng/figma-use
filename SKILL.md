@@ -422,6 +422,7 @@ figma-use set layout <id> --mode GRID --cols "1fr 1fr 1fr" --rows "auto" --gap 1
 figma-use node move <id> --x 100 --y 200
 figma-use node resize <id> --width 300 --height 200
 figma-use node delete <id> [id2...]
+figma-use arrange                              # Tidy up overlapping frames on canvas
 figma-use node to-component <id>
 
 # Export
@@ -535,6 +536,15 @@ figma-use viewport zoom-to-fit <id>
 ```bash
 echo '...' | figma-use render --stdin --x 0 --y 0
 echo '...' | figma-use render --stdin --x 500 --y 0    # Not at same position!
+```
+
+### Arrange after batch creation
+
+After creating multiple frames/sections, run `arrange` to spread them out:
+
+```bash
+figma-use arrange --mode grid --gap 60       # Grid layout (default)
+figma-use arrange --mode squarify --gap 60   # Smart packing for mixed sizes
 ```
 
 ### Copy between pages

@@ -1,6 +1,6 @@
 import { defineCommand } from 'citty'
 
-import { resolveComment } from '../../cdp-api.ts'
+import { resolveComment } from '../../cdp.ts'
 import { handleError } from '../../client.ts'
 import { ok } from '../../format.ts'
 

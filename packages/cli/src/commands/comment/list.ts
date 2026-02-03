@@ -1,6 +1,6 @@
 import { defineCommand } from 'citty'
 
-import { getComments, type Comment } from '../../cdp-api.ts'
+import { getComments, type Comment } from '../../cdp.ts'
 import { handleError } from '../../client.ts'
 import { dim, accent, success } from '../../format.ts'
 

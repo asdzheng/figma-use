@@ -85,10 +85,7 @@ export interface FigmaPage {
   name: string
 }
 
-export interface NodeRef {
-  id: string
-  name: string
-}
+export type { NodeRef } from '../../shared/types.ts'
 
 export interface CreatedNode {
   id: string

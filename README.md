@@ -335,6 +335,18 @@ $ figma-use node tree
 
 Export any node or screenshot with one command.
 
+### Arrange
+
+Tidy up canvas layout — especially useful after agents create multiple frames at the same position:
+
+```bash
+figma-use arrange                              # Grid-arrange all top-level nodes
+figma-use arrange --mode row --gap 60          # Horizontal row
+figma-use arrange --mode squarify --gap 60     # Smart packing for mixed sizes
+```
+
+Uses d3-hierarchy treemap for `squarify` and `binary` modes — size-aware rectangle packing.
+
 ### Vectors
 
 Import SVG or work with paths directly — read, modify, translate, scale, flip:
