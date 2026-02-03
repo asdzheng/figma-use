@@ -1,12 +1,28 @@
 import { defineCommand } from 'citty'
 import { writeFileSync } from 'fs'
-import pixelmatch from 'pixelmatch'
-import { PNG } from 'pngjs'
 
 import { sendCommand, handleError } from '../../client.ts'
-import { fail } from '../../format.ts'
+import { fail, installHint } from '../../format.ts'
 
 import type { ExportResult } from '../../types.ts'
+
+async function loadPngDeps() {
+  try {
+    const [{ PNG }, { default: pixelmatch }] = await Promise.all([
+      import('pngjs'),
+      import('pixelmatch')
+    ])
+    return { PNG, pixelmatch }
+  } catch (e: unknown) {
+    if ((e as NodeJS.ErrnoException).code === 'ERR_MODULE_NOT_FOUND') {
+      console.error(
+        `pngjs and pixelmatch are required for visual diff. Install them:\n\n  ${installHint('pngjs pixelmatch')}\n`
+      )
+      process.exit(1)
+    }
+    throw e
+  }
+}
 
 export default defineCommand({
   meta: { description: 'Create visual diff between two nodes as PNG' },
@@ -19,6 +35,8 @@ export default defineCommand({
   },
   async run({ args }) {
     try {
+      const { PNG, pixelmatch } = await loadPngDeps()
+
       const scale = args.scale ? Number(args.scale) : 1
       const threshold = args.threshold ? Number(args.threshold) : 0.1
 
